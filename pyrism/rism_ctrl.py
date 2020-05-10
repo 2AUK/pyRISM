@@ -8,6 +8,7 @@ import numpy as np
 
 #Solvent Info#
 
+#For now we assume only one solvent is being used within the site_list object
 NSV = 3
 # Site = [Site1, Site2, ... , SiteN]
 # SiteN = [Atomic symbol, eps, sig, charge, rho]
@@ -73,7 +74,31 @@ def RhoMat(site_list: list) -> 'ndarray':
     """
     return np.diag([site[-1] for site in site_list])
 
-def CalcWk(dr: float, dk: float, npts: float, site_list: list, l_vv : 'ndarray') -> 'ndarray':
+def CalcWk(dk: float, npts: float, site_list: list, l_vv : 'ndarray') -> 'ndarray':
+    """
+    Creates a matrix for the intramolecular correlation matrix of a molecule
+
+    Parameters
+    ----------
+
+    dk : float
+        kspace grid spacing parameter to generate full kspace grid
+
+    npts : float
+        number of grid points
+
+    site_list : list
+        A list of lists wherein each list contains information for each site of the
+        molecules.
+
+    l_vv : ndarray
+        Array containing the distance constraints of a molecule
+
+    Returns
+    -------
+    rho_mat : ndarray
+        An array with number densities of each site down the diagonal
+    """
     nsites = len(site_list)
     wk = np.zeros((nsites, nsites, npts), dtype=float)
     for i in range(0, nsites):
@@ -84,10 +109,7 @@ def CalcWk(dr: float, dk: float, npts: float, site_list: list, l_vv : 'ndarray')
                 else:
                     wk[i][j][l] = np.sin(dk * (l+.5) * l_vv[i][j]) / (dk * (l+.5) * l_vv[i][j])
     return wk
-                
-
-
 
 if __name__ == "__main__":
     rismobj = RISM_CONTROLLER(3, 0, 4.0, 20.48)
-    print(CalcWk(rismobj.dr, rismobj.dk, 4, Solvent_Sites, Solvent_Distances))
+    print(CalcWk(rismobj.dk, 4, Solvent_Sites, Solvent_Distances))
