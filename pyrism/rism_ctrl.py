@@ -135,8 +135,14 @@ def calc_urss(d_r: float, npts: float, site_list1: list, site_list2: list) -> 'n
                 if site_list1[i] == site_list2[j]:
                     urss[i][j][l] = compute_LJpot(site_list1[i][1], site_list1[i][2], d_r * (l + .5))
                 else:
-                    continue
+                    eps, sig = mixing_rules(site_list1[i][1], site_list2[j][1], site_list1[i][2], site_list2[j][2])
+                    urss[i][j][l] = compute_LJpot(eps, sig, d_r * (l + .5))
     return urss
+
+def mixing_rules(eps1: float, eps2: float, sig1: float, sig2: float) -> tuple:
+    eps = np.sqrt(eps1*eps2)
+    sig = (sig1 + sig2) / 2.0
+    return eps, sig
 
 
 if __name__ == "__main__":
@@ -152,3 +158,5 @@ if __name__ == "__main__":
     #    print(wk[:, :, l])
     urvv = calc_urss(d_r, npts, Ar_fluid, Ar_fluid)
     print(urvv)
+    wat_urvv = calc_urss(d_r, npts, Solvent_Sites, Solvent_Sites)
+    print(wat_urvv)
