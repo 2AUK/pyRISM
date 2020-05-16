@@ -96,7 +96,7 @@ def calc_wkvv(d_k: float, npts: float, site_list: list, l_vv: 'ndarray') -> 'nda
     Parameters
     ----------
 
-    dk : float
+    d_k : float
         kspace grid spacing parameter to generate full kspace grid
 
     npts : float
@@ -126,6 +126,31 @@ def calc_wkvv(d_k: float, npts: float, site_list: list, l_vv: 'ndarray') -> 'nda
     return wk
 
 def calc_urss(d_r: float, npts: float, site_list1: list, site_list2: list) -> 'ndarray':
+    """
+    Creates a matrix for site-site lennard-jones potential over a grid
+
+    Parameters
+    ----------
+
+    d_r : float
+        rspace grid spacing parameter to generate full rspace grid
+
+    npts : float
+        number of grid points
+
+    site_list1 : list
+        A list of lists wherein each list contains information for each site of the
+        molecules.
+
+    site_list2 : list
+        A list of lists wherein each list contains information for each site of the
+        molecules.
+
+    Returns
+    -------
+    urss : ndarray
+       An array containing information on intermolecular potential of the lists of sites specified
+    """
     ns1 = len(site_list1)
     ns2 = len(site_list2)
     urss = np.zeros((ns1, ns2, int(npts)), dtype=float)
@@ -140,6 +165,31 @@ def calc_urss(d_r: float, npts: float, site_list1: list, site_list2: list) -> 'n
     return urss
 
 def mixing_rules(eps1: float, eps2: float, sig1: float, sig2: float) -> tuple:
+    """
+    Lorentz-Berthelot mixing rules to compute epsilon and sigma parameters of different site types
+
+    Parameters
+    ----------
+
+    eps1 : float
+        epsilon parameter of site 1
+
+    eps2 : float
+        epsilon parameter of site 2
+
+    sig1 : float
+        sigma parameter of site 1
+
+    sig2 : float
+        sigma parameter of site 2
+
+    Returns
+    -------
+    eps : float
+       Mixed epsilon parameter
+    sig : float
+       Mixed sigma parameter
+    """
     eps = np.sqrt(eps1*eps2)
     sig = (sig1 + sig2) / 2.0
     return eps, sig
