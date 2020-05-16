@@ -22,13 +22,14 @@ print(ar_den)
 #Argon fluid. Lennard-Jones parameters from Rahman
 #Number density computed from equation $N = \frac{\N_A}{M}\rho$ where \rho is the mass density (1.384 g/cm^3)
 Ar_fluid = [["Ar", (120.0/1000.0)*k_b*N_A, 3.4, 0, ar_den]]
+print((120.0/1000.0)*k_b*N_A)
 
 Ar_dist = np.asarray([0.00])
 
 
-Solvent_Sites = [["O", 1.08E-21, 3.166, -0.82, 0.3334],
-                 ["H", 3.79E-22, 1.0, 0.41, 0.3334],
-                 ["H", 3.79E-22, 1.0, 0.41, 0.3334]]
+Solvent_Sites = [["O", (1.08E-21/1000.0)*N_A, 3.166, -0.82, 0.3334],
+                 ["H", (3.79E-22/1000.0)*N_A, 1.0, 0.41, 0.3334],
+                 ["H", (3.79E-22/1000.0)*N_A, 1.0, 0.41, 0.3334]]
 
 Solvent_Distances = np.asarray([[0.0, 1.0, 1.0],
                                 [1.0, 1.633, 1.633],
@@ -124,14 +125,30 @@ def calc_wkvv(d_k: float, npts: float, site_list: list, l_vv: 'ndarray') -> 'nda
                     wk[i][j][l] = np.sin(d_k * (l+.5) * l_vv[i][j]) / (d_k * (l+.5) * l_vv[i][j])
     return wk
 
+def calc_urss(d_r: float, npts: float, site_list1: list, site_list2: list) -> 'ndarray':
+    ns1 = len(site_list1)
+    ns2 = len(site_list2)
+    urss = np.zeros((ns1, ns2, int(npts)), dtype=float)
+    for i in np.arange(0, ns1):
+        for j in np.arange(0, ns2):
+            for l in np.arange(0, int(npts)):
+                if site_list1[i] == site_list2[j]:
+                    urss[i][j][l] = compute_LJpot(site_list1[i][1], site_list1[i][2], d_r * (l + .5))
+                else:
+                    continue
+    return urss
+
+
 if __name__ == "__main__":
     print("Hello, RISM!")
-    npts = 1024.0
+    npts = 128.0
     radius = 20.0
     d_r = radius / npts
     d_k = (2*np.pi / (2*npts*d_r))
     nsites = len(Solvent_Sites)
     wk = calc_wkvv(d_k, npts, Ar_fluid, Ar_dist)
     print(wk)
-    for l in np.arange(0, int(npts)):
-        print(wk[:, :, l])
+    #for l in np.arange(0, int(npts)):
+    #    print(wk[:, :, l])
+    urvv = calc_urss(d_r, npts, Ar_fluid, Ar_fluid)
+    print(urvv)
