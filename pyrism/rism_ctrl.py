@@ -10,11 +10,25 @@ import numpy as np
 
 #For now we assume only one solvent is being used within the site_list object
 NSV = 3
+k_b = 1.380649E-23
+N_A = 6.02214086E23
+cmtoA = 1.0E-24
+dmtoA = 1.0E-27
+mtoA = 1.0E-30
+ar_den = (N_A/39.948) * cmtoA * 1.394
+print(ar_den)
 # Site = [Site1, Site2, ... , SiteN]
 # SiteN = [Atomic symbol, eps, sig, charge, rho]
-Solvent_Sites = [["O", 1.08E-21, 3.166, -0.82, 0.3334], 
-                ["H", 3.79E-22, 1.0, 0.41, 0.3334], 
-                ["H", 3.79E-22, 1.0, 0.41, 0.3334]]
+#Argon fluid. Lennard-Jones parameters from Rahman
+#Number density computed from equation $N = \frac{\N_A}{M}\rho$ where \rho is the mass density (1.384 g/cm^3)
+Ar_fluid = [["Ar", (120.0/1000.0)*k_b*N_A, 3.4, 0, ar_den]]
+
+Ar_dist = np.asarray([0.00])
+
+
+Solvent_Sites = [["O", 1.08E-21, 3.166, -0.82, 0.3334],
+                 ["H", 3.79E-22, 1.0, 0.41, 0.3334],
+                 ["H", 3.79E-22, 1.0, 0.41, 0.3334]]
 
 Solvent_Distances = np.asarray([[0.0, 1.0, 1.0],
                                 [1.0, 1.633, 1.633],
@@ -24,17 +38,17 @@ Solvent_Distances = np.asarray([[0.0, 1.0, 1.0],
 
 Solute_Sites = [] #Nothing for now
 
-class RISM_CONTROLLER(object):
-    
+class RismController:
+
     def __init__(self, nsv: int, nsu: int, npts: float, radius: float):
         self.nsu = nsu
         self.nsv = nsv
         self.npts = npts
-        self.dr = (radius / (npts))
-        self.dk = (2*np.pi / (2*self.npts*self.dr))
+        self.d_r = (radius / (npts))
+        self.d_k = (2*np.pi / (2*self.npts*self.d_r))
         self.radius = radius
 
-def computeLJpot(eps: float, sig: float, r: float) -> float:
+def compute_LJpot(eps: float, sig: float, r: float) -> float:
     """
     Computes the Lennard-Jones potential
 
@@ -56,7 +70,7 @@ def computeLJpot(eps: float, sig: float, r: float) -> float:
     """
     return 4.0 * eps * ((sig/r)**12 - (sig/r)**6)
 
-def RhoMat(site_list: list) -> 'ndarray':
+def rho_mat(site_list: list) -> 'ndarray':
     """
     Creates a matrix for the number density of a set of sites for molecules
 
@@ -74,7 +88,7 @@ def RhoMat(site_list: list) -> 'ndarray':
     """
     return np.diag([site[-1] for site in site_list])
 
-def CalcWk(dk: float, npts: float, site_list: list, l_vv : 'ndarray') -> 'ndarray':
+def calc_wkvv(d_k: float, npts: float, site_list: list, l_vv: 'ndarray') -> 'ndarray':
     """
     Creates a matrix for the intramolecular correlation matrix of a molecule
 
@@ -96,20 +110,28 @@ def CalcWk(dk: float, npts: float, site_list: list, l_vv : 'ndarray') -> 'ndarra
 
     Returns
     -------
-    rho_mat : ndarray
-        An array with number densities of each site down the diagonal
+    wkvv : ndarray
+       An array containing information on intramolecular correlation
     """
     nsites = len(site_list)
-    wk = np.zeros((nsites, nsites, npts), dtype=float)
+    wk = np.zeros((nsites, nsites, int(npts)), dtype=float)
     for i in range(0, nsites):
         for j in range(0, nsites):
-            for l in range(0, npts):
-                if (i == j):
+            for l in range(0, int(npts)):
+                if i == j:
                     wk[i][j][l] = 1.0
                 else:
-                    wk[i][j][l] = np.sin(dk * (l+.5) * l_vv[i][j]) / (dk * (l+.5) * l_vv[i][j])
+                    wk[i][j][l] = np.sin(d_k * (l+.5) * l_vv[i][j]) / (d_k * (l+.5) * l_vv[i][j])
     return wk
 
 if __name__ == "__main__":
-    rismobj = RISM_CONTROLLER(3, 0, 4.0, 20.48)
-    print(CalcWk(rismobj.dk, 4, Solvent_Sites, Solvent_Distances))
+    print("Hello, RISM!")
+    npts = 1024.0
+    radius = 20.0
+    d_r = radius / npts
+    d_k = (2*np.pi / (2*npts*d_r))
+    nsites = len(Solvent_Sites)
+    wk = calc_wkvv(d_k, npts, Ar_fluid, Ar_dist)
+    print(wk)
+    for l in np.arange(0, int(npts)):
+        print(wk[:, :, l])
