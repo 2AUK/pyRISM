@@ -5,6 +5,7 @@ A pedagogical implementation of the RISM equations
 Handles the primary functions
 """
 import numpy as np
+from scipy.fftpack import dst, idst
 
 #Solvent Info#
 
@@ -210,12 +211,16 @@ def long_range(d_r: float, npts: float, sig_par: float, site_list1: list, site_l
                 clr[i][j][l] = site_list1[i][3] * site_list2[j][3] * beta * ( (1 - np.exp(-sig_par*r)) / r)
     return clr
 
-def ornstein_zernike(npts: float, site_list: list, rho: 'ndarray', wkss: 'ndarray', cr: 'ndarray') -> 'ndarray':
+def ornstein_zernike(d_r: float, d_k: float, npts: float, site_list: list, rho: 'ndarray', wkss: 'ndarray', cr: 'ndarray') -> 'ndarray':
     ns = len(site_list)
     I = np.identity(ns)
     h = np.zeros((ns, ns, int(npts)), dtype=float)
-    ck = np.fft.rfft(cr, n=(npts*2)-1).astype(float)
-    print(I.shape, h.shape, cr.shape, ck.shape, wkss.shape, rho.shape)
+    ck = np.zeros((ns, ns, int(npts)))
+    k = np.zeros(int(npts))
+    for i in np.arange(0, int(npts)):
+        k[i] = (i + .5) * d_k
+    for i, j in np.ndindex(ns, ns):
+        ck[i, j] = dst(cr[i, j], type=1) * np.pi * 2 * d_r / k
     for l in np.arange(0, int(npts)):
         h[:, :, l] = np.linalg.inv(I - wkss[:, :, l]@ck[:, :, l]@rho)@wkss[:, :, l]@ck[:, :, l]@wkss[:, :, l]
     return np.fft.irfft(h - ck)
@@ -230,15 +235,9 @@ if __name__ == "__main__":
     d_k = (2*np.pi / (2*npts*d_r))
     nsites = len(Solvent_Sites)
     wk = calc_wkvv(d_k, npts, Solvent_Sites, Solvent_Distances)
-    print(wk)
     #for l in np.arange(0, int(npts)):
     #    print(wk[:, :, l])
     urvv = calc_urss(d_r, npts, Ar_fluid, Ar_fluid)
-    print(urvv)
     wat_urvv = calc_urss(d_r, npts, Solvent_Sites, Solvent_Sites)
-    for l in np.arange(0, int(npts)):
-        print(wat_urvv[:, :, l])
     cr = np.zeros((nsites, nsites, int(npts)), dtype=float)
-    print(np.fft.rfft(cr))
-    print(long_range(d_r, npts, 1.0, Solvent_Sites, Solvent_Sites))
-    print(ornstein_zernike(npts, Solvent_Sites, rho_mat(Solvent_Sites), wk, cr))
+    print(ornstein_zernike(d_r, d_k, npts, Solvent_Sites, rho_mat(Solvent_Sites), wk, cr))
