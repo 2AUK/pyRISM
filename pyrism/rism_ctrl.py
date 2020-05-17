@@ -16,6 +16,8 @@ cmtoA = 1.0E-24
 dmtoA = 1.0E-27
 mtoA = 1.0E-30
 ar_den = (N_A/39.948) * cmtoA * 1.394
+Temp = 298.0
+beta = (1.0 / (k_b * Temp))
 print(ar_den)
 # Site = [Site1, Site2, ... , SiteN]
 # SiteN = [Atomic symbol, eps, sig, charge, rho]
@@ -194,6 +196,22 @@ def mixing_rules(eps1: float, eps2: float, sig1: float, sig2: float) -> tuple:
     sig = (sig1 + sig2) / 2.0
     return eps, sig
 
+def hnc_closure(urss: 'ndarray', trss: 'ndarray') -> 'ndarray':
+    return np.exp(urss + trss) - trss - 1.0
+
+def long_range(d_r: float, npts: float, sig_par: float, site_list1: list, site_list2: list) -> 'ndarray':
+    ns1 = len(site_list1)
+    ns2 = len(site_list2)
+    clr = np.zeros((ns1, ns2, int(npts)), dtype=float)
+    for i in np.arange(0, ns1):
+        for j in np.arange(0, ns2):
+            for l in np.arange(0, int(npts)):
+                r = d_r * (l + .5)
+                clr[i][j][l] = site_list1[i][3] * site_list2[j][3] * beta * ( (1 - np.exp(-sig_par*r)) / r)
+    return clr
+
+def step_picard():
+    pass
 
 if __name__ == "__main__":
     print("Hello, RISM!")
@@ -209,4 +227,8 @@ if __name__ == "__main__":
     urvv = calc_urss(d_r, npts, Ar_fluid, Ar_fluid)
     print(urvv)
     wat_urvv = calc_urss(d_r, npts, Solvent_Sites, Solvent_Sites)
-    print(wat_urvv)
+    for l in np.arange(0, int(npts)):
+        print(wat_urvv[:, :, l])
+    cr = np.zeros((nsites, nsites, int(npts)), dtype=float)
+    print(np.fft.rfft(cr))
+    print(long_range(d_r, npts, 1.0, Solvent_Sites, Solvent_Sites))
