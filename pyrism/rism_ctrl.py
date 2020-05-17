@@ -217,15 +217,15 @@ def ornstein_zernike(d_r: float, d_k: float, npts: float, site_list: list, rho: 
     h = np.zeros((ns, ns, int(npts)), dtype=float)
     ck = np.zeros((ns, ns, int(npts)))
     k = np.zeros(int(npts))
+    r = np.zeros(int(npts))
     for i in np.arange(0, int(npts)):
         k[i] = (i + .5) * d_k
+        r[i] = (i + .5) * d_r
     for i, j in np.ndindex(ns, ns):
         ck[i, j] = dst(cr[i, j], type=1) * np.pi * 2 * d_r / k
     for l in np.arange(0, int(npts)):
         h[:, :, l] = np.linalg.inv(I - wkss[:, :, l]@ck[:, :, l]@rho)@wkss[:, :, l]@ck[:, :, l]@wkss[:, :, l]
-    return np.fft.irfft(h - ck)
-
-    
+    return idst(h - ck, type=1) * d_k / (4*np.pi*np.pi) / r
 
 if __name__ == "__main__":
     print("Hello, RISM!")
