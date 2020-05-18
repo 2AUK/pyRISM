@@ -198,7 +198,7 @@ def mixing_rules(eps1: float, eps2: float, sig1: float, sig2: float) -> tuple:
     return eps, sig
 
 def hnc_closure(urss: 'ndarray', trss: 'ndarray') -> 'ndarray':
-    return np.exp(urss + trss) - trss - 1.0
+    return np.exp(-urss/beta + trss) - trss - 1.0
 
 def long_range(d_r: float, npts: float, sig_par: float, site_list1: list, site_list2: list) -> 'ndarray':
     ns1 = len(site_list1)
@@ -222,10 +222,10 @@ def ornstein_zernike(d_r: float, d_k: float, npts: float, site_list: list, rho: 
         k[i] = (i + .5) * d_k
         r[i] = (i + .5) * d_r
     for i, j in np.ndindex(ns, ns):
-        ck[i, j] = dst(cr[i, j], type=1) * np.pi * 2 * d_r / k
+        ck[i, j] = dst(cr[i, j] * r, type=1) * np.pi * 2 * d_r / k
     for l in np.arange(0, int(npts)):
         h[:, :, l] = np.linalg.inv(I - wkss[:, :, l]@ck[:, :, l]@rho)@wkss[:, :, l]@ck[:, :, l]@wkss[:, :, l]
-    return idst(h - ck, type=1) * d_k / (4*np.pi*np.pi) / r
+    return idst((h - ck) * k, type=1) * d_k / (4*np.pi*np.pi) / r
 
 if __name__ == "__main__":
     print("Hello, RISM!")
@@ -234,10 +234,15 @@ if __name__ == "__main__":
     d_r = radius / npts
     d_k = (2*np.pi / (2*npts*d_r))
     nsites = len(Solvent_Sites)
+    narsites = len(Ar_fluid)
     wk = calc_wkvv(d_k, npts, Solvent_Sites, Solvent_Distances)
     #for l in np.arange(0, int(npts)):
     #    print(wk[:, :, l])
+    arwk = calc_wkvv(d_k, npts, Ar_fluid, Ar_dist)
     urvv = calc_urss(d_r, npts, Ar_fluid, Ar_fluid)
     wat_urvv = calc_urss(d_r, npts, Solvent_Sites, Solvent_Sites)
-    cr = np.zeros((nsites, nsites, int(npts)), dtype=float)
-    print(ornstein_zernike(d_r, d_k, npts, Solvent_Sites, rho_mat(Solvent_Sites), wk, cr))
+    cr = np.zeros((narsites, narsites, int(npts)), dtype=float)
+    tr = ornstein_zernike(d_r, d_k, npts, Ar_fluid, rho_mat(Ar_fluid), arwk, cr)
+    print(tr)
+    ulr = long_range(d_r, npts, 1.0, Ar_fluid, Ar_fluid)
+    print(hnc_closure(urvv+ulr, tr))
