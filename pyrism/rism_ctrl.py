@@ -6,6 +6,8 @@ Handles the primary functions
 """
 import numpy as np
 from scipy.fftpack import dst, idst
+from scipy.special import erf
+import matplotlib.pyplot as plt
 
 #Solvent Info#
 
@@ -17,8 +19,9 @@ cmtoA = 1.0E-24
 dmtoA = 1.0E-27
 mtoA = 1.0E-30
 ar_den = (N_A/39.948) * cmtoA * 1.394
-Temp = 298.0
-beta = (1.0 / (k_b * Temp))
+Temp = 298.15
+beta = (1.0 / (k_b/1000 * Temp))
+kT = 1 * Temp
 print(ar_den)
 # Site = [Site1, Site2, ... , SiteN]
 # SiteN = [Atomic symbol, eps, sig, charge, rho]
@@ -35,8 +38,8 @@ Solvent_Sites = [["O", (1.08E-21/1000.0)*N_A, 3.166, -0.82, 0.3334],
                  ["H", (3.79E-22/1000.0)*N_A, 1.0, 0.41, 0.3334]]
 
 Solvent_Distances = np.asarray([[0.0, 1.0, 1.0],
-                                [1.0, 1.633, 1.633],
-                                [1.0, 1.633, 1.633]])
+                                [1.0, 0.0, 1.633],
+                                [1.0, 1.633, 0.0]])
 
 #Solute Info#
 
@@ -198,7 +201,7 @@ def mixing_rules(eps1: float, eps2: float, sig1: float, sig2: float) -> tuple:
     return eps, sig
 
 def hnc_closure(urss: 'ndarray', trss: 'ndarray') -> 'ndarray':
-    return np.exp(-urss/beta + trss) - trss - 1.0
+    return np.exp(-urss*beta  + trss) - trss - 1
 
 def long_range(d_r: float, npts: float, sig_par: float, site_list1: list, site_list2: list) -> 'ndarray':
     ns1 = len(site_list1)
@@ -218,6 +221,7 @@ def ornstein_zernike(d_r: float, d_k: float, npts: float, site_list: list, rho: 
     ck = np.zeros((ns, ns, int(npts)))
     k = np.zeros(int(npts))
     r = np.zeros(int(npts))
+    tr = np.zeros((ns, ns, int(npts)))
     for i in np.arange(0, int(npts)):
         k[i] = (i + .5) * d_k
         r[i] = (i + .5) * d_r
@@ -225,24 +229,61 @@ def ornstein_zernike(d_r: float, d_k: float, npts: float, site_list: list, rho: 
         ck[i, j] = dst(cr[i, j] * r, type=1) * np.pi * 2 * d_r / k
     for l in np.arange(0, int(npts)):
         h[:, :, l] = np.linalg.inv(I - wkss[:, :, l]@ck[:, :, l]@rho)@wkss[:, :, l]@ck[:, :, l]@wkss[:, :, l]
-    return idst((h - ck) * k, type=1) * d_k / (4*np.pi*np.pi) / r
+    for i, j in np.ndindex(ns, ns):
+        tr[i, j] = idst((h[i, j] - ck[i, j]) * k, type=1) * d_k / (4*np.pi*np.pi) / r
+
+    return tr
+
+def init_tr(d_r: float, npts: float, sig_par: float, site_list1: list, site_list2: list) -> 'ndarray':
+    ns1 = len(site_list1)
+    ns2 = len(site_list2)
+    tr = np.zeros((ns1, ns2, int(npts)), dtype=float)
+    for i in np.arange(0, ns1):
+        for j in np.arange(0, ns2):
+            for l in np.arange(0, int(npts)):
+                r = d_r * (l + .5)
+                tr[i][j][l] = site_list1[i][3] * site_list2[j][3] * beta * ( (erf(sig_par*r)) / r)
+    return tr
 
 if __name__ == "__main__":
     print("Hello, RISM!")
-    npts = 1024.0
-    radius = 20.0
+    npts = 10.0
+    radius = 20.48
+    iterval = 110
+    tol = 1E-7
     d_r = radius / npts
     d_k = (2*np.pi / (2*npts*d_r))
     nsites = len(Solvent_Sites)
     narsites = len(Ar_fluid)
-    wk = calc_wkvv(d_k, npts, Solvent_Sites, Solvent_Distances)
-    #for l in np.arange(0, int(npts)):
-    #    print(wk[:, :, l])
     arwk = calc_wkvv(d_k, npts, Ar_fluid, Ar_dist)
     urvv = calc_urss(d_r, npts, Ar_fluid, Ar_fluid)
-    wat_urvv = calc_urss(d_r, npts, Solvent_Sites, Solvent_Sites)
     cr = np.zeros((narsites, narsites, int(npts)), dtype=float)
-    tr = ornstein_zernike(d_r, d_k, npts, Ar_fluid, rho_mat(Ar_fluid), arwk, cr)
-    print(tr)
-    ulr = long_range(d_r, npts, 1.0, Ar_fluid, Ar_fluid)
-    print(hnc_closure(urvv+ulr, tr))
+    tr = init_tr(d_r, npts, 1.0, Ar_fluid, Ar_fluid)
+    clr = long_range(d_r, npts, 1.0, Ar_fluid, Ar_fluid)
+    damp = 0.215
+    i = 0
+    print(arwk)
+    print(urvv)
+    print(urvv*beta)
+    print(np.exp(-urvv))
+    print(np.exp(-urvv*beta))
+    while i < iterval:
+        print("Iteration: ", i)
+        tr_old = tr
+        cr = hnc_closure(urvv, tr)
+        tr2 = ornstein_zernike(d_r, d_k, npts, Ar_fluid, rho_mat(Ar_fluid), arwk, cr)
+        tr_new = (1-damp)*tr_old + damp*tr2
+        tr = tr_new
+        print(cr)
+        i+=1
+    tr += clr
+    gr = np.exp(-(urvv)/kT + tr)
+    r = np.zeros(int(npts))
+    for i in np.arange(0, int(npts)):
+        r[i] = (i + .5) * d_r
+    plt.figure(figsize=[6,6])
+    plt.xlim([0.0, radius])
+    plt.ylim([-radius/2, radius/2])
+    plt.axhline(0, color='grey',linestyle='--',linewidth=2)
+    plt.plot(r, gr.flatten())
+    plt.show()
