@@ -5,9 +5,10 @@ A pedagogical implementation of the RISM equations
 Handles the primary functions
 """
 import numpy as np
-from scipy.fftpack import dst, idst
+from scipy.fft import dst, idst
 from scipy.special import erf
 import matplotlib.pyplot as plt
+import grid
 
 #Solvent Info#
 
@@ -19,16 +20,14 @@ cmtoA = 1.0E-24
 dmtoA = 1.0E-27
 mtoA = 1.0E-30
 ar_den = (N_A/39.948) * cmtoA * 1.394
-Temp = 298.15
-beta = (1.0 / (k_b/1000 * Temp))
+Temp = 298.0
+beta = (1.0 / (k_b * Temp))
 kT = 1 * Temp
-print(ar_den)
 # Site = [Site1, Site2, ... , SiteN]
 # SiteN = [Atomic symbol, eps, sig, charge, rho]
 #Argon fluid. Lennard-Jones parameters from Rahman
 #Number density computed from equation $N = \frac{\N_A}{M}\rho$ where \rho is the mass density (1.384 g/cm^3)
-Ar_fluid = [["Ar", (120.0/1000.0)*k_b*N_A, 3.4, 0, ar_den]]
-print((120.0/1000.0)*k_b*N_A)
+Ar_fluid = [["Ar", 120.0 * k_b, 3.4, 0, ar_den]]
 
 Ar_dist = np.asarray([0.00])
 
@@ -47,14 +46,64 @@ Solute_Sites = [] #Nothing for now
 
 class RismController:
 
-    def __init__(self, nsv: int, nsu: int, npts: float, radius: float):
+    def __init__(self, nsv: int, nsu: int, npts: float, radius: float, solvent_sites: list):
         self.nsu = nsu
         self.nsv = nsv
-        self.npts = npts
-        self.d_r = (radius / (npts))
-        self.d_k = (2*np.pi / (2*self.npts*self.d_r))
-        self.radius = radius
+        self.grid = grid.Grid(npts, radius)
+        self.solvent_sites = solvent_sites
 
+    def compute_UR_LJ(self, eps, sig) -> np.ndarray:
+        """
+        Computes the Lennard-Jones potential
+
+        Parameters
+        ----------
+
+        eps: float
+           Epsilon parameter used for LJ equation
+        sig: float
+           Sigma parameter used for LJ equation
+        r: ndarray
+           In the context of rism, r corresponds to grid points upon which
+           RISM equations are solved
+
+        Returns
+        -------
+        result: float
+           The result of the LJ computation
+        """
+        return 4.0 * eps * ((sig / self.grid.ri)**12 - (sig/self.grid.ri)**6)
+
+    def compute_UR_CMB(self, q1, q2):
+
+        return q1*q2 / self.grid.ri
+
+    def compute_UR_LR(self, q1, q2, damping, rscreen):
+
+        return q1*q2 * erf(damping * self.grid.ri / rscreen) / self.grid.ri
+
+    #Test function - put everything I want to mess around with here
+    def main_loop(self):
+        eps = self.solvent_sites[0][1]
+        sig = self.solvent_sites[0][2]
+        q1 = q2 = self.solvent_sites[0][3]
+        den = self.solvent_sites[0][4]
+        u = self.compute_UR_LJ(eps, sig)
+        uelec = self.compute_UR_CMB(q1, q2)
+        ulr = self.compute_UR_LR(q1, q2, 1.0, 1.0)
+        vrsr = beta * (u + uelec - ulr)
+        vrlr = beta * ulr
+        vklr = self.grid.dht(vrlr)
+        fr = np.exp(-vrsr) - 1.0
+        cr = fr
+        test = [-94.512654429840481, -32.781336954282359, 0.41451668035595202, 0.13924072203808713, 0.039685526755819593, 0.022854373202811022, 0.0095002333019399057, 0.0054444591553454618, 0.0023622468028538551, 0.0010675705550312147, 0.00033965194668557006, 6.862587615907864e-05]
+        print(test)
+        print(self.grid.dht(test))
+        print(vrsr, vrlr, vklr, fr)
+
+
+
+    
 def compute_LJpot(eps: float, sig: float, r: float) -> float:
     """
     Computes the Lennard-Jones potential
@@ -203,7 +252,7 @@ def mixing_rules(eps1: float, eps2: float, sig1: float, sig2: float) -> tuple:
 def hnc_closure(urss: 'ndarray', trss: 'ndarray') -> 'ndarray':
     return np.exp(-urss*beta  + trss) - trss - 1
 
-def long_range(d_r: float, npts: float, sig_par: float, site_list1: list, site_list2: list) -> 'ndarray':
+def long_range(d_r: float, npts: float, sig_par: float, site_list1: list, site_list2: list) -> np.ndarray:
     ns1 = len(site_list1)
     ns2 = len(site_list2)
     clr = np.zeros((ns1, ns2, int(npts)), dtype=float)
@@ -211,10 +260,10 @@ def long_range(d_r: float, npts: float, sig_par: float, site_list1: list, site_l
         for j in np.arange(0, ns2):
             for l in np.arange(0, int(npts)):
                 r = d_r * (l + .5)
-                clr[i][j][l] = site_list1[i][3] * site_list2[j][3] * beta * ( (1 - np.exp(-sig_par*r)) / r)
+                clr[i][j][l] = site_list1[i][3] * site_list2[j][3] * ( (1 - np.exp(-sig_par*r)) / r)
     return clr
 
-def ornstein_zernike(d_r: float, d_k: float, npts: float, site_list: list, rho: 'ndarray', wkss: 'ndarray', cr: 'ndarray') -> 'ndarray':
+def ornstein_zernike(d_r: float, d_k: float, npts: float, site_list: list, rho: np.ndarray, wkss: np.ndarray, cr: np.ndarray) -> np.ndarray:
     ns = len(site_list)
     I = np.identity(ns)
     h = np.zeros((ns, ns, int(npts)), dtype=float)
@@ -242,48 +291,11 @@ def init_tr(d_r: float, npts: float, sig_par: float, site_list1: list, site_list
         for j in np.arange(0, ns2):
             for l in np.arange(0, int(npts)):
                 r = d_r * (l + .5)
-                tr[i][j][l] = site_list1[i][3] * site_list2[j][3] * beta * ( (erf(sig_par*r)) / r)
+                tr[i][j][l] = site_list1[i][3] * site_list2[j][3] * ( (erf(sig_par*r)) / r)
     return tr
 
 if __name__ == "__main__":
-    print("Hello, RISM!")
-    npts = 10.0
-    radius = 20.48
-    iterval = 110
-    tol = 1E-7
-    d_r = radius / npts
-    d_k = (2*np.pi / (2*npts*d_r))
-    nsites = len(Solvent_Sites)
-    narsites = len(Ar_fluid)
-    arwk = calc_wkvv(d_k, npts, Ar_fluid, Ar_dist)
-    urvv = calc_urss(d_r, npts, Ar_fluid, Ar_fluid)
-    cr = np.zeros((narsites, narsites, int(npts)), dtype=float)
-    tr = init_tr(d_r, npts, 1.0, Ar_fluid, Ar_fluid)
-    clr = long_range(d_r, npts, 1.0, Ar_fluid, Ar_fluid)
-    damp = 0.215
-    i = 0
-    print(arwk)
-    print(urvv)
-    print(urvv*beta)
-    print(np.exp(-urvv))
-    print(np.exp(-urvv*beta))
-    while i < iterval:
-        print("Iteration: ", i)
-        tr_old = tr
-        cr = hnc_closure(urvv, tr)
-        tr2 = ornstein_zernike(d_r, d_k, npts, Ar_fluid, rho_mat(Ar_fluid), arwk, cr)
-        tr_new = (1-damp)*tr_old + damp*tr2
-        tr = tr_new
-        print(cr)
-        i+=1
-    tr += clr
-    gr = np.exp(-(urvv)/kT + tr)
-    r = np.zeros(int(npts))
-    for i in np.arange(0, int(npts)):
-        r[i] = (i + .5) * d_r
-    plt.figure(figsize=[6,6])
-    plt.xlim([0.0, radius])
-    plt.ylim([-radius/2, radius/2])
-    plt.axhline(0, color='grey',linestyle='--',linewidth=2)
-    plt.plot(r, gr.flatten())
-    plt.show()
+    mol = RismController(1, 1, 12, 20.48, Ar_fluid)
+    print(mol.grid.ri)
+    print(mol.grid.ki)
+    mol.main_loop()

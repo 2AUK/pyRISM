@@ -11,7 +11,7 @@ import numpy as np
 from scipy.fftpack import dst, idst
 
 
-def dht(r: 'ndarray', k: 'ndarray', fr: 'ndarray', d_r: float) -> 'ndarray':
+def discrete_hankel_transform(r: 'ndarray', k: 'ndarray', fr: 'ndarray', d_r: float) -> 'ndarray':
     """
     Discrete Hankel Transform
 
@@ -36,10 +36,10 @@ def dht(r: 'ndarray', k: 'ndarray', fr: 'ndarray', d_r: float) -> 'ndarray':
     fk: ndarray
      Transformed function from r-space to k-space
     """
-    constant = np.pi * d_r / k
-    return constant * dst(fr * r)
+    constant =  2 * np.pi * d_r / k
+    return constant * dst(fr * r, type=4)
 
-def idht(r: 'ndarray', k: 'ndarray', fk: 'ndarray', d_k: float) -> 'ndarray':
+def inverse_discrete_hankel_transform(r: 'ndarray', k: 'ndarray', fk: 'ndarray', d_k: float) -> 'ndarray':
     """
     Inverse Discrete Hankel Transform
 
@@ -65,4 +65,4 @@ def idht(r: 'ndarray', k: 'ndarray', fk: 'ndarray', d_k: float) -> 'ndarray':
      Transformed function from k-space to r-space
     """
     constant = d_k / (4*np.pi*np.pi) / r
-    return constant * idst(fk * k)
+    return constant * idst(fk * k, type=4)

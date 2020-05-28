@@ -18,9 +18,9 @@ class Grid:
         self.ki = np.zeros(npts)
         self.d_r = self.radius / float(self.npts)
         self.d_k = (2*np.pi / (2*self.npts*self.d_r))
-        self.generate_grid(.5)
+        self.generate_grid()
 
-    def generate_grid(self, offset):
+    def generate_grid(self):
         """
         Generates nascent r-space and k-space grids to compute functions over
 
@@ -39,8 +39,8 @@ class Grid:
            k-space grid
         """
         for i in np.arange(0, int(self.npts)):
-            self.ri[i] = (i + offset) * self.d_r
-            self.ki[i] = (i + offset) * self.d_k
+            self.ri[i] = (i + 0.5) * self.d_r
+            self.ki[i] = (i + 0.5) * self.d_k
 
     def dht(self, fr: np.ndarray) -> np.ndarray:
         """
@@ -58,7 +58,7 @@ class Grid:
         fk: ndarray
            Transformed function from r-space to k-space
         """
-        discrete_hankel_transform(self.ri, self.ki, fr, self.d_r)
+        return discrete_hankel_transform(self.ri, self.ki, fr, self.d_r)
 
     def idht(self, fk: np.ndarray) -> np.ndarray:
         """
@@ -76,4 +76,4 @@ class Grid:
         fr: ndarray
            Transformed function from k-space to r-space
         """
-        inverse_discrete_hankel_transform(self.ri, self.ki, fk, self.d_k)
+        return inverse_discrete_hankel_transform(self.ri, self.ki, fk, self.d_k)
