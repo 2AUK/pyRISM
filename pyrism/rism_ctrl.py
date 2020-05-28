@@ -13,6 +13,7 @@ import grid
 #Solvent Info#
 
 #For now we assume only one solvent is being used within the site_list object
+M_PI =  3.14159265358979323846
 NSV = 3
 k_b = 1.380649E-23
 N_A = 6.02214086E23

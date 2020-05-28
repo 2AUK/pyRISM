@@ -17,7 +17,7 @@ class Grid:
         self.ri = np.zeros(npts)
         self.ki = np.zeros(npts)
         self.d_r = self.radius / float(self.npts)
-        self.d_k = (2*np.pi / (2*self.npts*self.d_r))
+        self.d_k = (2*np.pi / (2*float(self.npts)*self.d_r))
         self.generate_grid()
 
     def generate_grid(self):
