@@ -21,14 +21,14 @@ cmtoA = 1.0E-24
 dmtoA = 1.0E-27
 mtoA = 1.0E-30
 ar_den = (N_A/39.948) * cmtoA * 1.394
-Temp = 298.0
-beta = (1.0 / (k_b * Temp))
+Temp = 91.8
+beta = (1.0 / (Temp))
 kT = 1 * Temp
 # Site = [Site1, Site2, ... , SiteN]
 # SiteN = [Atomic symbol, eps, sig, charge, rho]
 #Argon fluid. Lennard-Jones parameters from Rahman
 #Number density computed from equation $N = \frac{\N_A}{M}\rho$ where \rho is the mass density (1.384 g/cm^3)
-Ar_fluid = [["Ar", 120.0 * k_b, 3.4, 0, ar_den]]
+Ar_fluid = [["Ar", 120.0, 3.4, 0, ar_den]]
 
 Ar_dist = np.asarray([0.00])
 
@@ -83,7 +83,19 @@ class RismController:
 
         return q1*q2 * erf(damping * self.grid.ri / rscreen) / self.grid.ri
 
+    def temp_OZ(self, rho, wk, cr, vklr):
+        I = np.identity(self.nsu)
+        h = np.zeros(self.grid.npts)
+        ck = self.grid.dht(cr) - vklr
+        wk = wk.flatten()
+        rho = rho.flatten()
+        I = I.flatten()
+        h = wk*ck*(1 / (1 - wk*ck*rho))*wk
+        tr = self.grid.idht(h - ck)
+        return tr
+
     #Test function - put everything I want to mess around with here
+
     def main_loop(self):
         eps = self.solvent_sites[0][1]
         sig = self.solvent_sites[0][2]
@@ -97,10 +109,39 @@ class RismController:
         vklr = self.grid.dht(vrlr)
         fr = np.exp(-vrsr) - 1.0
         cr = fr
-        test = [-94.512654429840481, -32.781336954282359, 0.41451668035595202, 0.13924072203808713, 0.039685526755819593, 0.022854373202811022, 0.0095002333019399057, 0.0054444591553454618, 0.0023622468028538551, 0.0010675705550312147, 0.00033965194668557006, 6.862587615907864e-05]
-        print(test)
-        print(self.grid.dht(test))
-        print(vrsr, vrlr, vklr, fr)
+        #print(cr)
+        #print(vrsr)
+        den_mat = rho_mat(self.solvent_sites)
+        wk = calc_wkvv(self.grid.d_k, self.grid.npts, self.solvent_sites, Ar_dist)
+        itermax = 2
+        i = 0
+        damp = 0.215
+        tol = 1E-7
+        while i < itermax:
+            crold = cr
+            tr = self.temp_OZ(den_mat, wk, crold, vklr)
+            cr2 = hnc_closure(vrsr, tr)
+            crnew = crold + damp*(cr2 - crold)
+            cr = crnew
+            print(i)
+            print(cr)
+            print(tr)
+            i += 1
+        crt = cr - vrlr
+        print(crt)
+        #print(self.grid.dht(crt))
+        trt = tr + vrlr
+        gr_tiny = 1E-5
+        gra = np.zeros(self.grid.npts)
+        gr = 1 + crt + trt
+        gr2 = np.exp(-vrsr + trt)
+        for l in np.arange(0, int(self.grid.npts)):
+            if gr[l] > gr_tiny:
+                gra[l] = gr[l]
+            else:
+                gra[l] = gr2[l]
+        plt.plot(self.grid.ri, gr2)
+        plt.show()
 
 
 
@@ -251,7 +292,7 @@ def mixing_rules(eps1: float, eps2: float, sig1: float, sig2: float) -> tuple:
     return eps, sig
 
 def hnc_closure(urss: 'ndarray', trss: 'ndarray') -> 'ndarray':
-    return np.exp(-urss*beta  + trss) - trss - 1
+    return np.exp(-urss + trss) - trss - 1
 
 def long_range(d_r: float, npts: float, sig_par: float, site_list1: list, site_list2: list) -> np.ndarray:
     ns1 = len(site_list1)
@@ -276,11 +317,11 @@ def ornstein_zernike(d_r: float, d_k: float, npts: float, site_list: list, rho: 
         k[i] = (i + .5) * d_k
         r[i] = (i + .5) * d_r
     for i, j in np.ndindex(ns, ns):
-        ck[i, j] = dst(cr[i, j] * r, type=1) * np.pi * 2 * d_r / k
+        ck[i, j] = dst(cr[i, j] * r, type=4) * np.pi * 2 * d_r / k
     for l in np.arange(0, int(npts)):
         h[:, :, l] = np.linalg.inv(I - wkss[:, :, l]@ck[:, :, l]@rho)@wkss[:, :, l]@ck[:, :, l]@wkss[:, :, l]
     for i, j in np.ndindex(ns, ns):
-        tr[i, j] = idst((h[i, j] - ck[i, j]) * k, type=1) * d_k / (4*np.pi*np.pi) / r
+        tr[i, j] = idst((h[i, j] - ck[i, j]) * k, type=4) * d_k / (4*np.pi*np.pi) / r
 
     return tr
 
@@ -296,7 +337,7 @@ def init_tr(d_r: float, npts: float, sig_par: float, site_list1: list, site_list
     return tr
 
 if __name__ == "__main__":
-    mol = RismController(1, 1, 12, 20.48, Ar_fluid)
-    print(mol.grid.ri)
-    print(mol.grid.ki)
+    mol = RismController(1, 1, 1024, 20.48, Ar_fluid)
+    #print(mol.grid.ri)
+    #print(mol.grid.ki)
     mol.main_loop()
