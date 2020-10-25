@@ -8,7 +8,8 @@ transforms (Hankel transform) using the discrete sine transform function via sci
 """
 
 import numpy as np
-from mpi4py_fft.fftw import dstn, idstn, FFTW_ESTIMATE
+from scipy.fftpack import dst, idst
+#from mpi4py_fft.fftw import dstn, idstn, FFTW_ESTIMATE
 
 
 def discrete_hankel_transform(r: 'ndarray', k: 'ndarray', fr: 'ndarray', d_r: float) -> 'ndarray':
@@ -37,9 +38,7 @@ def discrete_hankel_transform(r: 'ndarray', k: 'ndarray', fr: 'ndarray', d_r: fl
      Transformed function from r-space to k-space
     """
     constant =  2 * np.pi * d_r / k
-    dst_result = dstn(fr * r, flags=(FFTW_ESTIMATE,), type=4)
-    Out = dst_result(normalize=False)
-    return constant * Out
+    return constant * dst(fr * r, type=4)
 
 def inverse_discrete_hankel_transform(r: 'ndarray', k: 'ndarray', fk: 'ndarray', d_k: float) -> 'ndarray':
     """
@@ -67,6 +66,4 @@ def inverse_discrete_hankel_transform(r: 'ndarray', k: 'ndarray', fk: 'ndarray',
      Transformed function from k-space to r-space
     """
     constant = d_k / (4*np.pi*np.pi) / r
-    dst_result = idstn(fk * k, flags=(FFTW_ESTIMATE,), type=4)
-    Out = dst_result(normalize=False)
-    return constant * Out
+    return constant * idst(fk * k, type=4)

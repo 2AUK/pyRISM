@@ -22,13 +22,10 @@ class Grid:
 
     def generate_grid(self):
         """
-        Generates nascent r-space and k-space grids to compute functions over
+        Generates r-space and k-space grids to compute functions over
 
         Parameters
         ----------
-
-        offset: int
-           How far to offset the grid from origin (otherwise we'll end up dividing by zero lol)
 
         Returns
         -------
@@ -38,6 +35,7 @@ class Grid:
         ki: ndarry
            k-space grid
         """
+
         for i in np.arange(0, int(self.npts)):
             self.ri[i] = (i + 0.5) * self.d_r
             self.ki[i] = (i + 0.5) * self.d_k
