@@ -101,14 +101,15 @@ br2_coord =[[0.0, 0.0, 0.0],
             [0.0, 0.0, 1.142]]
 
 dist_mat = distance_matrix(br2_coord, br2_coord)
-print(dist_mat)
+#print(dist_mat)
 #Solute Info#
 
 Solute_Sites = [] #Nothing for now
 
 class RismController:
 
-    def __init__(self, nsv: int, nsu: int, npts: float, radius: float, solvent_params: list, dists: np.ndarray, temp: float):
+    def __init__(self, name: str, nsv: int, nsu: int, npts: float, radius: float, solvent_params: list, dists: np.ndarray, temp: float):
+        self.name = name
         self.nsu = nsu
         self.nsv = nsv
         self.grid = grid.Grid(npts, radius)
@@ -457,8 +458,12 @@ class RismController:
         plt.xlabel("r/A")
         plt.ylabel("g(r)")
         plt.legend()
-        #plt.savefig('ARRDF.eps', format='eps')
+        plt.savefig(self.name + '_RDF.eps', format='eps')
         plt.show()
+
+    def write_data(self):
+        pass
+
     def dorism(self):
         """
         1. Initialises inputs
@@ -479,6 +484,8 @@ class RismController:
         itermax = 10000
         tol = 1E-7
         damp = 0.0001
+        print(self.name)
+        print("\n")
         print("System parameters\n")
         print("Temperature: ", str(self.T) + " K")
         print("-------------------------\n")
@@ -558,15 +565,15 @@ class RismController:
 
 
 if __name__ == "__main__":
-    mol2 = RismController(1, 0, 2048, 20.48, Ar_fluid, [0], 84.4)
-    mol = RismController(3, 0, 2048, 20.48, water_sites, Solvent_Distances, 300)
-    hr1981 = RismController(2, 0, 2048, 20.48, HR1981, HR1981_dist, 72)
-    hr1981nn = RismController(2, 0, 2048, 20.48, HR1981_NN, HR1981_dist, 72)
-    hr1982_hcl_ii = RismController(2, 0, 2048, 20.48, HR1982_HCL_II, HR1982_HCL_II_dist, 210)
-    hr1982_hcl_iii = RismController(2, 0, 2048, 20.48, HR1982_HCL_III, HR1982_HCL_III_dist, 210)
-    hr1982_br2_i = RismController(3, 0, 2048, 20.48, HR1982_BR2_I, HR1982_BR2_I_dist, 296.15)
-    hr1982_br2_iii = RismController(3, 0, 2048, 20.48, HR1982_BR2_III, HR1982_BR2_I_dist, 296.15)
-    hr1982_br2_iv = RismController(3, 0, 2048, 20.48, HR1982_BR2_IV, HR1982_BR2_I_dist, 296.15)
+    mol2 = RismController("Argon", 1, 0, 2048, 20.48, Ar_fluid, [0], 84.4)
+    mol = RismController("cSPCE_water", 3, 0, 2048, 20.48, water_sites, Solvent_Distances, 300)
+    hr1981 = RismController("NN+-", 2, 0, 2048, 20.48, HR1981, HR1981_dist, 72)
+    hr1981nn = RismController("NN", 2, 0, 2048, 20.48, HR1981_NN, HR1981_dist, 72)
+    hr1982_hcl_ii = RismController("HCl_II", 2, 0, 2048, 20.48, HR1982_HCL_II, HR1982_HCL_II_dist, 210)
+    hr1982_hcl_iii = RismController("HCl_III", 2, 0, 2048, 20.48, HR1982_HCL_III, HR1982_HCL_III_dist, 210)
+    hr1982_br2_i = RismController("Br2_I", 3, 0, 2048, 20.48, HR1982_BR2_I, HR1982_BR2_I_dist, 296.15)
+    hr1982_br2_iii = RismController("Br2_III", 3, 0, 2048, 20.48, HR1982_BR2_III, HR1982_BR2_I_dist, 296.15)
+    hr1982_br2_iv = RismController("Br2_I", 3, 0, 2048, 20.48, HR1982_BR2_IV, HR1982_BR2_I_dist, 296.15)
     #mol2.dorism()
     mol.dorism()
     #hr1981.dorism()
