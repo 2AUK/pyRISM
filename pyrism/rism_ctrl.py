@@ -6,6 +6,7 @@ Handles the primary functions
 """
 import numpy as np
 import mpmath as mp
+import pandas as pd
 from scipy.fft import dst, idst
 from scipy.special import erf, expit
 from scipy.signal import argrelextrema
@@ -448,21 +449,42 @@ class RismController:
             print("g(r)", self.gr[fmin, i, j].flatten())
             print("\n")
         
-    def plot_gr(self):
+    def plot_gr(self, save=False):
         for i,j in np.ndindex(self.nsv, self.nsv):
             lbl1 = self.solvent_sites[i][0]
             lbl2 = self.solvent_sites[j][0]
             plt.plot(self.grid.ri, self.gr[:, i, j], label= lbl1+"-"+lbl2)
         plt.axhline(1, color='grey', linestyle="--", linewidth=2)
-        plt.title("RDF " + str(self.T) + "K")
+        plt.title("RDF of " + self.name + " at " + str(self.T) + " K")
         plt.xlabel("r/A")
         plt.ylabel("g(r)")
         plt.legend()
-        plt.savefig(self.name + '_RDF.eps', format='eps')
+        if save == True:
+            plt.savefig(self.name + '_RDF.eps', format='eps')
         plt.show()
 
     def write_data(self):
-        pass
+
+        gr = pd.DataFrame(self.grid.ri, columns = ["r"])
+        for i,j in np.ndindex(self.nsv, self.nsv):
+            lbl1 = self.solvent_sites[i][0]
+            lbl2 = self.solvent_sites[j][0]
+            gr[lbl1+"-"+lbl2] = self.gr[:, i, j]
+        gr.to_csv(self.name + "_" + str(self.T) + "K.gvv", index=False)
+
+        cr = pd.DataFrame(self.grid.ri, columns = ["r"])
+        for i,j in np.ndindex(self.nsv, self.nsv):
+            lbl1 = self.solvent_sites[i][0]
+            lbl2 = self.solvent_sites[j][0]
+            cr[lbl1+"-"+lbl2] = self.cr[:, i, j]
+        cr.to_csv(self.name + "_" + str(self.T) + "K.cvv", index=False)
+
+        tr = pd.DataFrame(self.grid.ri, columns = ["r"])
+        for i,j in np.ndindex(self.nsv, self.nsv):
+            lbl1 = self.solvent_sites[i][0]
+            lbl2 = self.solvent_sites[j][0]
+            tr[lbl1+"-"+lbl2] = self.tr[:, i, j]
+        tr.to_csv(self.name + "_" + str(self.T) + "K.tvv", index=False)
 
     def dorism(self):
         """
@@ -562,6 +584,7 @@ class RismController:
         self.Ng = Ng
         self.find_peaks()
         self.plot_gr()
+        #self.write_data()
 
 
 if __name__ == "__main__":
