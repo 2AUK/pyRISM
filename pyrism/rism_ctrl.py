@@ -27,10 +27,10 @@ cmtoA = 1.0E-24
 dmtoA = 1.0E-27
 mtoA = 1.0E-30
 ar_den = (N_A/39.948) * cmtoA * 1.374
-Temp = 293.16
+#Temp = 293.16
 kTkcal = 0.00198720414667
 kT = 1
-beta = 1 / (kT * Temp)
+#beta = 1 / (kT * Temp)
 KE2PK = 167101.0
 KE2NAC = 332.064
 charge_coeff = KE2PK
@@ -44,29 +44,29 @@ Ar_dist = np.asarray([0.00])
 
 #cSPCE model from amber
 water_sites = [["O", 78.15, 3.16572, -0.8476, 0.033314],
-                 ["H", 7.815, 1.16572, 0.4238, 0.033314],
-                 ["H", 7.815, 1.16572, 0.4238, 0.033314]]
+                 ["H1", 7.815, 1.16572, 0.4238, 0.033314],
+                 ["H2", 7.815, 1.16572, 0.4238, 0.033314]]
 
 Solvent_Distances = np.asarray([[0.0, 1.0, 1.0],
                                 [1.0, 0.0, 1.633],
                                 [1.0, 1.633, 0.0]])
 
 TIP3P_sites = [["O", 78.15, 3.16572, -0.8476, 0.033314],
-                 ["H", 7.815, 1.16572, 0.4238, 0.033314],
-                 ["H", 7.815, 1.16572, 0.4238, 0.033314]]
+                 ["H1", 7.815, 1.16572, 0.4238, 0.033314],
+                 ["H2", 7.815, 1.16572, 0.4238, 0.033314]]
 
 TIP3P_Distances = np.asarray([[0.0, 1.0, 1.0],
                                 [1.0, 0.0, 1.633],
                                 [1.0, 1.633, 0.0]])
 
-HR1981 = [["N", 44, 3.341, 0.2, 0.01867],
-            ["N", 44, 3.341, -0.2, 0.01867]]
+HR1981 = [["N1", 44, 3.341, 0.2, 0.01867],
+            ["N2", 44, 3.341, -0.2, 0.01867]]
 
 HR1981_dist = np.asarray([[0.0, 1.1],
                           [1.1, 0.0]])
 
-HR1981_NN = [["N", 44, 3.341, 0.0, 0.01867],
-            ["N", 44, 3.341, 0.0, 0.01867]]
+HR1981_NN = [["N1", 44, 3.341, 0.0, 0.01867],
+            ["N2", 44, 3.341, 0.0, 0.01867]]
 
 HR1982_HCL_II = [["H", 20, 2.735, 0.2, 0.018],
                 ["Cl", 259, 3.353, -0.2, 0.018]]
@@ -80,16 +80,16 @@ HR1982_HCL_III = [["H", 20, 0.4, 0.2, 0.018],
 HR1982_HCL_III_dist = np.asarray([[0.0, 1.3],
                             [1.3, 0.0]])
 
-HR1982_BR2_I = [["Br", 245.7, 3.63, -0.48, 0.01175728342],
-                ["Br", 245.7, 3.63, -0.48, 0.01175728342],
+HR1982_BR2_I = [["Br1", 245.7, 3.63, -0.48, 0.01175728342],
+                ["Br2", 245.7, 3.63, -0.48, 0.01175728342],
                 ["X", 0.0724, 1.0, 0.96, 0.01175728342]]
 
-HR1982_BR2_III = [["Br", 130, 3.63, -0.3, 0.01175728342],
-                ["Br", 130, 3.63, -0.3, 0.01175728342],
+HR1982_BR2_III = [["Br1", 130, 3.63, -0.3, 0.01175728342],
+                ["Br2", 130, 3.63, -0.3, 0.01175728342],
                 ["X", 0.0724, 1.0, 0.6, 0.01175728342]]
             
-HR1982_BR2_IV = [["Br", 130, 3.63, 0.0, 0.01175728342],
-                ["Br", 130, 3.63, 0.0, 0.01175728342],
+HR1982_BR2_IV = [["Br1", 130, 3.63, 0.0, 0.01175728342],
+                ["Br2", 130, 3.63, 0.0, 0.01175728342],
                 ["X", 0.0724, 1.0, 0.0, 0.01175728342]]
 
 HR1982_BR2_I_dist = np.asarray([[0.0, 2.284, 1.142],
@@ -108,12 +108,19 @@ Solute_Sites = [] #Nothing for now
 
 class RismController:
 
-    def __init__(self, nsv: int, nsu: int, npts: float, radius: float, solvent_params: list, dists: np.ndarray):
+    def __init__(self, nsv: int, nsu: int, npts: float, radius: float, solvent_params: list, dists: np.ndarray, temp: float):
         self.nsu = nsu
         self.nsv = nsv
         self.grid = grid.Grid(npts, radius)
         self.solvent_sites = solvent_params
         self.dists = dists
+        self.T = temp
+        self.beta = 1 / kT / temp
+        self.cr = None
+        self.tr = None
+        self.gr = None
+        self.Ur = None
+        self.Ng = None
 
     def compute_UR_LJ(self, eps, sig, lam) -> np.ndarray:
         """
@@ -137,11 +144,11 @@ class RismController:
         result: float
            The result of the LJ computation
         """
-        return  beta * 4.0 * eps * ((sig / self.grid.ri)**12 - (sig/self.grid.ri)**6) * lam
+        return self.beta * 4.0 * eps * ((sig / self.grid.ri)**12 - (sig/self.grid.ri)**6) * lam
 
     def compute_UR_LJ_C(self, C6, C12, lam) -> np.ndarray:
 
-        return beta * ( (C12 / self.grid.ri**12) - (C6 / self.grid.ri**6) )
+        return self.beta * ( (C12 / self.grid.ri**12) - (C6 / self.grid.ri**6) )
 
     def compute_UR_CMB(self, q1, q2, lam):
         """
@@ -165,7 +172,7 @@ class RismController:
         result: float
            The result of the LJ computation
         """
-        return  lam * beta * charge_coeff * q1 * q2 / self.grid.ri
+        return  lam * self.beta * charge_coeff * q1 * q2 / self.grid.ri
 
     def compute_UR_LR(self, q1, q2, damping, rscreen, lam):
         """
@@ -217,7 +224,7 @@ class RismController:
         result: float
            The result of the LJ computation
         """
-        return lam * beta * 4 * np.pi * q1 * q2 * charge_coeff * np.exp( -1.0 * self.grid.ki**2 / (4.0 * damping**2)) / self.grid.ki**2
+        return lam * self.beta * 4 * np.pi * q1 * q2 * charge_coeff * np.exp( -1.0 * self.grid.ki**2 / (4.0 * damping**2)) / self.grid.ki**2
 
     def mixing_rules(self, eps1: float, eps2: float, sig1: float, sig2: float) -> tuple:
         """
@@ -427,7 +434,31 @@ class RismController:
         return cr_prev + damp*(cr_cur - cr_prev)
         #return damp*cr_cur + (1-damp)*cr_prev
 
-
+    def find_peaks(self):
+        for i,j in np.ndindex(self.nsv, self.nsv):
+            fmax = argrelextrema(self.gr[:,i,j], np.greater)
+            fmin = argrelextrema(self.gr[:,i,j], np.less)
+            print(i, j)
+            print("Maxima:")
+            print("r", self.grid.ri[fmax])
+            print("g(r)", self.gr[fmax, i, j].flatten())
+            print("Minima:")
+            print("r", self.grid.ri[fmin])
+            print("g(r)", self.gr[fmin, i, j].flatten())
+            print("\n")
+        
+    def plot_gr(self):
+        for i,j in np.ndindex(self.nsv, self.nsv):
+            lbl1 = self.solvent_sites[i][0]
+            lbl2 = self.solvent_sites[j][0]
+            plt.plot(self.grid.ri, self.gr[:, i, j], label= lbl1+"-"+lbl2)
+        plt.axhline(1, color='grey', linestyle="--", linewidth=2)
+        plt.title("RDF " + str(self.T) + "K")
+        plt.xlabel("r/A")
+        plt.ylabel("g(r)")
+        plt.legend()
+        #plt.savefig('ARRDF.eps', format='eps')
+        plt.show()
     def dorism(self):
         """
         1. Initialises inputs
@@ -440,16 +471,17 @@ class RismController:
 
         Returns
         -------
-        Iterated g(r), c(r), h(r)...
+        Converged g(r), c(r), t(r)
         """
         nlam = 10
-        gr = np.zeros((self.grid.npts, self.nsv, self.nsv), dtype=np.float64)
         wk = self.build_wk()
         rho = self.build_rho()
         itermax = 10000
         tol = 1E-7
         damp = 0.0001
-        urmin = -30
+        print("System parameters\n")
+        print("Temperature: ", str(self.T) + " K")
+        print("-------------------------\n")
         for j in range(1, nlam+1):
             vecfr = []
             vecgr = []
@@ -516,75 +548,27 @@ class RismController:
                     print("-------------------------")
             cr_lam = cr
         print("Iteration finished!\n")
-        crt = cr - Ng
-        trt = trsr + Ng
-        #print("r:\n", self.grid.ri)
-        #print("crt:\n", crt[:, 0, 0])
-        #print("trt:\n", trt[:, 0, 0])
-        #print("Ng:\n", Ng[:, 0, 0])
-        #print("Ur:\n", Ur[:, 0, 0])
-        #print("fr:\n", fr[:, 0, 0])
-        gr1 = 1 + crt + trt
-        fmax = argrelextrema(gr1[:,0,0], np.greater)
-        fmin = argrelextrema(gr1[:,0,0], np.less)
-        print("Maxima:")
-        print(self.grid.ri[fmax])
-        print(gr1[fmax, 0, 0])
-        print("Minima:")
-        print(self.grid.ri[fmin])
-        print(gr1[fmin, 0, 0])
-        #print("First Max:\n", (np.amax(gr1[:, 0, 0])), self.grid.ri[np.argmax(gr1[:, 0, 0])])
-        #print("First Min:\n", (np.amin(gr1[np.argmax(gr1[:, 0, 0]):, 0, 0])), self.grid.ri[np.argwhere(gr1[:,0,0] == (np.amin(gr1[np.argmax(gr1[:, 0, 0]):, 0, 0])))].flatten()[0])
-        #print("First Max:\n", (np.amax(gr1[:, 0, 1])), self.grid.ri[np.argmax(gr1[:, 0, 1])])
-        #print("First Min:\n", (np.amin(gr1[np.argmax(gr1[:, 0, 1]):, 0, 1])), self.grid.ri[np.argwhere(gr1[:,0,1] == (np.amin(gr1[np.argmax(gr1[:, 0, 1]):, 0, 1])))].flatten()[0])
-        #print("First Max:\n", (np.amax(gr1[:, 1, 1])), self.grid.ri[np.argmax(gr1[:, 1, 1])])
-        #print("First Min:\n", (np.amin(gr1[np.argmax(gr1[:, 1, 1]):, 1, 1])), self.grid.ri[np.argwhere(gr1[:,1,1] == (np.amin(gr1[np.argmax(gr1[:, 1, 1]):, 1, 1])))].flatten()[0])        
-        plt.plot(self.grid.ri, gr1[:, 0, 0], 'k-')
-        plt.plot(self.grid.ri, gr1[:, 0, 1], 'r--')
-        plt.plot(self.grid.ri, gr1[:, 1, 0], 'b--')
-        plt.plot(self.grid.ri, gr1[:, 1, 1], 'g-.')
-        plt.axhline(1, color='grey', linestyle="--", linewidth=2)
-        #plt.title("RDF of Water at " + str(Temp) + "K")
-        plt.xlabel("r(A)")
-        plt.ylabel("g(r)")
-        plt.legend()
-        plt.savefig('ARRDF.eps', format='eps')
-        plt.show()
-        plt.axhline(0, color='grey', linestyle="--", linewidth=2)
-        plt.xlim([0.0, self.grid.radius/2])
-        plt.ylim([-3, 3])
-        plt.plot(self.grid.ri, gr1[:, 0, 0] - 1, 'k-', label="Total")
-        plt.plot(self.grid.ri, cr[:, 0, 0], 'k--', label="Direct")
-        plt.plot(self.grid.ri, trsr[:, 0, 0], 'k-.', label="Indirect")
-        plt.xlabel("r(A)")
-        plt.ylabel("Correlation")
-        plt.legend()
-        plt.savefig('corrArbnw.eps', format='eps')
-        plt.show()
-        plt.axhline(0, color='grey', linestyle="--", linewidth=2)
-        plt.xlim([0.0, self.grid.radius/2])
-        plt.ylim([-3, 3])
-        plt.plot(self.grid.ri, cr[:, 0, 0], 'k--', label="Direct")
-        plt.xlabel("r(A)")
-        plt.ylabel("Correlation")
-        plt.plot(self.grid.ri, Ursr[:, 0, 0], 'k-', label="Pair Potential")
-        plt.legend()
-        plt.savefig('crurAr.eps', format='eps')
-        plt.show()
+        self.cr = cr - Ng
+        self.tr = trsr + Ng
+        self.gr = 1 + self.cr + self.tr
+        self.Ur = Ur
+        self.Ng = Ng
+        self.find_peaks()
+        self.plot_gr()
 
 
 if __name__ == "__main__":
-    mol2 = RismController(1, 0, 2048, 20.48, Ar_fluid, [0])
-    mol = RismController(3, 0, 2048, 20.48, water_sites, Solvent_Distances)
-    hr1981 = RismController(2, 0, 2048, 20.48, HR1981, HR1981_dist)
-    hr1981nn = RismController(2, 0, 2048, 20.48, HR1981_NN, HR1981_dist)
-    hr1982_hcl_ii = RismController(2, 0, 2048, 20.48, HR1982_HCL_II, HR1982_HCL_II_dist)
-    hr1982_hcl_iii = RismController(2, 0, 2048, 20.48, HR1982_HCL_III, HR1982_HCL_III_dist)
-    hr1982_br2_i = RismController(3, 0, 2048, 20.48, HR1982_BR2_I, HR1982_BR2_I_dist)
-    hr1982_br2_iii = RismController(3, 0, 2048, 20.48, HR1982_BR2_III, HR1982_BR2_I_dist)
-    hr1982_br2_iv = RismController(3, 0, 2048, 20.48, HR1982_BR2_IV, HR1982_BR2_I_dist)
+    mol2 = RismController(1, 0, 2048, 20.48, Ar_fluid, [0], 84.4)
+    mol = RismController(3, 0, 2048, 20.48, water_sites, Solvent_Distances, 300)
+    hr1981 = RismController(2, 0, 2048, 20.48, HR1981, HR1981_dist, 72)
+    hr1981nn = RismController(2, 0, 2048, 20.48, HR1981_NN, HR1981_dist, 72)
+    hr1982_hcl_ii = RismController(2, 0, 2048, 20.48, HR1982_HCL_II, HR1982_HCL_II_dist, 210)
+    hr1982_hcl_iii = RismController(2, 0, 2048, 20.48, HR1982_HCL_III, HR1982_HCL_III_dist, 210)
+    hr1982_br2_i = RismController(3, 0, 2048, 20.48, HR1982_BR2_I, HR1982_BR2_I_dist, 296.15)
+    hr1982_br2_iii = RismController(3, 0, 2048, 20.48, HR1982_BR2_III, HR1982_BR2_I_dist, 296.15)
+    hr1982_br2_iv = RismController(3, 0, 2048, 20.48, HR1982_BR2_IV, HR1982_BR2_I_dist, 296.15)
     #mol2.dorism()
-    #mol.dorism()
+    mol.dorism()
     #hr1981.dorism()
     #hr1981nn.dorism()
     #hr1982_hcl_ii.dorism()
