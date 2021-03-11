@@ -41,72 +41,6 @@ charge_coeff = KE2PK
 # SiteN = [Atomic symbol, eps, sig, charge, rho]
 #Argon fluid. Lennard-Jones parameters from Rahman (already divided by kB)
 #Number density computed from equation $N = \frac{\N_A}{M}\rho$ where \rho is the mass density (1.394 g/cm^3)
-Ar_fluid = [["Ar", 120, 3.4, 0, 0.021017479720736955]]
-
-Ar_dist = np.asarray([0.00])
-
-TIP3P_sites = [["O", 78.15, 3.16572, -0.8476, 0.033314],
-                 ["H1", 7.815, 1.16572, 0.4238, 0.033314],
-                 ["H2", 7.815, 1.16572, 0.4238, 0.033314]]
-
-TIP3P_Distances = np.asarray([[0.0, 1.0, 1.0],
-                                [1.0, 0.0, 1.633],
-                                [1.0, 1.633, 0.0]])
-
-HR1981 = [["N1", 44, 3.341, 0.2, 0.01867],
-            ["N2", 44, 3.341, -0.2, 0.01867]]
-
-HR1981_dist = np.asarray([[0.0, 1.1],
-                          [1.1, 0.0]])
-
-HR1981_NN = [["N1", 44, 3.341, 0.0, 0.01867],
-            ["N2", 44, 3.341, 0.0, 0.01867]]
-
-HR1982_HCL_II = [["H", 20, 2.735, 0.2, 0.018],
-                ["Cl", 259, 3.353, -0.2, 0.018]]
-
-HR1982_HCL_II_dist = np.asarray([[0.0, 1.257],
-                            [1.257, 0.0]])
-
-HR1982_HCL_III = [["H", 20, 0.4, 0.2, 0.018],
-                ["Cl", 259, 3.353, -0.2, 0.018]]
-
-HR1982_HCL_III_dist = np.asarray([[0.0, 1.3],
-                            [1.3, 0.0]])
-
-HR1982_BR2_I = [["Br1", 245.7, 3.63, -0.48, 0.01175728342],
-                ["Br2", 245.7, 3.63, -0.48, 0.01175728342],
-                ["X", 0.0724, 1.0, 0.96, 0.01175728342]]
-
-HR1982_BR2_III = [["Br1", 130, 3.63, -0.3, 0.01175728342],
-                ["Br2", 130, 3.63, -0.3, 0.01175728342],
-                ["X", 0.0724, 1.0, 0.6, 0.01175728342]]
-            
-HR1982_BR2_IV = [["Br1", 130, 3.63, 0.0, 0.01175728342],
-                ["Br2", 130, 3.63, 0.0, 0.01175728342],
-                ["X", 0.0724, 1.0, 0.0, 0.01175728342]]
-
-HR1982_BR2_I_dist = np.asarray([[0.0, 2.284, 1.142],
-                                [2.284, 0.0, 1.142],
-                                [1.142, 1.142, 0.0]])
-
-br2_coord =[[0.0, 0.0, 0.0],
-            [0.0, 0.0, 2.284],
-            [0.0, 0.0, 1.142]]
-
-dist_mat = distance_matrix(br2_coord, br2_coord)
-
-
-water_coord = [[0.00000000e+00, 0.00000000e+00, 0.00000000e+00], 
-                [1.00000000e+00, 0.00000000e+00, 0.00000000e+00], 
-                [-3.33314000e-01, 9.42816000e-01, 0.00000000e+00]]
-
-dist_mat_wat = distance_matrix(water_coord, water_coord)
-print(dist_mat_wat)
-#print(dist_mat)
-#Solute Info#
-
-Solute_Sites = [] #Nothing for now
 
 class RismController:
 
@@ -116,8 +50,13 @@ class RismController:
         self.nsu = None
         self.nsv = None
         self.grid = None
+        self.charge_coeff = None
         self.solvent_sites = []
         self.dists = []
+        self.itermax = None
+        self.damp = None
+        self.tol = None
+        self.lam = None
         self.T = None
         self.kT = None
         self.cr = None
@@ -144,6 +83,11 @@ class RismController:
         self.dists = distance_matrix(coords, coords)
         self.T = inp["system"]["temp"]
         self.kT = inp["system"]["kT"]
+        self.charge_coeff = inp["system"]["charge_coeff"]
+        self.itermax = inp["system"]["itermax"]
+        self.lam = inp["system"]["lam"]
+        self.damp = inp["system"]["picard_damping"]
+        self.tol = inp["system"]["tol"]
 
     def compute_UR_LJ(self, eps, sig, lam) -> np.ndarray:
         """
@@ -195,7 +139,7 @@ class RismController:
         result: float
            The result of the LJ computation
         """
-        return  lam * self.beta * charge_coeff * q1 * q2 / self.grid.ri
+        return  lam * self.beta * self.charge_coeff * q1 * q2 / self.grid.ri
 
     def compute_UR_LR(self, q1, q2, damping, rscreen, lam):
         """
@@ -247,7 +191,7 @@ class RismController:
         result: float
            The result of the LJ computation
         """
-        return lam * self.beta * 4 * np.pi * q1 * q2 * charge_coeff * np.exp( -1.0 * self.grid.ki**2 / (4.0 * damping**2)) / self.grid.ki**2
+        return lam * self.beta * 4 * np.pi * q1 * q2 * self.charge_coeff * np.exp( -1.0 * self.grid.ki**2 / (4.0 * damping**2)) / self.grid.ki**2
 
     def mixing_rules(self, eps1: float, eps2: float, sig1: float, sig2: float) -> tuple:
         """
@@ -521,12 +465,12 @@ class RismController:
         -------
         Converged g(r), c(r), t(r)
         """
-        nlam = 10
+        nlam = self.lam
         wk = self.build_wk()
         rho = self.build_rho()
-        itermax = 10000
-        tol = 1E-7
-        damp = 0.0001
+        itermax = self.itermax
+        tol = self.tol
+        damp = self.damp
         print(self.name)
         print("\n")
         print("System parameters\n")
@@ -609,17 +553,17 @@ class RismController:
 
 
 if __name__ == "__main__":
-    # mol2 = RismController("Argon", 1, 0, 2048, 20.48, Ar_fluid, [0], 84.4)
+    mol2 = RismController("data/argon.toml")
     mol = RismController("data/cSPCE.toml")
-    # hr1981 = RismController("NN+-", 2, 0, 2048, 20.48, HR1981, HR1981_dist, 72)
-    # hr1981nn = RismController("NN", 2, 0, 2048, 20.48, HR1981_NN, HR1981_dist, 72)
-    # hr1982_hcl_ii = RismController("HCl_II", 2, 0, 2048, 20.48, HR1982_HCL_II, HR1982_HCL_II_dist, 210)
-    # hr1982_hcl_iii = RismController("HCl_III", 2, 0, 2048, 20.48, HR1982_HCL_III, HR1982_HCL_III_dist, 210)
-    # hr1982_br2_i = RismController("Br2_I", 3, 0, 2048, 20.48, HR1982_BR2_I, HR1982_BR2_I_dist, 296.15)
-    # hr1982_br2_iii = RismController("Br2_III", 3, 0, 2048, 20.48, HR1982_BR2_III, HR1982_BR2_I_dist, 296.15)
-    # hr1982_br2_iv = RismController("Br2_I", 3, 0, 2048, 20.48, HR1982_BR2_IV, HR1982_BR2_I_dist, 296.15)
+    hr1981 = RismController("data/HR1982.toml")
+    hr1981nn = RismController("data/HR1982N.toml")
+    hr1982_hcl_ii = RismController("data/HR1982_HCl_II.toml")
+    hr1982_hcl_iii = RismController("data/HR1982_HCl_III.toml")
+    hr1982_br2_i = RismController("data/HR1982_Br2_I.toml")
+    hr1982_br2_iii = RismController("data/HR1982_Br2_III.toml")
+    hr1982_br2_iv = RismController("data/HR1982_Br2_IV.toml")
     #mol2.dorism()
-    mol.dorism() #Parameters taken from AMBER
+    #mol.dorism() #Parameters taken from AMBER
     #hr1981.dorism()
     #hr1981nn.dorism()
     #hr1982_hcl_ii.dorism()
