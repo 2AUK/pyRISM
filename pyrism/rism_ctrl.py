@@ -13,6 +13,8 @@ from scipy.signal import argrelextrema
 from scipy.spatial import distance_matrix
 import matplotlib.pyplot as plt
 import grid
+import toml
+import os
 
 np.seterr(over='raise')
 
@@ -42,15 +44,6 @@ charge_coeff = KE2PK
 Ar_fluid = [["Ar", 120, 3.4, 0, 0.021017479720736955]]
 
 Ar_dist = np.asarray([0.00])
-
-#cSPCE model from amber
-water_sites = [["O", 78.15, 3.16572, -0.8476, 0.033314],
-                 ["H1", 7.815, 1.16572, 0.4238, 0.033314],
-                 ["H2", 7.815, 1.16572, 0.4238, 0.033314]]
-
-Solvent_Distances = np.asarray([[0.0, 1.0, 1.0],
-                                [1.0, 0.0, 1.633],
-                                [1.0, 1.633, 0.0]])
 
 TIP3P_sites = [["O", 78.15, 3.16572, -0.8476, 0.033314],
                  ["H1", 7.815, 1.16572, 0.4238, 0.033314],
@@ -102,6 +95,14 @@ br2_coord =[[0.0, 0.0, 0.0],
             [0.0, 0.0, 1.142]]
 
 dist_mat = distance_matrix(br2_coord, br2_coord)
+
+
+water_coord = [[0.00000000e+00, 0.00000000e+00, 0.00000000e+00], 
+                [1.00000000e+00, 0.00000000e+00, 0.00000000e+00], 
+                [-3.33314000e-01, 9.42816000e-01, 0.00000000e+00]]
+
+dist_mat_wat = distance_matrix(water_coord, water_coord)
+print(dist_mat_wat)
 #print(dist_mat)
 #Solute Info#
 
@@ -109,20 +110,40 @@ Solute_Sites = [] #Nothing for now
 
 class RismController:
 
-    def __init__(self, name: str, nsv: int, nsu: int, npts: float, radius: float, solvent_params: list, dists: np.ndarray, temp: float):
-        self.name = name
-        self.nsu = nsu
-        self.nsv = nsv
-        self.grid = grid.Grid(npts, radius)
-        self.solvent_sites = solvent_params
-        self.dists = dists
-        self.T = temp
-        self.beta = 1 / kT / temp
+    def __init__(self, fname):
+        self.fname = fname
+        self.name = None
+        self.nsu = None
+        self.nsv = None
+        self.grid = None
+        self.solvent_sites = []
+        self.dists = []
+        self.T = None
+        self.kT = None
         self.cr = None
         self.tr = None
         self.gr = None
         self.Ur = None
         self.Ng = None
+        self.read_input()
+        self.beta = 1 / self.kT / self.T
+
+
+    def read_input(self):
+        inp = toml.load(self.fname)
+        self.name = os.path.basename(self.fname).split(sep=".")[0]
+        self.nsu = inp["solute"]["nsu"]
+        self.nsv = inp["solvent"]["nsv"]
+        self.grid = grid.Grid(inp["system"]["npts"], inp["system"]["radius"])
+        solv_info = list(inp["solvent"].items())[1:self.nsv+1]
+        coords = []
+        for i in solv_info:
+            i[1][0].insert(0, i[0])
+            self.solvent_sites.append(i[1][0])
+            coords.append(i[1][1])
+        self.dists = distance_matrix(coords, coords)
+        self.T = inp["system"]["temp"]
+        self.kT = inp["system"]["kT"]
 
     def compute_UR_LJ(self, eps, sig, lam) -> np.ndarray:
         """
@@ -560,7 +581,7 @@ class RismController:
                 y = np.abs(cr_next - cr_prev)
                 rms = np.sqrt(self.grid.d_r * np.power((cr_next - cr_prev), 2).sum() / (np.prod(cr_next.shape)))
                 if i % 100 == 0:
-                    print("iteration: ", i, "\tRMS: ", rms, "\tDiff:, ", np.amax(y))
+                    print("iteration: ", i, "\tRMS: ", rms, "\tDiff: ", np.amax(y))
                 if rms < tol and np.amax(y) < tol:
                     print("\nlambda: ", lam)
                     print("total iterations: ", i)
@@ -588,17 +609,17 @@ class RismController:
 
 
 if __name__ == "__main__":
-    mol2 = RismController("Argon", 1, 0, 2048, 20.48, Ar_fluid, [0], 84.4)
-    mol = RismController("cSPCE_water", 3, 0, 2048, 20.48, water_sites, Solvent_Distances, 300)
-    hr1981 = RismController("NN+-", 2, 0, 2048, 20.48, HR1981, HR1981_dist, 72)
-    hr1981nn = RismController("NN", 2, 0, 2048, 20.48, HR1981_NN, HR1981_dist, 72)
-    hr1982_hcl_ii = RismController("HCl_II", 2, 0, 2048, 20.48, HR1982_HCL_II, HR1982_HCL_II_dist, 210)
-    hr1982_hcl_iii = RismController("HCl_III", 2, 0, 2048, 20.48, HR1982_HCL_III, HR1982_HCL_III_dist, 210)
-    hr1982_br2_i = RismController("Br2_I", 3, 0, 2048, 20.48, HR1982_BR2_I, HR1982_BR2_I_dist, 296.15)
-    hr1982_br2_iii = RismController("Br2_III", 3, 0, 2048, 20.48, HR1982_BR2_III, HR1982_BR2_I_dist, 296.15)
-    hr1982_br2_iv = RismController("Br2_I", 3, 0, 2048, 20.48, HR1982_BR2_IV, HR1982_BR2_I_dist, 296.15)
+    # mol2 = RismController("Argon", 1, 0, 2048, 20.48, Ar_fluid, [0], 84.4)
+    mol = RismController("data/cSPCE.toml")
+    # hr1981 = RismController("NN+-", 2, 0, 2048, 20.48, HR1981, HR1981_dist, 72)
+    # hr1981nn = RismController("NN", 2, 0, 2048, 20.48, HR1981_NN, HR1981_dist, 72)
+    # hr1982_hcl_ii = RismController("HCl_II", 2, 0, 2048, 20.48, HR1982_HCL_II, HR1982_HCL_II_dist, 210)
+    # hr1982_hcl_iii = RismController("HCl_III", 2, 0, 2048, 20.48, HR1982_HCL_III, HR1982_HCL_III_dist, 210)
+    # hr1982_br2_i = RismController("Br2_I", 3, 0, 2048, 20.48, HR1982_BR2_I, HR1982_BR2_I_dist, 296.15)
+    # hr1982_br2_iii = RismController("Br2_III", 3, 0, 2048, 20.48, HR1982_BR2_III, HR1982_BR2_I_dist, 296.15)
+    # hr1982_br2_iv = RismController("Br2_I", 3, 0, 2048, 20.48, HR1982_BR2_IV, HR1982_BR2_I_dist, 296.15)
     #mol2.dorism()
-    mol.dorism()
+    mol.dorism() #Parameters taken from AMBER
     #hr1981.dorism()
     #hr1981nn.dorism()
     #hr1982_hcl_ii.dorism()
