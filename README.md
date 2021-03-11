@@ -14,9 +14,18 @@ A pedagogical implementation of the RISM equations
 
 ### Usage
 Currently the inputs are just specified in `pyrism/rism_ctrl.py`
+
 Comment out which example you want to use and run `python rism_ctrl.py`
+
 Example input files are provided in `pyrism\data` with references in `pyrism\data\README.md`
 
+### Future Work
+- DRISM
+- Solute-solvent interactions
+- More closures (PY, KH)
+- More potentials (Hard-sphere, AB-form LJ)
+- MDIIS solver
+- Chemical potentials
 
 ### Copyright
 
