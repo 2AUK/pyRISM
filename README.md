@@ -6,9 +6,21 @@ pyrism
 
 A pedagogical implementation of the RISM equations
 
+### Currently Implemented Features
+- XRISM for neat liquids
+
+#### Potentials
+- Lennard-Jones Potential
+
+### Usage
+Currently the inputs are just specified in `pyrism/rism_ctrl.py`
+Comment out which example you want to use and run `python rism_ctrl.py`
+Example input files are provided in `pyrism\data` with references in `pyrism\data\README.md`
+
+
 ### Copyright
 
-Copyright (c) 2020, Abdullah Ahmad
+Copyright (c) 2021, Abdullah Ahmad
 
 
 #### Acknowledgements

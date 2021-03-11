@@ -517,7 +517,7 @@ class RismController:
         self.Ng = Ng
         self.find_peaks()
         self.plot_gr()
-        #self.write_data()
+        self.write_data()
 
 
 if __name__ == "__main__":
@@ -527,7 +527,7 @@ if __name__ == "__main__":
     hr1981nn = RismController("data/HR1982N.toml")
     hr1982_hcl_ii = RismController("data/HR1982_HCl_II.toml")
     hr1982_hcl_iii = RismController("data/HR1982_HCl_III.toml")
-    hr1982_br2_i = RismController("data/HR1982_Br2_I.toml")
+    #hr1982_br2_i = RismController("data/HR1982_Br2_I.toml")
     hr1982_br2_iii = RismController("data/HR1982_Br2_III.toml")
     hr1982_br2_iv = RismController("data/HR1982_Br2_IV.toml")
     #mol2.dorism()
