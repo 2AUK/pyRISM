@@ -8,7 +8,7 @@ import numpy as np
 import mpmath as mp
 import pandas as pd
 from scipy.fft import dst, idst
-from scipy.special import erf, expit
+from scipy.special import erf
 from scipy.signal import argrelextrema
 from scipy.spatial import distance_matrix
 import matplotlib.pyplot as plt
@@ -17,30 +17,6 @@ import toml
 import os
 
 np.seterr(over='raise')
-
-#Solvent Info#
-
-#For now we assume only one solvent is being used within the site_list object
-M_PI =  3.14159265358979323846
-NSV = 3
-k_b = 1.380649E-23
-k_b2 = 0.0019872 #kcal/(mol/K)
-N_A = 6.02214086E23
-cmtoA = 1.0E-24
-dmtoA = 1.0E-27
-mtoA = 1.0E-30
-ar_den = (N_A/39.948) * cmtoA * 1.374
-#Temp = 293.16
-kTkcal = 0.00198720414667
-kT = 1
-#beta = 1 / (kT * Temp)
-KE2PK = 167101.0
-KE2NAC = 332.064
-charge_coeff = KE2PK
-# Site = [Site1, Site2, ... , SiteN]
-# SiteN = [Atomic symbol, eps, sig, charge, rho]
-#Argon fluid. Lennard-Jones parameters from Rahman (already divided by kB)
-#Number density computed from equation $N = \frac{\N_A}{M}\rho$ where \rho is the mass density (1.394 g/cm^3)
 
 class RismController:
 
@@ -359,16 +335,11 @@ class RismController:
         h = np.zeros((self.grid.npts, self.nsv, self.nsv), dtype=np.float64)
         trsr = np.zeros((self.grid.npts, self.nsv, self.nsv), dtype=np.float64)
         cksr = np.zeros((self.grid.npts, self.nsv, self.nsv), dtype=np.float64)
-        #vklr = np.zeros((self.grid.npts, self.nsv, self.nsv), dtype=np.float64)
+
         for i,j in np.ndindex(self.nsv, self.nsv):
             cksr[:, i, j] = self.grid.dht(cr[:, i, j])
-            #vklr[:, i, j] = self.grid.dht(vrlr[:, i, j]) 
             cksr[:, i, j] -= vklr[:, i, j]
         for i in range(self.grid.npts):
-            #wc = np.matmul(wk[i, :, :], cksr[i, :, :])
-            #pwc = np.matmul(wc, rho)
-            #ipwc = np.linalg.inv(I - pwc)
-            #h[i, :, :] = np.matmul(np.matmul(wc, ipwc), wk[i, :, :])
             iwcp = np.linalg.inv(I - wk[i, :, :]@cksr[i, :, :]@rho)
             wcw = wk[i, :, :]@cksr[i, :, :]@wk[i, :, :]
             h[i, :, :] = iwcp@wcw - cksr[i, :, :]
@@ -393,13 +364,10 @@ class RismController:
         trsr: ndarray
         An array containing short-range indirection correlation function
         """
-        #print(np.exp(trsr))
-        #exp_arr = np.frompyfunc(mp.exp, 1, 1)
         return np.exp(-vrsr + trsr) - 1.0 - trsr
 
     def picard_step(self, cr_cur, cr_prev, damp):
         return cr_prev + damp*(cr_cur - cr_prev)
-        #return damp*cr_cur + (1-damp)*cr_prev
 
     def find_peaks(self):
         for i,j in np.ndindex(self.nsv, self.nsv):
