@@ -435,6 +435,7 @@ class RismController:
         """
         nlam = self.lam
         wk = self.build_wk()
+        print(wk[:,0,0])
         rho = self.build_rho()
         itermax = self.itermax
         tol = self.tol
@@ -531,7 +532,7 @@ if __name__ == "__main__":
     hr1982_br2_iii = RismController("data/HR1982_Br2_III.toml")
     hr1982_br2_iv = RismController("data/HR1982_Br2_IV.toml")
     #mol2.dorism()
-    #mol.dorism() #Parameters taken from AMBER
+    mol.dorism() #Parameters taken from AMBER
     #hr1981.dorism()
     #hr1981nn.dorism()
     #hr1982_hcl_ii.dorism()
