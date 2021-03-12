@@ -29,6 +29,7 @@ class RismController:
         self.charge_coeff = None
         self.solvent_sites = []
         self.dists = []
+        self.mult = None
         self.itermax = None
         self.damp = None
         self.tol = None
@@ -50,12 +51,11 @@ class RismController:
         self.nsu = inp["solute"]["nsu"]
         self.nsv = inp["solvent"]["nsv"]
         self.grid = grid.Grid(inp["system"]["npts"], inp["system"]["radius"])
-        solv_info = list(inp["solvent"].items())[1:self.nsv+1]
-        coords = []
+        solv_info = list(inp["solvent"].items())[3:self.nsv+3]
         for i in solv_info:
             i[1][0].insert(0, i[0])
             self.solvent_sites.append(i[1][0])
-            coords.append(i[1][1])
+        coords = np.asarray(inp["solvent"]["coords"])
         self.dists = distance_matrix(coords, coords)
         self.T = inp["system"]["temp"]
         self.kT = inp["system"]["kT"]
@@ -64,6 +64,7 @@ class RismController:
         self.lam = inp["system"]["lam"]
         self.damp = inp["system"]["picard_damping"]
         self.tol = inp["system"]["tol"]
+        self.mult = inp["solvent"]["mt"]
 
     def compute_UR_LJ(self, eps, sig, lam) -> np.ndarray:
         """
@@ -225,6 +226,9 @@ class RismController:
             else:
                 wk[:, i, j] = np.sin(self.grid.ki * self.dists[i,j]) / (self.grid.ki * self.dists[i,j])
         return wk
+
+    def build_v(self):
+        return np.diag(self.mult)
     
     def build_Ur(self, lam):
         """
@@ -310,7 +314,7 @@ class RismController:
         """
         return np.diag([prm[-1] for prm in self.solvent_sites])
 
-    def RISM(self, wk, cr, vklr, rho):
+    def RISM(self, wk, cr, vklr, rho, v):
         """
         Computes RISM equation in the form:
 
@@ -435,7 +439,9 @@ class RismController:
         """
         nlam = self.lam
         wk = self.build_wk()
-        print(wk[:,0,0])
+        v = self.build_v()
+        print(self.dists)
+        print(wk[0,:,:])
         rho = self.build_rho()
         itermax = self.itermax
         tol = self.tol
@@ -460,15 +466,16 @@ class RismController:
             fr = np.exp(-Ursr) - 1.0
             if j == 1:
                 print("Building System...\n")
-                cr = fr
+                cr = np.zeros_like(fr)
             else:
                 print("Rebuilding System from previous cycle...\n")
                 cr = cr_lam
             print("Iterating SSOZ Equations...\n")
             while i < itermax:
                 cr_prev = cr
-                trsr = self.RISM(wk, cr, Uklr, rho)
+                trsr = self.RISM(wk, cr, Uklr, rho, v)
                 cr_A = self.closure(Ursr, trsr)
+                #cr_next = self.picard_step(cr_A, cr_prev, damp)
                 if i < 3:
                     vecfr.append(cr_prev)
                     cr_next = self.picard_step(cr_A, cr_prev, damp)
@@ -495,7 +502,7 @@ class RismController:
                 rms = np.sqrt(self.grid.d_r * np.power((cr_next - cr_prev), 2).sum() / (np.prod(cr_next.shape)))
                 if i % 100 == 0:
                     print("iteration: ", i, "\tRMS: ", rms, "\tDiff: ", np.amax(y))
-                if rms < tol and np.amax(y) < tol:
+                if rms < tol:# and np.amax(y) < tol:
                     print("\nlambda: ", lam)
                     print("total iterations: ", i)
                     print("RMS: ", rms)
@@ -522,21 +529,6 @@ class RismController:
 
 
 if __name__ == "__main__":
-    mol2 = RismController("data/argon.toml")
     mol = RismController("data/cSPCE.toml")
-    hr1981 = RismController("data/HR1982.toml")
-    hr1981nn = RismController("data/HR1982N.toml")
-    hr1982_hcl_ii = RismController("data/HR1982_HCl_II.toml")
-    hr1982_hcl_iii = RismController("data/HR1982_HCl_III.toml")
-    #hr1982_br2_i = RismController("data/HR1982_Br2_I.toml")
-    hr1982_br2_iii = RismController("data/HR1982_Br2_III.toml")
-    hr1982_br2_iv = RismController("data/HR1982_Br2_IV.toml")
-    #mol2.dorism()
     mol.dorism() #Parameters taken from AMBER
-    #hr1981.dorism()
-    #hr1981nn.dorism()
-    #hr1982_hcl_ii.dorism()
-    #hr1982_hcl_iii.dorism()
-    #hr1982_br2_i.dorism() #Doesn't work without an arbitrary precision lib
-    #hr1982_br2_iii.dorism()
-    #hr1982_br2_iv.dorism()
+
