@@ -25,10 +25,12 @@ class RismController:
         self.name = None
         self.nsu = None
         self.nsv = None
+        self.natv = None
+        self.natu = None
         self.grid = None
         self.charge_coeff = None
         self.solvent_sites = []
-        self.dists = []
+        self.dists = None
         self.mult = None
         self.itermax = None
         self.damp = None
@@ -50,8 +52,9 @@ class RismController:
         self.name = os.path.basename(self.fname).split(sep=".")[0]
         self.nsu = inp["solute"]["nsu"]
         self.nsv = inp["solvent"]["nsv"]
+        self.natv = inp["solvent"]["natom"]
         self.grid = grid.Grid(inp["system"]["npts"], inp["system"]["radius"])
-        solv_info = list(inp["solvent"].items())[3:self.nsv+3]
+        solv_info = list(inp["solvent"].items())[4:self.nsv+4]
         for i in solv_info:
             i[1][0].insert(0, i[0])
             self.solvent_sites.append(i[1][0])
@@ -65,6 +68,13 @@ class RismController:
         self.damp = inp["system"]["picard_damping"]
         self.tol = inp["system"]["tol"]
         self.mult = inp["solvent"]["mt"]
+
+    def distance_calc(self):
+        dist = np.zeros((np.max(self.mult), self.nsv, self.nsv), dtype=np.float64)
+        for i, j in np.ndindex(self.nsv, self.nsv):
+            for m in range(self.mult[i]):
+                dist[m, i, j] = 
+
 
     def compute_UR_LJ(self, eps, sig, lam) -> np.ndarray:
         """
