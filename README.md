@@ -15,6 +15,7 @@ A pedagogical implementation of the RISM equations
 ### Usage
 Run
 `$ python rism_ctrl.py path/to/file`
+
 Various exemplar inputs are given in `data/`
 
 ### Future Work
