@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import grid
 import toml
 import os
+import sys
 
 np.seterr(over='raise')
 
@@ -521,21 +522,5 @@ class RismController:
 
 
 if __name__ == "__main__":
-    mol2 = RismController("data/argon.toml")
-    mol = RismController("data/cSPCE.toml")
-    hr1981 = RismController("data/HR1982.toml")
-    hr1981nn = RismController("data/HR1982N.toml")
-    hr1982_hcl_ii = RismController("data/HR1982_HCl_II.toml")
-    hr1982_hcl_iii = RismController("data/HR1982_HCl_III.toml")
-    #hr1982_br2_i = RismController("data/HR1982_Br2_I.toml")
-    hr1982_br2_iii = RismController("data/HR1982_Br2_III.toml")
-    hr1982_br2_iv = RismController("data/HR1982_Br2_IV.toml")
-    #mol2.dorism()
-    #mol.dorism() #Parameters taken from AMBER
-    #hr1981.dorism()
-    #hr1981nn.dorism()
-    #hr1982_hcl_ii.dorism()
-    #hr1982_hcl_iii.dorism()
-    #hr1982_br2_i.dorism() #Doesn't work without an arbitrary precision lib
-    #hr1982_br2_iii.dorism()
-    #hr1982_br2_iv.dorism()
+    mol = RismController(sys.argv[1])
+    mol.dorism()

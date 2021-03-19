@@ -13,11 +13,9 @@ A pedagogical implementation of the RISM equations
 - Lennard-Jones Potential
 
 ### Usage
-Currently the inputs are just specified in `pyrism/rism_ctrl.py`
-
-Comment out which example you want to use and run `python rism_ctrl.py`
-
-Example input files are provided in `pyrism\data` with references in `pyrism\data\README.md`
+Run
+`$ python rism_ctrl.py path/to/file`
+Various exemplar inputs are given in `data/`
 
 ### Future Work
 - DRISM
