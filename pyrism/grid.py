@@ -17,7 +17,7 @@ class Grid:
         self.ri = np.zeros(npts, dtype=float)
         self.ki = np.zeros(npts, dtype=float)
         self.d_r = self.radius / float(self.npts)
-        self.d_k = (2*np.pi / (2*float(self.npts)*self.d_r))
+        self.d_k = (np.pi / (float(self.npts)*self.d_r))
         self.generate_grid()
 
     def generate_grid(self):
@@ -37,8 +37,8 @@ class Grid:
         """
 
         for i in np.arange(0, int(self.npts)):
-            self.ri[i] = (i + 0.5) * self.d_r
-            self.ki[i] = (i + 0.5) * self.d_k
+            self.ri[i] = (i+0.5) * self.d_r
+            self.ki[i] = (i+0.5) * self.d_k
 
     def dht(self, fr: np.ndarray) -> np.ndarray:
         """

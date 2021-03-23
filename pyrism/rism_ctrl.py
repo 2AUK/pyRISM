@@ -18,6 +18,11 @@ import os
 
 np.seterr(over='raise')
 
+dists = np.asarray([    [[0.0, 1.0],
+                         [1.0, 0.0]],  
+                        [[0.0, 0.0],
+                         [1.0000001162259935, 1.6329813937862245]]  ])
+
 class RismController:
 
     def __init__(self, fname):
@@ -54,12 +59,13 @@ class RismController:
         self.nsv = inp["solvent"]["nsv"]
         self.natv = inp["solvent"]["natom"]
         self.grid = grid.Grid(inp["system"]["npts"], inp["system"]["radius"])
+        self.mult = inp["solvent"]["mt"]
         solv_info = list(inp["solvent"].items())[4:self.nsv+4]
         for i in solv_info:
             i[1][0].insert(0, i[0])
             self.solvent_sites.append(i[1][0])
         coords = np.asarray(inp["solvent"]["coords"])
-        self.dists = distance_matrix(coords, coords)
+        self.dists = dists
         self.T = inp["system"]["temp"]
         self.kT = inp["system"]["kT"]
         self.charge_coeff = inp["system"]["charge_coeff"]
@@ -67,13 +73,23 @@ class RismController:
         self.lam = inp["system"]["lam"]
         self.damp = inp["system"]["picard_damping"]
         self.tol = inp["system"]["tol"]
-        self.mult = inp["solvent"]["mt"]
+        
 
-    def distance_calc(self):
+    def distance_calc(self, coords):
+        print(np.max(self.mult))
         dist = np.zeros((np.max(self.mult), self.nsv, self.nsv), dtype=np.float64)
-        for i, j in np.ndindex(self.nsv, self.nsv):
-            for m in range(self.mult[i]):
-                dist[m, i, j] = 
+        for i, j in np.ndindex(self.natv, self.natv):
+            k = i % self.nsv
+            l = j % self.nsv
+            for m in range(self.mult[k]):
+                print(coords[i])
+                print(coords[j])
+                d = np.sqrt(np.power((coords[i] - coords[j]), 2).sum())
+                print(d)
+                print(m, k, l, d)
+                dist[m, k, l] = d
+                print(dist)
+        return dist
 
 
     def compute_UR_LJ(self, eps, sig, lam) -> np.ndarray:
@@ -231,10 +247,12 @@ class RismController:
         wk = np.zeros((self.grid.npts, self.nsv, self.nsv), dtype=np.float64)
         I = np.ones(self.grid.npts, dtype=np.float)
         for i, j in np.ndindex(self.nsv, self.nsv):
-            if i == j:
-                wk[:, i, j] = I
-            else:
-                wk[:, i, j] = np.sin(self.grid.ki * self.dists[i,j]) / (self.grid.ki * self.dists[i,j])
+            for m in range(self.mult[i]):
+                if self.dists[m, i, j] == 0.0:
+                    w = I
+                else:
+                    w = np.sin(self.grid.ki * self.dists[m,i,j]) / (self.grid.ki * self.dists[m,i,j])
+                wk[:, i, j] += w 
         return wk
 
     def build_v(self):
@@ -451,6 +469,8 @@ class RismController:
         wk = self.build_wk()
         v = self.build_v()
         print(self.dists)
+        print(self.grid.ri)
+        print(self.grid.ki)
         print(wk[0,:,:])
         rho = self.build_rho()
         itermax = self.itermax
