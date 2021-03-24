@@ -347,11 +347,9 @@ class RismController:
             trsr[:, i, j] = self.grid.idht(h[:, i, j] - vklr[:, i, j])
         return trsr
 
-    def closure(self, vrsr, trsr):
+    def closure(self, vrsr, trsr, closure):
         """
-        Computes HNC Closure equation in the form:
-
-        c(r) = exp(-vr + tr) - tr - 1
+        Computes closure relation
 
         Parameters
         ----------
@@ -364,7 +362,26 @@ class RismController:
         trsr: ndarray
         An array containing short-range indirection correlation function
         """
-        return np.exp(-vrsr + trsr) - 1.0 - trsr
+        if closure == "HNC":
+            return np.exp(-vrsr + trsr) - 1.0 - trsr
+        elif closure == "KH":
+            return np.where((-vrsr + trsr) <= 0, np.exp(-vrsr + trsr) - 1.0 - trsr, -vrsr)
+        elif closure == "PSE-1":
+            t_fac = 0
+            for i in range(1):
+                t_fac += np.power((-vrsr + trsr), i) / np.math.factorial(i)
+            return np.where((-vrsr + trsr) <= 0, np.exp(-vrsr + trsr) - 1.0 - trsr, t_fac - 1.0 - trsr)
+        elif closure == "PSE-2":
+            t_fac = 0
+            for i in range(2):
+                t_fac += np.power((-vrsr + trsr), i) / np.math.factorial(i)
+            return np.where((-vrsr + trsr) <= 0, np.exp(-vrsr + trsr) - 1.0 - trsr, t_fac - 1.0 - trsr)
+        elif closure == "PSE-3":
+            t_fac = 0
+            for i in range(3):
+                t_fac += np.power((-vrsr + trsr), i) / np.math.factorial(i)
+            return np.where((-vrsr + trsr) <= 0, np.exp(-vrsr + trsr) - 1.0 - trsr, t_fac - 1.0 - trsr)
+
 
     def picard_step(self, cr_cur, cr_prev, damp):
         return cr_prev + damp*(cr_cur - cr_prev)
@@ -373,7 +390,9 @@ class RismController:
         for i,j in np.ndindex(self.nsv, self.nsv):
             fmax = argrelextrema(self.gr[:,i,j], np.greater)
             fmin = argrelextrema(self.gr[:,i,j], np.less)
-            print(i, j)
+            lbl1 = self.solvent_sites[i][0]
+            lbl2 = self.solvent_sites[j][0]
+            print(lbl1 + "-" + lbl2)
             print("Maxima:")
             print("r", self.grid.ri[fmax])
             print("g(r)", self.gr[fmax, i, j].flatten())
@@ -467,7 +486,7 @@ class RismController:
             while i < itermax:
                 cr_prev = cr
                 trsr = self.RISM(wk, cr, Uklr, rho)
-                cr_A = self.closure(Ursr, trsr)
+                cr_A = self.closure(Ursr, trsr, "PSE-3")
                 if i < 3:
                     vecfr.append(cr_prev)
                     cr_next = self.picard_step(cr_A, cr_prev, damp)
@@ -517,7 +536,7 @@ class RismController:
         self.Ng = Ng
         self.find_peaks()
         self.plot_gr()
-        self.write_data()
+        #self.write_data()
 
 
 if __name__ == "__main__":
@@ -527,7 +546,7 @@ if __name__ == "__main__":
     hr1981nn = RismController("data/HR1982N.toml")
     hr1982_hcl_ii = RismController("data/HR1982_HCl_II.toml")
     hr1982_hcl_iii = RismController("data/HR1982_HCl_III.toml")
-    #hr1982_br2_i = RismController("data/HR1982_Br2_I.toml")
+    hr1982_br2_i = RismController("data/HR1982_Br2_I.toml")
     hr1982_br2_iii = RismController("data/HR1982_Br2_III.toml")
     hr1982_br2_iv = RismController("data/HR1982_Br2_IV.toml")
     #mol2.dorism()
