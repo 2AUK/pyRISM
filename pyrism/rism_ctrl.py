@@ -40,6 +40,7 @@ class RismController:
         self.gr = None
         self.Ur = None
         self.Ng = None
+        self.clos = None
         self.read_input()
         self.beta = 1 / self.kT / self.T
 
@@ -64,6 +65,7 @@ class RismController:
         self.lam = inp["system"]["lam"]
         self.damp = inp["system"]["picard_damping"]
         self.tol = inp["system"]["tol"]
+        self.clos = inp["system"]["closure"]
 
     def compute_UR_LJ(self, eps, sig, lam) -> np.ndarray:
         """
@@ -381,6 +383,11 @@ class RismController:
             for i in range(3):
                 t_fac += np.power((-vrsr + trsr), i) / np.math.factorial(i)
             return np.where((-vrsr + trsr) <= 0, np.exp(-vrsr + trsr) - 1.0 - trsr, t_fac - 1.0 - trsr)
+        elif closure == "KGK":
+            zeros = np.zeros_like(trsr)
+            return np.maximum(zeros, -vrsr)
+        elif closure == "PY":
+            return np.exp(-vrsr) * (1.0 + trsr) - trsr - 1.0
 
 
     def picard_step(self, cr_cur, cr_prev, damp):
@@ -454,6 +461,7 @@ class RismController:
         """
         nlam = self.lam
         wk = self.build_wk()
+        print(wk.shape)
         rho = self.build_rho()
         itermax = self.itermax
         tol = self.tol
@@ -486,7 +494,7 @@ class RismController:
             while i < itermax:
                 cr_prev = cr
                 trsr = self.RISM(wk, cr, Uklr, rho)
-                cr_A = self.closure(Ursr, trsr, "PSE-3")
+                cr_A = self.closure(Ursr, trsr, self.clos)
                 if i < 3:
                     vecfr.append(cr_prev)
                     cr_next = self.picard_step(cr_A, cr_prev, damp)
@@ -513,7 +521,7 @@ class RismController:
                 rms = np.sqrt(self.grid.d_r * np.power((cr_next - cr_prev), 2).sum() / (np.prod(cr_next.shape)))
                 if i % 100 == 0:
                     print("iteration: ", i, "\tRMS: ", rms, "\tDiff: ", np.amax(y))
-                if rms < tol and np.amax(y) < tol:
+                if rms < tol:
                     print("\nlambda: ", lam)
                     print("total iterations: ", i)
                     print("RMS: ", rms)
@@ -549,8 +557,9 @@ if __name__ == "__main__":
     hr1982_br2_i = RismController("data/HR1982_Br2_I.toml")
     hr1982_br2_iii = RismController("data/HR1982_Br2_III.toml")
     hr1982_br2_iv = RismController("data/HR1982_Br2_IV.toml")
+    nitromethane = RismController("data/nitromethane.toml")
     #mol2.dorism()
-    #mol.dorism() #Parameters taken from AMBER
+    mol.dorism() #Parameters taken from AMBER
     #hr1981.dorism()
     #hr1981nn.dorism()
     #hr1982_hcl_ii.dorism()
@@ -558,3 +567,4 @@ if __name__ == "__main__":
     #hr1982_br2_i.dorism() #Doesn't work without an arbitrary precision lib
     #hr1982_br2_iii.dorism()
     #hr1982_br2_iv.dorism()
+    #nitromethane.dorism()
