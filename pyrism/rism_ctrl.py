@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import grid
 import toml
 import os
+import sys
 
 np.seterr(over='raise')
 
@@ -372,26 +373,18 @@ class RismController:
             return np.exp(-vrsr + trsr) - 1.0 - trsr
         elif closure == "KH":
             return np.where((-vrsr + trsr) <= 0, np.exp(-vrsr + trsr) - 1.0 - trsr, -vrsr)
-        elif closure == "PSE-1":
-            t_fac = 0
-            for i in range(1):
-                t_fac += np.power((-vrsr + trsr), i) / np.math.factorial(i)
-            return np.where((-vrsr + trsr) <= 0, np.exp(-vrsr + trsr) - 1.0 - trsr, t_fac - 1.0 - trsr)
-        elif closure == "PSE-2":
-            t_fac = 0
-            for i in range(2):
-                t_fac += np.power((-vrsr + trsr), i) / np.math.factorial(i)
-            return np.where((-vrsr + trsr) <= 0, np.exp(-vrsr + trsr) - 1.0 - trsr, t_fac - 1.0 - trsr)
-        elif closure == "PSE-3":
-            t_fac = 0
-            for i in range(3):
-                t_fac += np.power((-vrsr + trsr), i) / np.math.factorial(i)
-            return np.where((-vrsr + trsr) <= 0, np.exp(-vrsr + trsr) - 1.0 - trsr, t_fac - 1.0 - trsr)
         elif closure == "KGK":
             zeros = np.zeros_like(trsr)
             return np.maximum(zeros, -vrsr)
         elif closure == "PY":
             return np.exp(-vrsr) * (1.0 + trsr) - trsr - 1.0
+        elif closure.startswith("PSE"):
+            t_fac = 0
+            splt = closure.split("-")
+            n = int(splt[1])
+            for i in range(n):
+                t_fac += np.power((-vrsr + trsr), i) / np.math.factorial(i)
+            return np.where((-vrsr + trsr) <= 0, np.exp(-vrsr + trsr) - 1.0 - trsr, t_fac - 1.0 - trsr)
 
 
     def picard_step(self, cr_cur, cr_prev, damp):
@@ -497,57 +490,56 @@ class RismController:
 
             print(lam)
             print("Iterating SSOZ Equations...\n")
-            min_result = anderson(self.cost, cr.reshape(-1), verbose=True, M=20)
-            #while i < itermax:
-                #cr_prev = cr
-                #trsr = self.RISM(wk, cr, Uklr, rho)
-                #cr = cr_next
-                # cr_A = self.closure(Ursr, trsr, self.clos)
-                # if i < 3:
-                #     vecfr.append(cr_prev)
-                #     cr_next = self.picard_step(cr_A, cr_prev, damp)
-                #     vecgr.append(cr_A)
-                # else:
-                #     vecdr = np.asarray(vecgr) - np.asarray(vecfr)
-                #     dn = vecdr[-1].flatten()
-                #     d01 = (vecdr[-1] - vecdr[-2]).flatten()
-                #     d02 = (vecdr[-1] - vecdr[-3]).flatten()
-                #     A[0,0] = np.inner(d01, d01)
-                #     A[0,1] = np.inner(d01, d02)
-                #     A[1,0] = np.inner(d01, d02)
-                #     A[1,1] = np.inner(d02, d02)
-                #     b[0] = np.inner(dn, d01)
-                #     b[1] = np.inner(dn, d02)
-                #     c = np.linalg.solve(A, b)
-                #     cr_next = (1 - c[0] - c[1])*vecgr[-1] + c[0]*vecgr[-2] + c[1]*vecgr[-3]
-                #     vecfr.append(cr_prev)
-                #     vecgr.append(cr_A)
-                #     vecgr.pop(0)
-                #     vecfr.pop(0)
-                # 
-                # y = np.abs(cr_next - cr_prev)
-                # rms = np.sqrt(self.grid.d_r * np.power((cr_next - cr_prev), 2).sum() / (np.prod(cr_next.shape)))
-                # if i % 100 == 0:
-                #     print("iteration: ", i, "\tRMS: ", rms, "\tDiff: ", np.amax(y))
-                # if rms < tol:
-                #     print("\nlambda: ", lam)
-                #     print("total iterations: ", i)
-                #     print("RMS: ", rms)
-                #     print("Diff: ", np.amax(y))
-                #     print("-------------------------")
-                #     break
-                # i+=1
-                # if i == itermax:
-                #     print("\nlambda: ", lam)
-                #     print("total iterations: ", i)
-                #     print("RMS: ", rms)
-                #     print("Diff: ", np.amax(y))
-                #     print("-------------------------")
-            print(min_result)
-            cr_lam = self.cr
+            #min_result = anderson(self.cost, cr.reshape(-1), verbose=True, M=20)
+            while i < itermax:
+                cr_prev = cr
+                trsr = self.RISM(self.wk, cr, self.Uklr, self.rho)
+                cr_A = self.closure(self.Ursr, trsr, self.clos)
+                if i < 3:
+                    vecfr.append(cr_prev)
+                    cr_next = self.picard_step(cr_A, cr_prev, damp)
+                    vecgr.append(cr_A)
+                else:
+                    vecdr = np.asarray(vecgr) - np.asarray(vecfr)
+                    dn = vecdr[-1].flatten()
+                    d01 = (vecdr[-1] - vecdr[-2]).flatten()
+                    d02 = (vecdr[-1] - vecdr[-3]).flatten()
+                    A[0,0] = np.inner(d01, d01)
+                    A[0,1] = np.inner(d01, d02)
+                    A[1,0] = np.inner(d01, d02)
+                    A[1,1] = np.inner(d02, d02)
+                    b[0] = np.inner(dn, d01)
+                    b[1] = np.inner(dn, d02)
+                    c = np.linalg.solve(A, b)
+                    cr_next = (1 - c[0] - c[1])*vecgr[-1] + c[0]*vecgr[-2] + c[1]*vecgr[-3]
+                    vecfr.append(cr_prev)
+                    vecgr.append(cr_A)
+                    vecgr.pop(0)
+                    vecfr.pop(0)
+                y = np.abs(cr_next - cr_prev)
+                rms = np.sqrt(self.grid.d_r * np.power((cr_next - cr_prev), 2).sum() / (np.prod(cr_next.shape)))
+                if i % 100 == 0:
+                    print("iteration: ", i, "\tRMS: ", rms, "\tDiff: ", np.amax(y))
+                if rms < tol:
+                    print("\nlambda: ", lam)
+                    print("total iterations: ", i)
+                    print("RMS: ", rms)
+                    print("Diff: ", np.amax(y))
+                    print("-------------------------")
+                    break
+                i+=1
+                if i == itermax:
+                    print("\nlambda: ", lam)
+                    print("total iterations: ", i)
+                    print("RMS: ", rms)
+                    print("Diff: ", np.amax(y))
+                    print("-------------------------")
+                cr = cr_next
+            #print(min_result)
+            cr_lam = cr
         print("Iteration finished!\n")
-        self.cr -= Ng
-        self.tr += Ng
+        self.cr = cr - Ng
+        self.tr = trsr + Ng
         self.gr = 1 + self.cr + self.tr
         self.Ur = Ur
         self.Ng = Ng
@@ -557,23 +549,5 @@ class RismController:
 
 
 if __name__ == "__main__":
-    mol2 = RismController("data/argon.toml")
-    mol = RismController("data/cSPCE.toml")
-    hr1981 = RismController("data/HR1982.toml")
-    hr1981nn = RismController("data/HR1982N.toml")
-    hr1982_hcl_ii = RismController("data/HR1982_HCl_II.toml")
-    hr1982_hcl_iii = RismController("data/HR1982_HCl_III.toml")
-    hr1982_br2_i = RismController("data/HR1982_Br2_I.toml")
-    hr1982_br2_iii = RismController("data/HR1982_Br2_III.toml")
-    hr1982_br2_iv = RismController("data/HR1982_Br2_IV.toml")
-    nitromethane = RismController("data/nitromethane.toml")
-    #mol2.dorism()
-    mol.dorism() #Parameters taken from AMBER
-    #hr1981.dorism()
-    #hr1981nn.dorism()
-    #hr1982_hcl_ii.dorism()
-    #hr1982_hcl_iii.dorism()
-    #hr1982_br2_i.dorism() #Doesn't work without an arbitrary precision lib
-    #hr1982_br2_iii.dorism()
-    #hr1982_br2_iv.dorism()
-    #nitromethane.dorism()
+    mol = RismController(sys.argv[1])
+    mol.dorism()
