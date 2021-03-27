@@ -73,3 +73,5 @@ correct files.
 * `HR1982_Br2_III.toml`: Bromine model III [Application of an extended RISM equation to dipolar and quadrupolar fluids](https://aip.scitation.org/doi/abs/10.1063/1.443606)
 
 * `HR1982_Br2_IV.toml`: Bromine model IV [Application of an extended RISM equation to dipolar and quadrupolar fluids](https://aip.scitation.org/doi/abs/10.1063/1.443606)
+
+* `nitromethane_resp.toml`: Nitromethane with point charges calculated using RESP
