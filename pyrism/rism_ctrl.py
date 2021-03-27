@@ -11,6 +11,7 @@ from scipy.fft import dst, idst
 from scipy.special import erf
 from scipy.signal import argrelextrema
 from scipy.spatial import distance_matrix
+from scipy.optimize import root, minimize, newton_krylov, anderson
 import matplotlib.pyplot as plt
 import grid
 import toml
@@ -40,6 +41,9 @@ class RismController:
         self.gr = None
         self.Ur = None
         self.Ng = None
+        self.Ursr = None
+        self.wk = None
+        self.rho = None
         self.clos = None
         self.read_input()
         self.beta = 1 / self.kT / self.T
@@ -409,10 +413,11 @@ class RismController:
             print("\n")
         
     def plot_gr(self, save=False):
-        for i,j in np.ndindex(self.nsv, self.nsv):
-            lbl1 = self.solvent_sites[i][0]
-            lbl2 = self.solvent_sites[j][0]
-            plt.plot(self.grid.ri, self.gr[:, i, j], label= lbl1+"-"+lbl2)
+        for i in range(self.nsv):
+            for j in range(i, self.nsv):
+                lbl1 = self.solvent_sites[i][0]
+                lbl2 = self.solvent_sites[j][0]
+                plt.plot(self.grid.ri, self.gr[:, i, j], label= lbl1+"-"+lbl2)
         plt.axhline(1, color='grey', linestyle="--", linewidth=2)
         plt.title("RDF of " + self.name + " at " + str(self.T) + " K")
         plt.xlabel("r/A")
@@ -425,25 +430,25 @@ class RismController:
     def write_data(self):
 
         gr = pd.DataFrame(self.grid.ri, columns = ["r"])
-        for i,j in np.ndindex(self.nsv, self.nsv):
-            lbl1 = self.solvent_sites[i][0]
-            lbl2 = self.solvent_sites[j][0]
-            gr[lbl1+"-"+lbl2] = self.gr[:, i, j]
-        gr.to_csv(self.name + "_" + str(self.T) + "K.gvv", index=False)
-
         cr = pd.DataFrame(self.grid.ri, columns = ["r"])
-        for i,j in np.ndindex(self.nsv, self.nsv):
-            lbl1 = self.solvent_sites[i][0]
-            lbl2 = self.solvent_sites[j][0]
-            cr[lbl1+"-"+lbl2] = self.cr[:, i, j]
-        cr.to_csv(self.name + "_" + str(self.T) + "K.cvv", index=False)
-
         tr = pd.DataFrame(self.grid.ri, columns = ["r"])
         for i,j in np.ndindex(self.nsv, self.nsv):
             lbl1 = self.solvent_sites[i][0]
             lbl2 = self.solvent_sites[j][0]
+            gr[lbl1+"-"+lbl2] = self.gr[:, i, j]
+            cr[lbl1+"-"+lbl2] = self.cr[:, i, j]
             tr[lbl1+"-"+lbl2] = self.tr[:, i, j]
+        cr.to_csv(self.name + "_" + str(self.T) + "K.cvv", index=False)
+        gr.to_csv(self.name + "_" + str(self.T) + "K.gvv", index=False)
         tr.to_csv(self.name + "_" + str(self.T) + "K.tvv", index=False)
+    
+    def cost(self, cr):
+        cr_old = cr.reshape((self.grid.npts, self.nsv, self.nsv))
+        trsr = self.RISM(self.wk, cr_old, self.Uklr, self.rho)
+        cr_new = self.closure(self.Ursr, trsr, self.clos)
+        self.cr = cr_new
+        self.tr = trsr
+        return (cr_new - cr_old).reshape(-1)
 
     def dorism(self):
         """
@@ -460,9 +465,8 @@ class RismController:
         Converged g(r), c(r), t(r)
         """
         nlam = self.lam
-        wk = self.build_wk()
-        print(wk.shape)
-        rho = self.build_rho()
+        self.wk = self.build_wk()
+        self.rho = self.build_rho()
         itermax = self.itermax
         tol = self.tol
         damp = self.damp
@@ -480,65 +484,70 @@ class RismController:
             lam = 1.0 * j / nlam
             Ur = self.build_Ur(lam)
             Ng = self.build_Ng_Pot(1.0, lam)
-            Ursr = (Ur - Ng)
+            self.Ursr = (Ur - Ng)
             #Ursr[Ursr < urmin] = urmin
-            Uklr = self.build_Ng_Pot_k(1.0, lam)
-            fr = np.exp(-Ursr) - 1.0
+            self.Uklr = self.build_Ng_Pot_k(1.0, lam)
+            fr = np.exp(-self.Ursr) - 1.0
             if j == 1:
                 print("Building System...\n")
                 cr = fr
             else:
                 print("Rebuilding System from previous cycle...\n")
                 cr = cr_lam
+
+            print(lam)
             print("Iterating SSOZ Equations...\n")
-            while i < itermax:
-                cr_prev = cr
-                trsr = self.RISM(wk, cr, Uklr, rho)
-                cr_A = self.closure(Ursr, trsr, self.clos)
-                if i < 3:
-                    vecfr.append(cr_prev)
-                    cr_next = self.picard_step(cr_A, cr_prev, damp)
-                    vecgr.append(cr_A)
-                else:
-                    vecdr = np.asarray(vecgr) - np.asarray(vecfr)
-                    dn = vecdr[-1].flatten()
-                    d01 = (vecdr[-1] - vecdr[-2]).flatten()
-                    d02 = (vecdr[-1] - vecdr[-3]).flatten()
-                    A[0,0] = np.inner(d01, d01)
-                    A[0,1] = np.inner(d01, d02)
-                    A[1,0] = np.inner(d01, d02)
-                    A[1,1] = np.inner(d02, d02)
-                    b[0] = np.inner(dn, d01)
-                    b[1] = np.inner(dn, d02)
-                    c = np.linalg.solve(A, b)
-                    cr_next = (1 - c[0] - c[1])*vecgr[-1] + c[0]*vecgr[-2] + c[1]*vecgr[-3]
-                    vecfr.append(cr_prev)
-                    vecgr.append(cr_A)
-                    vecgr.pop(0)
-                    vecfr.pop(0)
-                cr = cr_next
-                y = np.abs(cr_next - cr_prev)
-                rms = np.sqrt(self.grid.d_r * np.power((cr_next - cr_prev), 2).sum() / (np.prod(cr_next.shape)))
-                if i % 100 == 0:
-                    print("iteration: ", i, "\tRMS: ", rms, "\tDiff: ", np.amax(y))
-                if rms < tol:
-                    print("\nlambda: ", lam)
-                    print("total iterations: ", i)
-                    print("RMS: ", rms)
-                    print("Diff: ", np.amax(y))
-                    print("-------------------------")
-                    break
-                i+=1
-                if i == itermax:
-                    print("\nlambda: ", lam)
-                    print("total iterations: ", i)
-                    print("RMS: ", rms)
-                    print("Diff: ", np.amax(y))
-                    print("-------------------------")
-            cr_lam = cr
+            min_result = anderson(self.cost, cr.reshape(-1), verbose=True, M=20)
+            #while i < itermax:
+                #cr_prev = cr
+                #trsr = self.RISM(wk, cr, Uklr, rho)
+                #cr = cr_next
+                # cr_A = self.closure(Ursr, trsr, self.clos)
+                # if i < 3:
+                #     vecfr.append(cr_prev)
+                #     cr_next = self.picard_step(cr_A, cr_prev, damp)
+                #     vecgr.append(cr_A)
+                # else:
+                #     vecdr = np.asarray(vecgr) - np.asarray(vecfr)
+                #     dn = vecdr[-1].flatten()
+                #     d01 = (vecdr[-1] - vecdr[-2]).flatten()
+                #     d02 = (vecdr[-1] - vecdr[-3]).flatten()
+                #     A[0,0] = np.inner(d01, d01)
+                #     A[0,1] = np.inner(d01, d02)
+                #     A[1,0] = np.inner(d01, d02)
+                #     A[1,1] = np.inner(d02, d02)
+                #     b[0] = np.inner(dn, d01)
+                #     b[1] = np.inner(dn, d02)
+                #     c = np.linalg.solve(A, b)
+                #     cr_next = (1 - c[0] - c[1])*vecgr[-1] + c[0]*vecgr[-2] + c[1]*vecgr[-3]
+                #     vecfr.append(cr_prev)
+                #     vecgr.append(cr_A)
+                #     vecgr.pop(0)
+                #     vecfr.pop(0)
+                # 
+                # y = np.abs(cr_next - cr_prev)
+                # rms = np.sqrt(self.grid.d_r * np.power((cr_next - cr_prev), 2).sum() / (np.prod(cr_next.shape)))
+                # if i % 100 == 0:
+                #     print("iteration: ", i, "\tRMS: ", rms, "\tDiff: ", np.amax(y))
+                # if rms < tol:
+                #     print("\nlambda: ", lam)
+                #     print("total iterations: ", i)
+                #     print("RMS: ", rms)
+                #     print("Diff: ", np.amax(y))
+                #     print("-------------------------")
+                #     break
+                # i+=1
+                # if i == itermax:
+                #     print("\nlambda: ", lam)
+                #     print("total iterations: ", i)
+                #     print("RMS: ", rms)
+                #     print("Diff: ", np.amax(y))
+                #     print("-------------------------")
+            print(min_result)
+            cr_lam = self.cr
         print("Iteration finished!\n")
-        self.cr = cr - Ng
-        self.tr = trsr + Ng
+        self.cr -= Ng
+        self.tr += Ng
         self.gr = 1 + self.cr + self.tr
         self.Ur = Ur
         self.Ng = Ng
