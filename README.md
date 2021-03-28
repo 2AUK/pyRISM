@@ -11,6 +11,15 @@ A pedagogical implementation of the RISM equations
 
 #### Potentials
 - Lennard-Jones Potential
+- Coulomb Potential
+- Long-Range Coulomb Potential
+
+#### Closures
+- Hyper-Netted Chain (HNC)
+- Percus-Yevick (PY)
+- Kovalenko-Hirata (KH)
+- Partial Series Expansion (PSE-n)
+- Kobryn-Gusarov-Kovalenko (KGK)
 
 ### Usage
 Run
@@ -21,7 +30,6 @@ Various exemplar inputs are given in `data/`
 ### Future Work
 - DRISM
 - Solute-solvent interactions
-- More closures (PY, KH)
 - More potentials (Hard-sphere, AB-form LJ)
 - MDIIS solver
 - Chemical potentials

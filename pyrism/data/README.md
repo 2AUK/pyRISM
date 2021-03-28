@@ -15,6 +15,10 @@ picard_damping = 0.001 #Damping parameter for the mixing procedure in picard ite
 itermax = 10000 #Max number of iterations
 lam = 10 #Max number of charging cycles 
 tol = 1E-7 #Tolerance for normed RMSE 
+<<<<<<< HEAD
+=======
+closure = "KH" #Current closure available: HNC, PY, KH, PSE-n, KGK 
+>>>>>>> develop
 ```
 
 The system section sets up the thermodynamic state as well as defining the solver parameters.
@@ -48,7 +52,10 @@ nsu = 0
 
 The solute section defines the forcefield parameters and coordinates of the solute. Currently not implemented
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> develop
 <!--- 
 ## Including package data
 
@@ -73,3 +80,5 @@ correct files.
 * `HR1982_Br2_III.toml`: Bromine model III [Application of an extended RISM equation to dipolar and quadrupolar fluids](https://aip.scitation.org/doi/abs/10.1063/1.443606)
 
 * `HR1982_Br2_IV.toml`: Bromine model IV [Application of an extended RISM equation to dipolar and quadrupolar fluids](https://aip.scitation.org/doi/abs/10.1063/1.443606)
+
+* `nitromethane_resp.toml`: Nitromethane with point charges calculated using RESP

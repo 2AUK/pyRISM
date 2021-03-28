@@ -11,6 +11,7 @@ from scipy.fft import dst, idst
 from scipy.special import erf
 from scipy.signal import argrelextrema
 from scipy.spatial import distance_matrix
+from scipy.optimize import root, minimize, newton_krylov, anderson
 import matplotlib.pyplot as plt
 import grid
 import toml
@@ -41,6 +42,10 @@ class RismController:
         self.gr = None
         self.Ur = None
         self.Ng = None
+        self.Ursr = None
+        self.wk = None
+        self.rho = None
+        self.clos = None
         self.read_input()
         self.beta = 1 / self.kT / self.T
 
@@ -65,6 +70,7 @@ class RismController:
         self.lam = inp["system"]["lam"]
         self.damp = inp["system"]["picard_damping"]
         self.tol = inp["system"]["tol"]
+        self.clos = inp["system"]["closure"]
 
     def compute_UR_LJ(self, eps, sig, lam) -> np.ndarray:
         """
@@ -348,11 +354,9 @@ class RismController:
             trsr[:, i, j] = self.grid.idht(h[:, i, j] - vklr[:, i, j])
         return trsr
 
-    def closure(self, vrsr, trsr):
+    def closure(self, vrsr, trsr, closure):
         """
-        Computes HNC Closure equation in the form:
-
-        c(r) = exp(-vr + tr) - tr - 1
+        Computes closure relation
 
         Parameters
         ----------
@@ -365,7 +369,23 @@ class RismController:
         trsr: ndarray
         An array containing short-range indirection correlation function
         """
-        return np.exp(-vrsr + trsr) - 1.0 - trsr
+        if closure == "HNC":
+            return np.exp(-vrsr + trsr) - 1.0 - trsr
+        elif closure == "KH":
+            return np.where((-vrsr + trsr) <= 0, np.exp(-vrsr + trsr) - 1.0 - trsr, -vrsr)
+        elif closure == "KGK":
+            zeros = np.zeros_like(trsr)
+            return np.maximum(zeros, -vrsr)
+        elif closure == "PY":
+            return np.exp(-vrsr) * (1.0 + trsr) - trsr - 1.0
+        elif closure.startswith("PSE"):
+            t_fac = 0
+            splt = closure.split("-")
+            n = int(splt[1])
+            for i in range(n):
+                t_fac += np.power((-vrsr + trsr), i) / np.math.factorial(i)
+            return np.where((-vrsr + trsr) <= 0, np.exp(-vrsr + trsr) - 1.0 - trsr, t_fac - 1.0 - trsr)
+
 
     def picard_step(self, cr_cur, cr_prev, damp):
         return cr_prev + damp*(cr_cur - cr_prev)
@@ -374,7 +394,9 @@ class RismController:
         for i,j in np.ndindex(self.nsv, self.nsv):
             fmax = argrelextrema(self.gr[:,i,j], np.greater)
             fmin = argrelextrema(self.gr[:,i,j], np.less)
-            print(i, j)
+            lbl1 = self.solvent_sites[i][0]
+            lbl2 = self.solvent_sites[j][0]
+            print(lbl1 + "-" + lbl2)
             print("Maxima:")
             print("r", self.grid.ri[fmax])
             print("g(r)", self.gr[fmax, i, j].flatten())
@@ -384,10 +406,11 @@ class RismController:
             print("\n")
         
     def plot_gr(self, save=False):
-        for i,j in np.ndindex(self.nsv, self.nsv):
-            lbl1 = self.solvent_sites[i][0]
-            lbl2 = self.solvent_sites[j][0]
-            plt.plot(self.grid.ri, self.gr[:, i, j], label= lbl1+"-"+lbl2)
+        for i in range(self.nsv):
+            for j in range(i, self.nsv):
+                lbl1 = self.solvent_sites[i][0]
+                lbl2 = self.solvent_sites[j][0]
+                plt.plot(self.grid.ri, self.gr[:, i, j], label= lbl1+"-"+lbl2)
         plt.axhline(1, color='grey', linestyle="--", linewidth=2)
         plt.title("RDF of " + self.name + " at " + str(self.T) + " K")
         plt.xlabel("r/A")
@@ -400,25 +423,25 @@ class RismController:
     def write_data(self):
 
         gr = pd.DataFrame(self.grid.ri, columns = ["r"])
-        for i,j in np.ndindex(self.nsv, self.nsv):
-            lbl1 = self.solvent_sites[i][0]
-            lbl2 = self.solvent_sites[j][0]
-            gr[lbl1+"-"+lbl2] = self.gr[:, i, j]
-        gr.to_csv(self.name + "_" + str(self.T) + "K.gvv", index=False)
-
         cr = pd.DataFrame(self.grid.ri, columns = ["r"])
-        for i,j in np.ndindex(self.nsv, self.nsv):
-            lbl1 = self.solvent_sites[i][0]
-            lbl2 = self.solvent_sites[j][0]
-            cr[lbl1+"-"+lbl2] = self.cr[:, i, j]
-        cr.to_csv(self.name + "_" + str(self.T) + "K.cvv", index=False)
-
         tr = pd.DataFrame(self.grid.ri, columns = ["r"])
         for i,j in np.ndindex(self.nsv, self.nsv):
             lbl1 = self.solvent_sites[i][0]
             lbl2 = self.solvent_sites[j][0]
+            gr[lbl1+"-"+lbl2] = self.gr[:, i, j]
+            cr[lbl1+"-"+lbl2] = self.cr[:, i, j]
             tr[lbl1+"-"+lbl2] = self.tr[:, i, j]
+        cr.to_csv(self.name + "_" + str(self.T) + "K.cvv", index=False)
+        gr.to_csv(self.name + "_" + str(self.T) + "K.gvv", index=False)
         tr.to_csv(self.name + "_" + str(self.T) + "K.tvv", index=False)
+    
+    def cost(self, cr):
+        cr_old = cr.reshape((self.grid.npts, self.nsv, self.nsv))
+        trsr = self.RISM(self.wk, cr_old, self.Uklr, self.rho)
+        cr_new = self.closure(self.Ursr, trsr, self.clos)
+        self.cr = cr_new
+        self.tr = trsr
+        return (cr_new - cr_old).reshape(-1)
 
     def dorism(self):
         """
@@ -435,8 +458,8 @@ class RismController:
         Converged g(r), c(r), t(r)
         """
         nlam = self.lam
-        wk = self.build_wk()
-        rho = self.build_rho()
+        self.wk = self.build_wk()
+        self.rho = self.build_rho()
         itermax = self.itermax
         tol = self.tol
         damp = self.damp
@@ -454,21 +477,24 @@ class RismController:
             lam = 1.0 * j / nlam
             Ur = self.build_Ur(lam)
             Ng = self.build_Ng_Pot(1.0, lam)
-            Ursr = (Ur - Ng)
+            self.Ursr = (Ur - Ng)
             #Ursr[Ursr < urmin] = urmin
-            Uklr = self.build_Ng_Pot_k(1.0, lam)
-            fr = np.exp(-Ursr) - 1.0
+            self.Uklr = self.build_Ng_Pot_k(1.0, lam)
+            fr = np.exp(-1 * (self.Ursr)) - 1.0
             if j == 1:
                 print("Building System...\n")
                 cr = fr
             else:
                 print("Rebuilding System from previous cycle...\n")
                 cr = cr_lam
+
+            print(lam)
             print("Iterating SSOZ Equations...\n")
+            #min_result = anderson(self.cost, cr.reshape(-1), verbose=True, M=20)
             while i < itermax:
                 cr_prev = cr
-                trsr = self.RISM(wk, cr, Uklr, rho)
-                cr_A = self.closure(Ursr, trsr)
+                trsr = self.RISM(self.wk, cr, self.Uklr, self.rho)
+                cr_A = self.closure(self.Ursr, trsr, self.clos)
                 if i < 3:
                     vecfr.append(cr_prev)
                     cr_next = self.picard_step(cr_A, cr_prev, damp)
@@ -490,12 +516,11 @@ class RismController:
                     vecgr.append(cr_A)
                     vecgr.pop(0)
                     vecfr.pop(0)
-                cr = cr_next
                 y = np.abs(cr_next - cr_prev)
                 rms = np.sqrt(self.grid.d_r * np.power((cr_next - cr_prev), 2).sum() / (np.prod(cr_next.shape)))
                 if i % 100 == 0:
                     print("iteration: ", i, "\tRMS: ", rms, "\tDiff: ", np.amax(y))
-                if rms < tol and np.amax(y) < tol:
+                if rms < tol:
                     print("\nlambda: ", lam)
                     print("total iterations: ", i)
                     print("RMS: ", rms)
@@ -509,6 +534,8 @@ class RismController:
                     print("RMS: ", rms)
                     print("Diff: ", np.amax(y))
                     print("-------------------------")
+                cr = cr_next
+            #print(min_result)
             cr_lam = cr
         print("Iteration finished!\n")
         self.cr = cr - Ng
@@ -518,7 +545,7 @@ class RismController:
         self.Ng = Ng
         self.find_peaks()
         self.plot_gr()
-        self.write_data()
+        #self.write_data()
 
 
 if __name__ == "__main__":
