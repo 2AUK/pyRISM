@@ -480,7 +480,7 @@ class RismController:
             self.Ursr = (Ur - Ng)
             #Ursr[Ursr < urmin] = urmin
             self.Uklr = self.build_Ng_Pot_k(1.0, lam)
-            fr = np.exp(-self.Ursr) - 1.0
+            fr = np.exp(-1 * (self.Ursr)) - 1.0
             if j == 1:
                 print("Building System...\n")
                 cr = fr
