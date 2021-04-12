@@ -18,7 +18,7 @@ import toml
 import os
 import sys
 
-np.seterr(over='raise')
+#np.seterr(over='raise')
 
 class RismController:
 
@@ -29,6 +29,7 @@ class RismController:
         self.nsv = None
         self.grid = None
         self.charge_coeff = None
+        self.solver = None
         self.solvent_sites = []
         self.dists = []
         self.itermax = None
@@ -71,6 +72,7 @@ class RismController:
         self.damp = inp["system"]["picard_damping"]
         self.tol = inp["system"]["tol"]
         self.clos = inp["system"]["closure"]
+        self.solver = inp["system"]["solver"]
 
     def compute_UR_LJ(self, eps, sig, lam) -> np.ndarray:
         """
@@ -469,6 +471,7 @@ class RismController:
         print("Temperature: ", str(self.T) + " K")
         print("-------------------------\n")
         for j in range(1, nlam+1):
+
             vecfr = []
             vecgr = []
             A = np.zeros((2,2), dtype=float)
@@ -490,56 +493,61 @@ class RismController:
 
             print(lam)
             print("Iterating SSOZ Equations...\n")
-            #min_result = anderson(self.cost, cr.reshape(-1), verbose=True, M=20)
-            while i < itermax:
-                cr_prev = cr
-                trsr = self.RISM(self.wk, cr, self.Uklr, self.rho)
-                cr_A = self.closure(self.Ursr, trsr, self.clos)
-                if i < 3:
-                    vecfr.append(cr_prev)
-                    cr_next = self.picard_step(cr_A, cr_prev, damp)
-                    vecgr.append(cr_A)
-                else:
-                    vecdr = np.asarray(vecgr) - np.asarray(vecfr)
-                    dn = vecdr[-1].flatten()
-                    d01 = (vecdr[-1] - vecdr[-2]).flatten()
-                    d02 = (vecdr[-1] - vecdr[-3]).flatten()
-                    A[0,0] = np.inner(d01, d01)
-                    A[0,1] = np.inner(d01, d02)
-                    A[1,0] = np.inner(d01, d02)
-                    A[1,1] = np.inner(d02, d02)
-                    b[0] = np.inner(dn, d01)
-                    b[1] = np.inner(dn, d02)
-                    c = np.linalg.solve(A, b)
-                    cr_next = (1 - c[0] - c[1])*vecgr[-1] + c[0]*vecgr[-2] + c[1]*vecgr[-3]
-                    vecfr.append(cr_prev)
-                    vecgr.append(cr_A)
-                    vecgr.pop(0)
-                    vecfr.pop(0)
-                y = np.abs(cr_next - cr_prev)
-                rms = np.sqrt(self.grid.d_r * np.power((cr_next - cr_prev), 2).sum() / (np.prod(cr_next.shape)))
-                if i % 100 == 0:
-                    print("iteration: ", i, "\tRMS: ", rms, "\tDiff: ", np.amax(y))
-                if rms < tol:
-                    print("\nlambda: ", lam)
-                    print("total iterations: ", i)
-                    print("RMS: ", rms)
-                    print("Diff: ", np.amax(y))
-                    print("-------------------------")
-                    break
-                i+=1
-                if i == itermax:
-                    print("\nlambda: ", lam)
-                    print("total iterations: ", i)
-                    print("RMS: ", rms)
-                    print("Diff: ", np.amax(y))
-                    print("-------------------------")
-                cr = cr_next
-            #print(min_result)
+            if self.solver == "Ng":
+                while i < itermax:
+                    cr_prev = cr
+                    trsr = self.RISM(self.wk, cr, self.Uklr, self.rho)
+                    cr_A = self.closure(self.Ursr, trsr, self.clos)
+                    if i < 3:
+                        vecfr.append(cr_prev)
+                        cr_next = self.picard_step(cr_A, cr_prev, damp)
+                        vecgr.append(cr_A)
+                    else:
+                        vecdr = np.asarray(vecgr) - np.asarray(vecfr)
+                        dn = vecdr[-1].flatten()
+                        d01 = (vecdr[-1] - vecdr[-2]).flatten()
+                        d02 = (vecdr[-1] - vecdr[-3]).flatten()
+                        A[0,0] = np.inner(d01, d01)
+                        A[0,1] = np.inner(d01, d02)
+                        A[1,0] = np.inner(d01, d02)
+                        A[1,1] = np.inner(d02, d02)
+                        b[0] = np.inner(dn, d01)
+                        b[1] = np.inner(dn, d02)
+                        c = np.linalg.solve(A, b)
+                        cr_next = (1 - c[0] - c[1])*vecgr[-1] + c[0]*vecgr[-2] + c[1]*vecgr[-3]
+                        vecfr.append(cr_prev)
+                        vecgr.append(cr_A)
+                        vecgr.pop(0)
+                        vecfr.pop(0)
+                    y = np.abs(cr_next - cr_prev)
+                    rms = np.sqrt(self.grid.d_r * np.power((cr_next - cr_prev), 2).sum() / (np.prod(cr_next.shape)))
+                    if i % 100 == 0:
+                        print("iteration: ", i, "\tRMS: ", rms, "\tDiff: ", np.amax(y))
+                    if rms < tol:
+                        print("\nlambda: ", lam)
+                        print("total iterations: ", i)
+                        print("RMS: ", rms)
+                        print("Diff: ", np.amax(y))
+                        print("-------------------------")
+                        break
+                    i+=1
+                    if i == itermax:
+                        print("\nlambda: ", lam)
+                        print("total iterations: ", i)
+                        print("RMS: ", rms)
+                        print("Diff: ", np.amax(y))
+                        print("-------------------------")
+                    cr = cr_next
+            elif self.solver == "anderson":
+                min_result = anderson(self.cost, cr.reshape(-1), verbose=True, M=20, f_tol=self.tol)
+                print(min_result)
+            elif self.solver == "newton-krylov":
+                min_result = newton_krylov(self.cost, cr.reshape(-1), verbose=True, f_tol=self.tol)
+                print(min_result)
             cr_lam = cr
         print("Iteration finished!\n")
-        self.cr = cr - Ng
-        self.tr = trsr + Ng
+        self.cr -= Ng
+        self.tr += Ng
         self.gr = 1 + self.cr + self.tr
         self.Ur = Ur
         self.Ng = Ng
