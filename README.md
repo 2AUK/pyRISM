@@ -19,7 +19,6 @@ A pedagogical implementation of the RISM equations
 - Percus-Yevick (PY)
 - Kovalenko-Hirata (KH)
 - Partial Series Expansion (PSE-n)
-- Kobryn-Gusarov-Kovalenko (KGK)
 
 #### Solvers
 - Picard Iteration

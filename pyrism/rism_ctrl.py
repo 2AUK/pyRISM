@@ -486,18 +486,18 @@ class RismController:
             fr = np.exp(-1 * (self.Ursr)) - 1.0
             if j == 1:
                 print("Building System...\n")
-                cr = fr
+                self.cr = fr
             else:
                 print("Rebuilding System from previous cycle...\n")
-                cr = cr_lam
+                self.cr = cr_lam
 
             print(lam)
             print("Iterating SSOZ Equations...\n")
             if self.solver == "Ng":
                 while i < itermax:
-                    cr_prev = cr
-                    trsr = self.RISM(self.wk, cr, self.Uklr, self.rho)
-                    cr_A = self.closure(self.Ursr, trsr, self.clos)
+                    cr_prev = self.cr
+                    self.tr = self.RISM(self.wk, self.cr, self.Uklr, self.rho)
+                    cr_A = self.closure(self.Ursr, self.tr, self.clos)
                     if i < 3:
                         vecfr.append(cr_prev)
                         cr_next = self.picard_step(cr_A, cr_prev, damp)
@@ -537,14 +537,14 @@ class RismController:
                         print("RMS: ", rms)
                         print("Diff: ", np.amax(y))
                         print("-------------------------")
-                    cr = cr_next
+                    self.cr = cr_next
             elif self.solver == "anderson":
-                min_result = anderson(self.cost, cr.reshape(-1), verbose=True, M=20, f_tol=self.tol)
+                min_result = anderson(self.cost, self.cr.reshape(-1), verbose=True, M=20, f_tol=self.tol)
                 print(min_result)
             elif self.solver == "newton-krylov":
-                min_result = newton_krylov(self.cost, cr.reshape(-1), verbose=True, f_tol=self.tol)
+                min_result = newton_krylov(self.cost, self.cr.reshape(-1), verbose=True, f_tol=self.tol)
                 print(min_result)
-            cr_lam = cr
+            cr_lam = self.cr
         print("Iteration finished!\n")
         self.cr -= Ng
         self.tr += Ng
