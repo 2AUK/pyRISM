@@ -27,7 +27,8 @@ class RismController:
         self.name = None
         self.nsu = None
         self.nsv = None
-        self.grid = None
+        self.npts = None
+        self.radius = None
         self.charge_coeff = None
         self.solvent_sites = []
         self.dists = []
@@ -55,7 +56,8 @@ class RismController:
         self.name = os.path.basename(self.fname).split(sep=".")[0]
         self.nsu = inp["solute"]["nsu"]
         self.nsv = inp["solvent"]["nsv"]
-        self.grid = grid.Grid(inp["system"]["npts"], inp["system"]["radius"])
+        self.npts = inp["system"]["npts"]
+        self.radius = inp["system"]["radius"]
         solv_info = list(inp["solvent"].items())[1:self.nsv+1]
         coords = []
         for i in solv_info:
@@ -71,140 +73,6 @@ class RismController:
         self.damp = inp["system"]["picard_damping"]
         self.tol = inp["system"]["tol"]
         self.clos = inp["system"]["closure"]
-
-    def compute_UR_LJ(self, eps, sig, lam) -> np.ndarray:
-        """
-        Computes the Lennard-Jones potential
-
-        Parameters
-        ----------
-
-        eps: float
-           Epsilon parameter used for LJ equation
-        sig: float
-           Sigma parameter used for LJ equation
-        grid.ri: ndarray
-           In the context of rism, ri corresponds to grid points upon which
-           RISM equations are solved
-        lam: float
-            Lambda parameter to switch on potential
-
-        Returns
-        -------
-        result: float
-           The result of the LJ computation
-        """
-        return self.beta * 4.0 * eps * ((sig / self.grid.ri)**12 - (sig/self.grid.ri)**6) * lam
-
-    def compute_UR_LJ_C(self, C6, C12, lam) -> np.ndarray:
-
-        return self.beta * ( (C12 / self.grid.ri**12) - (C6 / self.grid.ri**6) )
-
-    def compute_UR_CMB(self, q1, q2, lam):
-        """
-        Computes the Coulomb potential
-
-        Parameters
-        ----------
-
-        q1: float
-           Coulomb charge for particle 1
-        q2: float
-           Coulomb charge for particle 1
-        grid.ri: ndarray
-           In the context of rism, ri corresponds to grid points upon which
-           RISM equations are solved
-        lam: float
-            Lambda parameter to switch on potential
-
-        Returns
-        -------
-        result: float
-           The result of the LJ computation
-        """
-        return  lam * self.beta * self.charge_coeff * q1 * q2 / self.grid.ri
-
-    def compute_UR_LR(self, q1, q2, damping, rscreen, lam):
-        """
-        Computes the Ng renorm potential
-
-        Parameters
-        ----------
-
-        q1: float
-           Coulomb charge for particle 1
-        q2: float
-           Coulomb charge for particle 1
-        grid.ri: ndarray
-           In the context of rism, ri corresponds to grid points upon which
-           RISM equations are solved
-        damping: float
-           Damping parameter for erf 
-        lam: float
-           Lambda parameter to switch on potential
-
-        Returns
-        -------
-        result: float
-           The result of the LJ computation
-        """
-        return self.compute_UR_CMB(q1, q2, lam) * erf(damping * self.grid.ri / rscreen)
-
-    def compute_UK_LR(self, q1, q2, damping, lam):
-        """
-        Computes the Ng renorm potential
-
-        Parameters
-        ----------
-
-        q1: float
-           Coulomb charge for particle 1
-        q2: float
-           Coulomb charge for particle 1
-        grid.ri: ndarray
-           In the context of rism, ri corresponds to grid points upon which
-           RISM equations are solved
-        damping: float
-           Damping parameter for erf 
-        lam: float
-           Lambda parameter to switch on potential
-
-        Returns
-        -------
-        result: float
-           The result of the LJ computation
-        """
-        return lam * self.beta * 4 * np.pi * q1 * q2 * self.charge_coeff * np.exp( -1.0 * self.grid.ki**2 / (4.0 * damping**2)) / self.grid.ki**2
-
-    def mixing_rules(self, eps1: float, eps2: float, sig1: float, sig2: float) -> tuple:
-        """
-        Lorentz-Berthelot mixing rules to compute epsilon and sigma parameters of different site types
-
-        Parameters
-        ----------
-
-        eps1 : float
-            epsilon parameter of site 1
-
-        eps2 : float
-            epsilon parameter of site 2
-
-        sig1 : float
-            sigma parameter of site 1
-
-        sig2 : float
-            sigma parameter of site 2
-
-        Returns
-        -------
-        eps : float
-        Mixed epsilon parameter
-        sig : float
-        Mixed sigma parameter
-        """
-        eps = np.sqrt(eps1*eps2)
-        sig = (sig1 + sig2) / 2.0
-        return eps, sig
 
     def build_wk(self):
         """
@@ -316,76 +184,6 @@ class RismController:
             An array with number densities of each site down the diagonal
         """
         return np.diag([prm[-1] for prm in self.solvent_sites])
-
-    def RISM(self, wk, cr, vklr, rho):
-        """
-        Computes RISM equation in the form:
-
-        h = w*c*(wcp)^-1*w*c
-
-        Parameters
-        ----------
-        wk: Intramolecular correlation function 3D-array
-
-        cr: Direct correlation function 3D-array
-
-        vrlr: Long-range potential
-
-        rho: Number density matrix
-
-        Returns
-        -------
-        trsr: ndarray
-        An array containing short-range indirection correlation function
-        """
-        I = np.identity(self.nsv)
-        h = np.zeros((self.grid.npts, self.nsv, self.nsv), dtype=np.float64)
-        trsr = np.zeros((self.grid.npts, self.nsv, self.nsv), dtype=np.float64)
-        cksr = np.zeros((self.grid.npts, self.nsv, self.nsv), dtype=np.float64)
-
-        for i,j in np.ndindex(self.nsv, self.nsv):
-            cksr[:, i, j] = self.grid.dht(cr[:, i, j])
-            cksr[:, i, j] -= vklr[:, i, j]
-        for i in range(self.grid.npts):
-            iwcp = np.linalg.inv(I - wk[i, :, :]@cksr[i, :, :]@rho)
-            wcw = wk[i, :, :]@cksr[i, :, :]@wk[i, :, :]
-            h[i, :, :] = iwcp@wcw - cksr[i, :, :]
-        for i,j in np.ndindex(self.nsv, self.nsv):
-            trsr[:, i, j] = self.grid.idht(h[:, i, j] - vklr[:, i, j])
-        return trsr
-
-    def closure(self, vrsr, trsr, closure):
-        """
-        Computes closure relation
-
-        Parameters
-        ----------
-        vrsr: Short-range potential
-
-        trsr: Indirect correlation function 3D-array
-
-        Returns
-        -------
-        trsr: ndarray
-        An array containing short-range indirection correlation function
-        """
-        if closure == "HNC":
-            return np.exp(-vrsr + trsr) - 1.0 - trsr
-        elif closure == "KH":
-            return np.where((-vrsr + trsr) <= 0, np.exp(-vrsr + trsr) - 1.0 - trsr, -vrsr)
-        elif closure == "KGK":
-            zeros = np.zeros_like(trsr)
-            return np.maximum(zeros, -vrsr)
-        elif closure == "PY":
-            return np.exp(-vrsr) * (1.0 + trsr) - trsr - 1.0
-        elif closure.startswith("PSE"):
-            t_fac = 0
-            splt = closure.split("-")
-            n = int(splt[1])
-            for i in range(n):
-                t_fac += np.power((-vrsr + trsr), i) / np.math.factorial(i)
-            return np.where((-vrsr + trsr) <= 0, np.exp(-vrsr + trsr) - 1.0 - trsr, t_fac - 1.0 - trsr)
-
 
     def picard_step(self, cr_cur, cr_prev, damp):
         return cr_prev + damp*(cr_cur - cr_prev)
