@@ -21,6 +21,12 @@ A pedagogical implementation of the RISM equations
 - Partial Series Expansion (PSE-n)
 - Kobryn-Gusarov-Kovalenko (KGK)
 
+#### Solvers
+- Picard Iteration
+- Ng-accelerated convergence
+- Newton-Krylov (from Scipy)
+- Anderson (from Scipy)
+
 ### Usage
 Run
 `$ python rism_ctrl.py path/to/file`
