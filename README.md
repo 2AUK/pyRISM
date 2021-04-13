@@ -30,7 +30,7 @@ A pedagogical implementation of the RISM equations
 Run
 `$ python rism_ctrl.py path/to/file`
 
-Various exemplar inputs are given in `data/`
+Various example inputs are given in `data/`
 
 ### Future Work
 - DRISM

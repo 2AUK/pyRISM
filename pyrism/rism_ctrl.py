@@ -11,7 +11,7 @@ from scipy.fft import dst, idst
 from scipy.special import erf
 from scipy.signal import argrelextrema
 from scipy.spatial import distance_matrix
-from scipy.optimize import root, minimize, newton_krylov, anderson
+from scipy.optimize import root, minimize, newton_krylov, anderson, BFGS
 import matplotlib.pyplot as plt
 import grid
 import toml
@@ -539,7 +539,7 @@ class RismController:
                         print("-------------------------")
                     self.cr = cr_next
             elif self.solver == "anderson":
-                min_result = anderson(self.cost, self.cr.reshape(-1), verbose=True, M=20, f_tol=self.tol)
+                min_result = anderson(self.cost, self.cr.reshape(-1), verbose=True, M=5, f_tol=self.tol)
                 print(min_result)
             elif self.solver == "newton-krylov":
                 min_result = newton_krylov(self.cost, self.cr.reshape(-1), verbose=True, f_tol=self.tol)
@@ -553,7 +553,7 @@ class RismController:
         self.Ng = Ng
         self.find_peaks()
         self.plot_gr()
-        #self.write_data()
+        self.write_data()
 
 
 if __name__ == "__main__":
