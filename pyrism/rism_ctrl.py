@@ -538,6 +538,8 @@ class RismController:
                         print("Diff: ", np.amax(y))
                         print("-------------------------")
                     self.cr = cr_next
+            elif self.solver == "MA":
+                pass
             elif self.solver == "anderson":
                 min_result = anderson(self.cost, self.cr.reshape(-1), verbose=True, M=5, f_tol=self.tol)
                 print(min_result)
