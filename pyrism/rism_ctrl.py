@@ -18,11 +18,6 @@ import os
 
 np.seterr(over='raise')
 
-dists = np.asarray([    [[0.0, 1.0],
-                         [1.0, 0.0]],  
-                        [[0.0, 0.0],
-                         [1.0000001162259935, 1.6329813937862245]]  ])
-
 class RismController:
 
     def __init__(self, fname):
@@ -65,7 +60,7 @@ class RismController:
             i[1][0].insert(0, i[0])
             self.solvent_sites.append(i[1][0])
         coords = np.asarray(inp["solvent"]["coords"])
-        self.dists = dists
+        self.dists = distance_matrix(coords, coords)
         self.T = inp["system"]["temp"]
         self.kT = inp["system"]["kT"]
         self.charge_coeff = inp["system"]["charge_coeff"]
@@ -75,28 +70,11 @@ class RismController:
         self.tol = inp["system"]["tol"]
         
 
-    def distance_calc(self, coords):
-        print(np.max(self.mult))
-        dist = np.zeros((np.max(self.mult), self.nsv, self.nsv), dtype=np.float64)
-        for i, j in np.ndindex(self.natv, self.natv):
-            k = i % self.nsv
-            l = j % self.nsv
-            for m in range(self.mult[k]):
-                print(coords[i])
-                print(coords[j])
-                d = np.sqrt(np.power((coords[i] - coords[j]), 2).sum())
-                print(d)
-                print(m, k, l, d)
-                dist[m, k, l] = d
-                print(dist)
-        return dist
-
-
     def compute_UR_LJ(self, eps, sig, lam) -> np.ndarray:
         """
         Computes the Lennard-Jones potential
 
-        Parameters
+        ParametersW
         ----------
 
         eps: float
@@ -244,16 +222,22 @@ class RismController:
         wk: ndarray
         An array containing information on intramolecular correlation
         """
-        wk = np.zeros((self.grid.npts, self.nsv, self.nsv), dtype=np.float64)
+        wk = np.zeros((self.grid.npts, self.natv, self.natv), dtype=np.float64)
+        omegak = np.zeros((self.grid.npts, self.nsv, self.nsv), dtype=np.float64)
         I = np.ones(self.grid.npts, dtype=np.float)
-        for i, j in np.ndindex(self.nsv, self.nsv):
-            for m in range(self.mult[i]):
-                if self.dists[m, i, j] == 0.0:
-                    w = I
-                else:
-                    w = np.sin(self.grid.ki * self.dists[m,i,j]) / (self.grid.ki * self.dists[m,i,j])
-                wk[:, i, j] += w 
-        return wk
+        # Build all-site w(k)
+        for i, j in np.ndindex(self.natv, self.natv):
+            if i == j:
+                wk[:, i, j] = I
+            else:
+                wk[:, i, j] = np.sin(self.grid.ki * self.dists[i,j]) / (self.grid.ki * self.dists[i,j])
+        print(wk[0, :, :])
+        # Reduce w(k)
+        omegak[:, 0, 0] = wk[:, 0, 0] / self.mult[0]
+        omegak[:, 0, 1] = (wk[:, 0, 1] + wk[:, 0, 2]) / self.mult[0]
+        omegak[:, 1, 0] = (wk[:, 1, 0] + wk[:, 2, 0]) / self.mult[1]
+        omegak[:, 1, 1] = (wk[:, 1, 1] + wk[:, 2, 1] + wk[:, 1, 2] + wk[:, 2, 2]) / self.mult[1]
+        return omegak
 
     def build_v(self):
         return np.diag(self.mult)
@@ -371,10 +355,12 @@ class RismController:
         for i,j in np.ndindex(self.nsv, self.nsv):
             cksr[:, i, j] = self.grid.dht(cr[:, i, j])
             cksr[:, i, j] -= vklr[:, i, j]
+            cksr[:, i, j] = self.mult[i]*cksr[:, i, j]*self.mult[j]
         for i in range(self.grid.npts):
-            iwcp = np.linalg.inv(I - wk[i, :, :]@cksr[i, :, :]@rho)
-            wcw = wk[i, :, :]@cksr[i, :, :]@wk[i, :, :]
-            h[i, :, :] = iwcp@wcw - cksr[i, :, :]
+            C = cksr[i, :, :]
+            iwcp = np.linalg.inv(I - wk[i, :, :]@C@rho)
+            wcw = wk[i, :, :]@C@wk[i, :, :]
+            h[i, :, :] = iwcp@wcw - C
         for i,j in np.ndindex(self.nsv, self.nsv):
             trsr[:, i, j] = self.grid.idht(h[:, i, j] - vklr[:, i, j])
         return trsr
@@ -396,7 +382,7 @@ class RismController:
         trsr: ndarray
         An array containing short-range indirection correlation function
         """
-        return np.exp(-vrsr + trsr) - 1.0 - trsr
+        return np.where((-vrsr + trsr) <= 0, np.exp(-vrsr + trsr) - 1.0 - trsr, -vrsr)
 
     def picard_step(self, cr_cur, cr_prev, damp):
         return cr_prev + damp*(cr_cur - cr_prev)
@@ -468,9 +454,6 @@ class RismController:
         nlam = self.lam
         wk = self.build_wk()
         v = self.build_v()
-        print(self.dists)
-        print(self.grid.ri)
-        print(self.grid.ki)
         print(wk[0,:,:])
         rho = self.build_rho()
         itermax = self.itermax
@@ -496,7 +479,7 @@ class RismController:
             fr = np.exp(-Ursr) - 1.0
             if j == 1:
                 print("Building System...\n")
-                cr = np.zeros_like(fr)
+                cr = fr
             else:
                 print("Rebuilding System from previous cycle...\n")
                 cr = cr_lam
@@ -561,4 +544,9 @@ class RismController:
 if __name__ == "__main__":
     mol = RismController("data/cSPCE.toml")
     mol.dorism() #Parameters taken from AMBER
+    # a = np.random.rand(27, 3)
+    # b = np.random.rand(3, 150)
+    # c = np.einsum("ij,jk->jik", a, b)
+    # c = np.reshape(c, (3, 27*150))
+    # print(c, c.shape)
 
