@@ -22,31 +22,22 @@ import sys
 np.seterr(over="raise")
 
 
+@attr.s
 class RismController:
+
+    # Input filename
+    fname: str = attr.ib()
+    name: str = attr.ib(init=False)
+    vv: Data.CalculationData = attr.ib(init=False)
+    uv: Data.CalculationData = attr.ib(init=False)
+    grid: grid.Grid = attr.ib(init=False)
+
     def __init__(self, fname):
-        self.fname = fname
-        self.name = None
-        self.nsu = None
-        self.nsv = None
-        self.npts = None
-        self.radius = None
-        self.charge_coeff = None
         self.solvent_sites = []
         self.dists = []
         self.itermax = None
         self.damp = None
         self.tol = None
-        self.lam = None
-        self.T = None
-        self.kT = None
-        self.cr = None
-        self.tr = None
-        self.gr = None
-        self.Ur = None
-        self.Ng = None
-        self.Ursr = None
-        self.wk = None
-        self.rho = None
         self.clos = None
         self.read_input()
         self.beta = 1 / self.kT / self.T

@@ -3,11 +3,13 @@ import numpy as np
 
 
 @attr.s
-class Data(object):
+class CalculationData(object):
 
     # Initial parameters required to instantiate the other attributes
     T: float = attr.ib()
     kT: float = attr.ib()
+    e: float = attr.ib()
+    lam: int = attr.ib()
     ns1: int = attr.ib()
     ns2: int = attr.ib()
     npts: int = attr.ib()

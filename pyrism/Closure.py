@@ -1,18 +1,20 @@
 import numpy as np
+import Data
 from closure_routines import *
 
 
+@attr.s
 class Closure:
 
-    closure_table = {
+    closure_dispatcher = {
         "HNC": HyperNetted_Chain,
         "KH": KovalenkoHirata,
         "PSE": PSE_n,
         "PY": PercusYevick,
     }
 
-    def __init__(self, rism_obj):
-        self.rism = rism_obj
+    closure: str = attr.ib()
+    data: Data.CalculationData = attr.ib()
 
     def solve(self):
-        return closure_table[self.rism.closure](self.rism)
+        return closure_dispatcher[self.closure](self.data)
