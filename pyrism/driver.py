@@ -1,8 +1,8 @@
 import numpy as np
 import grid
 
-class driver(object):
 
+class driver(object):
     def __init__(self, RISM_Obj):
         self.grid = grid.Grid(RISM_Obj.npts, RISM_Obj.radius)
 
@@ -32,13 +32,13 @@ class driver(object):
         trsr = np.zeros((self.grid.npts, N, M), dtype=np.float64)
         cksr = np.zeros((self.grid.npts, N, M), dtype=np.float64)
 
-        for i,j in np.ndindex(N, M):
+        for i, j in np.ndindex(N, M):
             cksr[:, i, j] = self.grid.dht(cr[:, i, j])
             cksr[:, i, j] -= vklr[:, i, j]
         for i in range(self.grid.npts):
-            iwcp = np.linalg.inv(I - wk[i, :, :]@cksr[i, :, :]@rho)
-            wcw = wk[i, :, :]@cksr[i, :, :]@wk[i, :, :]
-            h[i, :, :] = iwcp@wcw - cksr[i, :, :]
-        for i,j in np.ndindex(N, M):
+            iwcp = np.linalg.inv(I - wk[i, :, :] @ cksr[i, :, :] @ rho)
+            wcw = wk[i, :, :] @ cksr[i, :, :] @ wk[i, :, :]
+            h[i, :, :] = iwcp @ wcw - cksr[i, :, :]
+        for i, j in np.ndindex(N, M):
             trsr[:, i, j] = self.grid.idht(h[:, i, j] - vklr[:, i, j])
         return trsr
