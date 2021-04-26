@@ -17,5 +17,6 @@ class Potential:
 
     potential: str = attr.ib()
 
-    def solve(self):
+    @property
+    def potential(self):
         return potential_dispatcher[self.potential]

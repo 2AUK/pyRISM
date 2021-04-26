@@ -30,7 +30,6 @@ class RismController:
     name: str = attr.ib(init=False)
     vv: Data.CalculationData = attr.ib(init=False)
     uv: Data.CalculationData = attr.ib(init=False)
-    grid: grid.Grid = attr.ib(init=False)
 
     def __init__(self, fname):
         self.solvent_sites = []

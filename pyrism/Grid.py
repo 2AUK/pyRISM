@@ -9,15 +9,22 @@ import numpy as np
 from scipy.fftpack import dst, idst
 from transforms import discrete_hankel_transform, inverse_discrete_hankel_transform
 
+
+@attr.s
 class Grid:
 
-    def __init__(self, npts: int, radius: float):
-        self.npts = npts
-        self.radius = radius
+    npts: int = attr.ib()
+    radius: float = attr.ib()
+    ri: np.ndarray = attr.ib(init=False)
+    ki: np.ndarray = attr.ib(init=False)
+    d_r: float = attr.ib(init=False)
+    d_k: float = attr.ib(init=False)
+
+    def __attrs_post_init__(self):
         self.ri = np.zeros(npts, dtype=float)
         self.ki = np.zeros(npts, dtype=float)
         self.d_r = self.radius / float(self.npts)
-        self.d_k = (2*np.pi / (2*float(self.npts)*self.d_r))
+        self.d_k = 2 * np.pi / (2 * float(self.npts) * self.d_r)
         self.generate_grid()
 
     def generate_grid(self):
@@ -60,7 +67,7 @@ class Grid:
 
     def idht(self, fk: np.ndarray) -> np.ndarray:
         """
-       Inverse Discrete Hankel Transform
+        Inverse Discrete Hankel Transform
 
         Parameters
         ----------

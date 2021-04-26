@@ -14,7 +14,7 @@ class Closure:
     }
 
     closure: str = attr.ib()
-    data: Data.CalculationData = attr.ib()
 
-    def solve(self):
-        return closure_dispatcher[self.closure](self.data)
+    @property
+    def closure(self):
+        return closure_dispatcher[self.closure]
