@@ -49,8 +49,8 @@ class SolverObject(object):
 @attr.s
 class NgSolver(SolverObject):
 
-    fr: list = attr.ib(init=False)
-    gr: list = attr.ib(init=False)
+    fr: list = attr.ib(default=[])
+    gr: list = attr.ib(default=[])
 
     def step_Picard(self, curr, prev):
         self.fr.append(prev)
