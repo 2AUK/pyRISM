@@ -2,6 +2,7 @@ import numpy as np
 import Data
 from potential_routines import *
 from utils import *
+import attr
 
 @attr.s
 class Potential:

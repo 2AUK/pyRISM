@@ -4,7 +4,7 @@ grid.py
 Defines Grid object to handle generation and transforms
 
 """
-
+import attr
 import numpy as np
 from scipy.fftpack import dst, idst
 from transforms import discrete_hankel_transform, inverse_discrete_hankel_transform

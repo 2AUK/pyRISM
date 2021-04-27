@@ -33,4 +33,4 @@ import numpy as np
             wcw = data.w[i, :, :] @ ck[i, :, :] @ data.w[i, :, :]
         for i, j in np.ndindex(data.ns1, data.ns2):
             data.h[:, i, j] = data.grid.idht(iwcp @ wcw)
-            data.t[:, i, j] = data.grid.idht(iwcp @ wcw - ck[i, :, :])
+            data.t[:, i, j] = data.grid.idht(iwcp @ wcw - ck[i, :, :]) - (data.B * data.ur_lr[:, i, j])

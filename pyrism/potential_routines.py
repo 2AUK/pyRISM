@@ -1,5 +1,5 @@
 import numpy as np
-
+import Data
 
 def Lennard_Jones(r, eps, sig, lam, beta):
     """

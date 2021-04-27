@@ -1,6 +1,6 @@
 import attr
 import numpy as np
-import grid
+import Grid
 
 
 @attr.s
@@ -30,7 +30,7 @@ class CalculationData(object):
     uk_lr: np.ndarray = attr.ib(init=False)
     w: np.ndarray = attr.ib(init=False)
     p: np.ndarray = attr.ib(init=False)
-    grid: grid.Grid = attr.ib(init=False)
+    grid: Grid.Grid = attr.ib(init=False)
 
     def __attrs_post_init__(self):
 
@@ -41,4 +41,4 @@ class CalculationData(object):
             (self.npts, self.ns1, self.ns2), dtype=np.float64
         )
         self.p = np.zeros((self.ns1, self.ns2), dtype=np.float64)
-        self.grid = grid.Grid(self.npts, self.radius)
+        self.grid = Grid.Grid(self.npts, self.radius)

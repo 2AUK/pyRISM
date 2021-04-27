@@ -14,10 +14,11 @@ from scipy.spatial import distance_matrix
 from scipy.optimize import root, minimize, newton_krylov, anderson
 import matplotlib.pyplot as plt
 import Data
-import grid
+import Grid
 import toml
 import os
 import sys
+import attr
 
 np.seterr(over="raise")
 

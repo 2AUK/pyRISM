@@ -1,4 +1,5 @@
 import numpy as np
+import attr
 import Data
 from closure_routines import *
 
@@ -9,7 +10,9 @@ class Closure:
     closure_dispatcher = {
         "HNC": HyperNetted_Chain,
         "KH": KovalenkoHirata,
-        "PSE": PSE_n,
+        "PSE-1": PSE_1,
+        "PSE-2": PSE_2,
+        "PSE-3": PSE_3
         "PY": PercusYevick,
     }
 
