@@ -1,7 +1,12 @@
 import Data
 import numpy as np
 
-    def XRISM(data: Data.CalculationData):
+
+class IntegralEquation(object):
+
+    pass
+
+    def XRISM(data: Data.RISM_Obj):
         """
         Computes RISM equation in the form:
 
@@ -27,10 +32,12 @@ import numpy as np
         t_sr = np.zeros((data.npts, data.ns1, data.ns2), dtype=np.float64)
         for i, j in np.ndindex(data.ns1, data.ns2):
             ck[:, i, j] = data.grid.dht(data.c[:, i, j])
-            ck[:, i, j] -= (data.B * data.uk_lr[:, i, j])
+            ck[:, i, j] -= data.B * data.uk_lr[:, i, j]
         for i in range(data.npts):
             iwcp = np.linalg.inv(I - data.w[i, :, :] @ ck[i, :, :] @ data.p)
             wcw = data.w[i, :, :] @ ck[i, :, :] @ data.w[i, :, :]
         for i, j in np.ndindex(data.ns1, data.ns2):
             data.h[:, i, j] = data.grid.idht(iwcp @ wcw)
-            data.t[:, i, j] = data.grid.idht(iwcp @ wcw - ck[i, :, :]) - (data.B * data.ur_lr[:, i, j])
+            data.t[:, i, j] = data.grid.idht(iwcp @ wcw - ck[i, :, :]) - (
+                data.B * data.ur_lr[:, i, j]
+            )

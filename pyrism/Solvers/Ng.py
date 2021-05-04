@@ -1,51 +1,7 @@
 import numpy as np
 import Data
 import attr
-
-
-@attr.s
-class Solver(object):
-    solver_dispatcher = {
-        "Ng" : NgSolver
-    }
-
-    solver: str = attr.ib()
-
-    def solver(self):
-        return solver_dispatcher[self.solver]
-
-
-@attr.s
-class SolverObject(object):
-
-    data: Data.CalculationData = attr.ib()
-    tol: float = attr.ib()
-    max_iter: int = attr.ib()
-    damp_picard: float = attr.ib(default=0.01)
-    rms: float = attr.ib(init=False)
-
-    def step_Picard(self, curr, prev):
-        return prev + self.damp_picard * (curr - prev)
-
-    @property
-    def converged(self, curr, prev):
-        self.rms = np.sqrt(
-            data.grid.d_r
-            * np.power((curr - prev), 2).sum()
-            / (np.prod(curr.shape))
-        )
-
-        if self.rms < self.tol:
-            return True
-        else:
-            return False
-    
-    def epilogue(self, curr_iter, nlam):
-        print(
-            """Current Lambda: {nlam}
-            Total Iterations: {curr_iter}
-            RMS: {rms}""".format(nlam=nlam, curr_iter=curr_iter, rms=self.rms)
-        )
+from Solver import *
 
 @attr.s
 class NgSolver(SolverObject):

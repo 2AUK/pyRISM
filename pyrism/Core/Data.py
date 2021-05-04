@@ -4,7 +4,7 @@ import Grid
 
 
 @attr.s
-class CalculationData(object):
+class RISM_Obj(object):
 
     # Initial parameters required to instantiate the other attributes
     T: float = attr.ib()

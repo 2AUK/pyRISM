@@ -29,8 +29,8 @@ class RismController:
     # Input filename
     fname: str = attr.ib()
     name: str = attr.ib(init=False)
-    vv: Data.CalculationData = attr.ib(init=False)
-    uv: Data.CalculationData = attr.ib(init=False)
+    vv: Data.RISM_Obj = attr.ib(init=False)
+    uv: Data.RISM_Obj = attr.ib(init=False)
 
     def __init__(self, fname):
         self.solvent_sites = []
