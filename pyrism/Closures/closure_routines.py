@@ -1,8 +1,8 @@
 import numpy as np
-import Data
+from Core import RISM_Obj
 
 
-def HyperNetted_Chain(data):
+def HyperNetted_Chain(data: RISM_Obj):
     return np.exp(-(data.B * data.u_sr) + data.t) - 1.0 - data.t
 
 

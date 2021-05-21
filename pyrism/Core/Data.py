@@ -1,44 +1,46 @@
-import attr
+from dataclasses import dataclass, field
 import numpy as np
-import Grid
+from .Grid import Grid
 
 
-@attr.s
+@dataclass
 class RISM_Obj(object):
 
     # Initial parameters required to instantiate the other attributes
-    T: float = attr.ib()
-    kT: float = attr.ib()
-    amph: float = attr.ib()
-    ns1: int = attr.ib()
-    ns2: int = attr.ib()
-    npts: int = attr.ib()
-    radius: float = attr.ib()
+    T: float
+    kT: float
+    amph: float
+    ns1: int
+    ns2: int
+    npts: int
+    radius: float
+    nlam: int
 
     # Set of attributes that are iterated during the RISM calculation
-    c: np.ndarray = attr.ib(init=False)
-    c_prev: np.ndarray = attr.ib(init=False)
-    t: np.ndarray = attr.ib(init=False)
-    h: np.ndarray = attr.ib(init=False)
+    c: np.ndarray = field(init=False)
+    c_prev: np.ndarray = field(init=False)
+    t: np.ndarray = field(init=False)
+    h: np.ndarray = field(init=False)
 
     # Set of attributes that remain constant during the RISM calculation
-    B: float = attr.ib(init=False)
-    nlam: float = attr.ib(init=False)
-    u: np.ndarray = attr.ib(init=False)
-    u_sr: np.ndarray = attr.ib(init=False)
-    ur_lr: np.ndarray = attr.ib(init=False)
-    uk_lr: np.ndarray = attr.ib(init=False)
-    w: np.ndarray = attr.ib(init=False)
-    p: np.ndarray = attr.ib(init=False)
-    grid: Grid.Grid = attr.ib(init=False)
+    B: float = field(init=False)
+    u: np.ndarray = field(init=False)
+    u_sr: np.ndarray = field(init=False)
+    ur_lr: np.ndarray = field(init=False)
+    uk_lr: np.ndarray = field(init=False)
+    w: np.ndarray = field(init=False)
+    p: np.ndarray = field(init=False)
+    grid: Grid = field(init=False)
 
-    def __attrs_post_init__(self):
+    def __post_init__(self):
 
         self.B = 1 / self.T / self.kT
         self.c = (
             self.c_prev
-        ) = self.t = self.h = self.u = self.u_sr = self.u_lr = self.w = np.zeros(
+        ) = (
+            self.t
+        ) = self.h = self.u = self.u_sr = self.ur_lr = self.uk_lr = self.w = np.zeros(
             (self.npts, self.ns1, self.ns2), dtype=np.float64
         )
         self.p = np.zeros((self.ns1, self.ns2), dtype=np.float64)
-        self.grid = Grid.Grid(self.npts, self.radius)
+        self.grid = Grid(self.npts, self.radius)

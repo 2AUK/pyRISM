@@ -353,5 +353,6 @@ class RismController:
 
 
 if __name__ == "__main__":
-    mol = RismController(sys.argv[1])
-    mol.dorism()
+    # mol = RismController(sys.argv[1])
+    # mol.dorism()
+    pass

@@ -1,8 +1,8 @@
 import numpy as np
-import attr
+from dataclasses import dataclass, field
 
 
-@attr.s
+@dataclass
 class Species(object):
 
     pass

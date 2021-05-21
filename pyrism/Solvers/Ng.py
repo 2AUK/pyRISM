@@ -1,13 +1,12 @@
 import numpy as np
-import Data
-import attr
-from Solver import *
+from Core import RISM_Obj
+from .Solver_object import *
 
-@attr.s
+
 class NgSolver(SolverObject):
 
-    fr: list = attr.ib(default=[])
-    gr: list = attr.ib(default=[])
+    fr: list = []
+    gr: list = []
 
     def step_Picard(self, curr, prev):
         self.fr.append(prev)
@@ -27,9 +26,7 @@ class NgSolver(SolverObject):
         b[1] = np.inner(dn, d02)
         c = np.linalg.solve(A, b)
         c_next = (
-            (1 - c[0] - c[1]) * self.gr[-
-            + c[0] * self.gr[-2]
-            + c[1] * self.gr[-3]
+            (1 - c[0] - c[1]) * self.gr[-1] + c[0] * self.gr[-2] + c[1] * self.gr[-3]
         )
         self.fr.append(prev)
         self.gr.append(curr)
@@ -66,6 +63,6 @@ class NgSolver(SolverObject):
                 break
 
             data.c = c_next
-        
-        data.c -= (self.B * data.uk_lr)
-        data.t += (self.B * data.uk_lr)
+
+        data.c -= self.B * data.uk_lr
+        data.t += self.B * data.uk_lr

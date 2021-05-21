@@ -4,25 +4,25 @@ grid.py
 Defines Grid object to handle generation and transforms
 
 """
-import attr
+from dataclasses import dataclass, field
 import numpy as np
 from scipy.fftpack import dst, idst
-from transforms import discrete_hankel_transform, inverse_discrete_hankel_transform
+from .Transforms import discrete_hankel_transform, inverse_discrete_hankel_transform
 
 
-@attr.s
+@dataclass(init=True)
 class Grid:
 
-    npts: int = attr.ib()
-    radius: float = attr.ib()
-    ri: np.ndarray = attr.ib(init=False)
-    ki: np.ndarray = attr.ib(init=False)
-    d_r: float = attr.ib(init=False)
-    d_k: float = attr.ib(init=False)
+    npts: int
+    radius: float
+    ri: np.ndarray = field(init=False)
+    ki: np.ndarray = field(init=False)
+    d_r: float = field(init=False)
+    d_k: float = field(init=False)
 
-    def __attrs_post_init__(self):
-        self.ri = np.zeros(npts, dtype=float)
-        self.ki = np.zeros(npts, dtype=float)
+    def __post_init__(self):
+        self.ri = np.zeros(self.npts, dtype=float)
+        self.ki = np.zeros(self.npts, dtype=float)
         self.d_r = self.radius / float(self.npts)
         self.d_k = 2 * np.pi / (2 * float(self.npts) * self.d_r)
         self.generate_grid()
