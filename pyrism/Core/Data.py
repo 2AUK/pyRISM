@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 import numpy as np
 from .Grid import Grid
+from .Site import Site
+from .Species import Species
 
 
 @dataclass
@@ -31,6 +33,7 @@ class RISM_Obj(object):
     w: np.ndarray = field(init=False)
     p: np.ndarray = field(init=False)
     grid: Grid = field(init=False)
+    species: list = field(init=False, default_factory=list)
 
     def __post_init__(self):
 
