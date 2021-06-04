@@ -5,20 +5,16 @@ A pedagogical implementation of the RISM equations
 Handles the primary functions
 """
 import numpy as np
-import mpmath as mp
 import pandas as pd
-from scipy.fft import dst, idst
-from scipy.special import erf
-from scipy.signal import argrelextrema
-from scipy.spatial import distance_matrix
-from scipy.optimize import root, minimize, newton_krylov, anderson
 import matplotlib.pyplot as plt
-import Data
-import Grid
 import toml
 import os
 import sys
 import attr
+import Closures
+import Core
+import IntegralEquations
+import Solvers
 
 np.seterr(over="raise")
 
@@ -29,80 +25,101 @@ class RismController:
     # Input filename
     fname: str = attr.ib()
     name: str = attr.ib(init=False)
-    vv: Data.RISM_Obj = attr.ib(init=False)
-    uv: Data.RISM_Obj = attr.ib(init=False)
+    vv: Core.RISM_Obj = attr.ib(init=False)
+    uv: Core.RISM_Obj = attr.ib(init=False)
 
-    def __init__(self, fname):
-        self.solvent_sites = []
-        self.dists = []
-        self.itermax = None
-        self.damp = None
-        self.tol = None
-        self.clos = None
+    def initialise_controller(self):
+        print("init")
         self.read_input()
-        self.beta = 1 / self.kT / self.T
 
     def read_input(self):
         inp = toml.load(self.fname)
         self.name = os.path.basename(self.fname).split(sep=".")[0]
-        self.nsu = inp["solute"]["nsu"]
-        self.nsv = inp["solvent"]["nsv"]
-        self.npts = inp["system"]["npts"]
-        self.radius = inp["system"]["radius"]
-        solv_info = list(inp["solvent"].items())[1 : self.nsv + 1]
-        coords = []
-        for i in solv_info:
-            i[1][0].insert(0, i[0])
-            self.solvent_sites.append(i[1][0])
-            coords.append(i[1][1])
-        self.dists = distance_matrix(coords, coords)
-        self.T = inp["system"]["temp"]
-        self.kT = inp["system"]["kT"]
-        self.charge_coeff = inp["system"]["charge_coeff"]
-        self.itermax = inp["system"]["itermax"]
-        self.lam = inp["system"]["lam"]
-        self.damp = inp["system"]["picard_damping"]
-        self.tol = inp["system"]["tol"]
-        self.clos = inp["system"]["closure"]
+        if not inp["solvent"]:
+            raise ("No solvent data found!")
+        else:
+            self.vv = Core.RISM_Obj(
+                inp["system"]["temp"],
+                inp["system"]["kT"],
+                inp["system"]["charge_coeff"],
+                inp["solvent"]["nsv"],
+                inp["solvent"]["nsv"],
+                inp["solvent"]["nspv"],
+                inp["solvent"]["nspv"],
+                inp["system"]["npts"],
+                inp["system"]["radius"],
+                inp["system"]["lam"],
+            )
+            solv_species = list(inp["solvent"].items())[2 : self.vv.nsp1 + 2]
+            for i in solv_species:
+                self.add_species(i, self.vv)
 
-    def build_wk(self):
-        """
-        Creates a matrix for the intramolecular correlation matrix of a molecule
+        if inp["solute"]:
+            self.uv = Core.RISM_Obj(
+                inp["system"]["temp"],
+                inp["system"]["kT"],
+                inp["system"]["charge_coeff"],
+                inp["solute"]["nsu"],
+                inp["solvent"]["nsv"],
+                inp["solvent"]["nspu"],
+                inp["solvent"]["nspv"],
+                inp["system"]["npts"],
+                inp["system"]["radius"],
+                inp["system"]["lam"],
+            )
+            solu_species = list(inp["solute"].items())[2 : self.uv.nsp1 + 2]
+            for i in solu_species:
+                self.add_species(i, self.uv)
 
-        Parameters
-        ----------
-        grid.ki: ndarray
-           In the context of rism, ki corresponds to grid points upon which
-           RISM equations are solved
+        self.build_wk(self.vv)
+        # print(self.vv)
 
-        dists: ndarray
-            Array containing the distance constraints of a molecule
+    def add_species(self, spec_dat, data_object):
+        new_spec = Core.Species(spec_dat[0])
+        spdict = spec_dat[1]
+        new_spec.set_density(spdict["dens"])
+        new_spec.set_numsites(spdict["ns"])
+        site_info = list(spdict.items())[2 : new_spec.ns + 2]
+        for i in site_info:
+            new_spec.add_site(Core.Site(i[0], i[1][0], np.asarray(i[1][1])))
+        data_object.species.append(new_spec)
 
-        Returns
-        -------
-        wk: ndarray
-        An array containing information on intramolecular correlation
-        """
-        wk = np.zeros((self.grid.npts, self.nsv, self.nsv), dtype=np.float64)
-        I = np.ones(self.grid.npts, dtype=np.float)
-        for i, j in np.ndindex(self.nsv, self.nsv):
-            if i == j:
+    def distance_mat(self, dat):
+        distance_arr = np.zeros((dat.ns1, dat.ns2), dtype=float)
+        i = 0
+        for isp in dat.species:
+            for iat in isp.atom_sites:
+                j = 0
+                for jsp in dat.species:
+                    for jat in jsp.atom_sites:
+                        if isp != jsp:
+                            distance_arr[i, j] = -1
+                        else:
+                            distance_arr[i, j] = np.linalg.norm(iat.coords - jat.coords)
+                        j += 1
+                i += 1
+        return distance_arr
+
+    def build_wk(self, dat):
+        wk = np.zeros((dat.npts, dat.ns1, dat.ns2), dtype=np.float64)
+        I = np.ones(dat.npts, dtype=np.float64)
+        zero_vec = np.zeros(dat.npts, dtype=np.float64)
+        dist_mat = self.distance_mat(dat)
+        for i, j in np.ndindex(dat.ns1, dat.ns2):
+            if dist_mat[i, j] < 0.0:
+                wk[:, i, j] = zero_vec
+            elif dist_mat[i, j] == 0.0:
                 wk[:, i, j] = I
             else:
-                wk[:, i, j] = np.sin(self.grid.ki * self.dists[i, j]) / (
-                    self.grid.ki * self.dists[i, j]
+                wk[:, i, j] = np.sin(dat.grid.ki * dist_mat[i, j]) / (
+                    dat.grid.ki * dist_mat[i, j]
                 )
         return wk
 
-    def build_Ur(self, lam):
-        """
-        Creates a matrix for the potential across the grid
 
-        Returns
-        -------
-        Ur: ndarray
-        An array containing total potential across grid
-        """
+"""
+    def build_Ur(self, lam):
+
         vv = True
         if vv == True:
             Ur = np.zeros((self.grid.npts, self.nsv, self.nsv), dtype=np.float64)
@@ -129,14 +146,7 @@ class RismController:
         return Ur
 
     def build_Ng_Pot(self, damping, lam):
-        """
-        Creates a matrix for the longe-range potential across the grid
 
-        Returns
-        -------
-        Ur: ndarray
-        An array containing long-range potential across grid
-        """
         vv = True
         if vv == True:
             Ng = np.zeros((self.grid.npts, self.nsv, self.nsv), dtype=np.float64)
@@ -151,14 +161,7 @@ class RismController:
         return Ng
 
     def build_Ng_Pot_k(self, damping, lam):
-        """
-        Creates a matrix for the longe-range potential across the grid
 
-        Returns
-        -------
-        Ur: ndarray
-        An array containing long-range potential across grid
-        """
         vv = True
         if vv == True:
             Ng_k = np.zeros((self.grid.npts, self.nsv, self.nsv), dtype=np.float64)
@@ -173,14 +176,7 @@ class RismController:
         return Ng_k
 
     def build_rho(self):
-        """
-        Creates a matrix for the number density of a set of sites for molecules
 
-        Returns
-        -------
-        rho_mat : ndarray
-            An array with number densities of each site down the diagonal
-        """
         return np.diag([prm[-1] for prm in self.solvent_sites])
 
     def picard_step(self, cr_cur, cr_prev, damp):
@@ -240,19 +236,7 @@ class RismController:
         return (cr_new - cr_old).reshape(-1)
 
     def dorism(self):
-        """
-        1. Initialises inputs
-        2. Start charging process
-        3. Iterate and cycle charging process till completion
-
-        Parameters
-        ----------
-        Obtained from RismController Object
-
-        Returns
-        -------
-        Converged g(r), c(r), t(r)
-        """
+        
         nlam = self.lam
         self.wk = self.build_wk()
         self.rho = self.build_rho()
@@ -350,9 +334,8 @@ class RismController:
         self.find_peaks()
         self.plot_gr()
         # self.write_data()
-
+ """
 
 if __name__ == "__main__":
-    # mol = RismController(sys.argv[1])
-    # mol.dorism()
-    pass
+    mol = RismController(sys.argv[1])
+    mol.initialise_controller()

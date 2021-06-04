@@ -14,6 +14,8 @@ class RISM_Obj(object):
     amph: float
     ns1: int
     ns2: int
+    nsp1: int
+    nsp2: int
     npts: int
     radius: float
     nlam: int
