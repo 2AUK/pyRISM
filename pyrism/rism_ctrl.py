@@ -15,6 +15,7 @@ import Closures
 import Core
 import IntegralEquations
 import Solvers
+import Potentials
 
 np.seterr(over="raise")
 
@@ -61,7 +62,7 @@ class RismController:
                 inp["system"]["charge_coeff"],
                 inp["solute"]["nsu"],
                 inp["solvent"]["nsv"],
-                inp["solvent"]["nspu"],
+                inp["solute"]["nspu"],
                 inp["solvent"]["nspv"],
                 inp["system"]["npts"],
                 inp["system"]["radius"],
