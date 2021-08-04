@@ -40,12 +40,14 @@ class RISM_Obj(object):
     def __post_init__(self):
 
         self.B = 1 / self.T / self.kT
-        self.c = (
-            self.c_prev
-        ) = (
-            self.t
-        ) = self.h = self.u = self.u_sr = self.ur_lr = self.uk_lr = self.w = np.zeros(
-            (self.npts, self.ns1, self.ns2), dtype=np.float64
-        )
+        self.c_prev = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
+        self.t = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
+        self.h = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
+        self.u = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
+        self.u_sr = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
+        self.ur_lr = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
+        self.uk_lr = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
+        self.c = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
+        self.w = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
         self.p = np.zeros((self.ns1, self.ns2), dtype=np.float64)
         self.grid = Grid(self.npts, self.radius)

@@ -1,7 +1,8 @@
 import numpy as np
+from scipy.special import erf
 
 
-def Lennard_Jones(r, eps, sig, lam, beta):
+def Lennard_Jones(r, params, lam, beta):
     """
     Computes the Lennard-Jones potential with epsilon and sigma parameters
 
@@ -23,6 +24,7 @@ def Lennard_Jones(r, eps, sig, lam, beta):
     result: float
         The result of the LJ computation
     """
+    eps, sig = params
     return beta * 4.0 * eps * ((sig / r) ** 12 - (sig / r) ** 6) * lam
 
 
