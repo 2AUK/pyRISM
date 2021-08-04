@@ -1,12 +1,13 @@
 import numpy as np
 from Core import RISM_Obj
 from .Solver_object import *
+from dataclasses import dataclass, field
 
-
+@dataclass
 class NgSolver(SolverObject):
 
-    fr: list = []
-    gr: list = []
+    fr: list = field(init=False, default_factory=list)
+    gr: list = field(init=False, default_factory=list)
 
     def step_Picard(self, curr, prev):
         self.fr.append(prev)
@@ -42,7 +43,7 @@ class NgSolver(SolverObject):
         print("\nSolving RISM equation...\n")
 
         while i < self.max_iter:
-            c_prev = data.c
+            c_prev = self.data.c
             RISM(self.data)
             c_A = Closure(self.data)
 
@@ -52,7 +53,7 @@ class NgSolver(SolverObject):
                 c_next = self.step_Ng(c_A, c_prev)
 
             if self.converged:
-                epilogue(i, data.nlam)
+                epilogue(i, self.data.nlam)
                 break
 
             i += 1
@@ -64,5 +65,5 @@ class NgSolver(SolverObject):
 
             data.c = c_next
 
-        data.c -= self.B * data.uk_lr
-        data.t += self.B * data.uk_lr
+        data.c -= self.data.B * self.data.uk_lr
+        data.t += self.data.B * self.data.uk_lr

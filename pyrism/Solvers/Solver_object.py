@@ -1,14 +1,15 @@
 from Core import RISM_Obj
 import numpy as np
+from dataclasses import dataclass, field
 
-
-class SolverObject(object):
-    def __init__(self, data, tol, max_iter, damp_picard=0.01):
-        self.data = data
-        self.tol = tol
-        self.max_iter = max_iter
-        self.damp_picard = damp_picard
-        self.rms = None
+@dataclass
+class SolverObject:
+    
+    data: RISM_Obj
+    tol: float
+    max_iter: int
+    damp_picard: float
+    rms: float = field(default=0.0)
 
     def step_Picard(self, curr, prev):
         return prev + self.damp_picard * (curr - prev)

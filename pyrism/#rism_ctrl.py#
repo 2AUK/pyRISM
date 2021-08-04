@@ -84,9 +84,9 @@ class RismController:
         self.closure = Closures.Closure(inp["params"]["closure"])
         self.IE = IntegralEquations.IntegralEquation(inp["params"]["IE"])
 
-        slv = Solvers.Solver(inp["params"]["solver"]).get_solver()
-        self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"])
-        print(self.solver)
+        self.solver = Solvers.Solver(inp["params"]["solver"]).get_solver()
+        # self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"])
+
         
 
 
