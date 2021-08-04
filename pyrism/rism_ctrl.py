@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import toml
 import os
 import sys
-from scipy.special import erf
 import Closures
 import Core
 import IntegralEquations
@@ -79,8 +78,8 @@ class RismController:
         self.pot = Potentials.Potential(inp["params"]["potential"])
         self.build_Ur(self.vv)
         self.build_renorm(self.vv)
-        print(self.vv.ur_lr)
-        print(self.vv.uk_lr)
+        self.build_rho(self.vv)
+        print(self.vv.p)
         # print(self.vv)
 
     def add_species(self, spec_dat, data_object):
@@ -162,9 +161,16 @@ class RismController:
                         dat.uk_lr[:, i, j] = erfk(dat.grid.ki, qi, qj, damping, lam, dat.B, dat.amph)
                         j += 1
             i += 1
+
+    def build_rho(self, dat):
+        i = 0
+        dens = []
+        for isp in dat.species:
+            for iat in isp.atom_sites:
+                dens.append(isp.dens)
+                i += 1
+        dat.p = np.diag(dens)
                         
-        
-        
 
 """
     def build_Ur(self, lam):
