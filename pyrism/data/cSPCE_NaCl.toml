@@ -4,12 +4,12 @@ kT = 1.0
 charge_coeff = 167101.0
 npts = 2048 
 radius = 20.48
-lam = 1
+lam = 10
 
 
 [params]
 potential = "LJ"
-closure = "HNC"
+closure = "KH"
 IE = "XRISM"
 solver = "Ng"
 picard_damping = 0.001
@@ -17,8 +17,8 @@ itermax = 10000
 tol = 1E-7
 
 [solvent]
-nsv = 3
-nspv = 1
+nsv = 5
+nspv = 2
 [solvent.water]
 dens = 0.033314
 ns = 3
@@ -36,4 +36,17 @@ ns = 3
     [7.815, 1.16572, 0.4238],
     [-3.33314000e-01, 9.42816000e-01, 0.00000000e+00]
 ]
+[solvent.nacl]
+dens = 0.0001
+ns = 2
+"Na" = [
+    [0.0, 0.0, 1.0],
+    [0.0, 0.0, 0.0]
+]
+
+"Cl" = [
+    [0.0, 0.0, -1.0],
+    [0.0, 0.0, 0.0]
+]
+
 [solute]

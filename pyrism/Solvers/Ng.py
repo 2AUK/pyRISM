@@ -14,7 +14,7 @@ class NgSolver(SolverObject):
         self.gr.append(curr)
         return prev + self.damp_picard * (curr - prev)
 
-    def step_Ng(self, curr, prev):
+    def step_Ng(self, curr, prev, A, b):
         vecdr = np.asarray(self.gr) - np.asarray(self.fr)
         dn = vecdr[-1].flatten()
         d01 = (vecdr[-1] - vecdr[-2]).flatten()
@@ -35,7 +35,7 @@ class NgSolver(SolverObject):
         self.fr.pop(0)
         return c_next
 
-    def solve(self, RISM, Closure):
+    def solve(self, RISM, Closure, lam):
         i: int = 0
         A = np.zeros((2, 2), dtype=np.float64)
         b = np.zeros(2, dtype=np.float64)
@@ -50,20 +50,18 @@ class NgSolver(SolverObject):
             if i < 3:
                 c_next = self.step_Picard(c_A, c_prev)
             else:
-                c_next = self.step_Ng(c_A, c_prev)
+                c_next = self.step_Ng(c_A, c_prev, A, b)
 
-            if self.converged:
-                epilogue(i, self.data.nlam)
+            if self.converged(c_next, c_prev):
+                self.epilogue(i, lam)
                 break
 
             i += 1
 
             if i == self.max_iter:
                 print("Max iteration reached!")
-                epilogue(i, data.nlam)
+                epilogue(i, lam)
                 break
 
-            data.c = c_next
+            self.data.c = c_next
 
-        data.c -= self.data.B * self.data.uk_lr
-        data.t += self.data.B * self.data.uk_lr

@@ -16,7 +16,7 @@ class SolverObject:
 
     def converged(self, curr, prev):
         self.rms = np.sqrt(
-            data.grid.d_r * np.power((curr - prev), 2).sum() / (np.prod(curr.shape))
+            self.data.grid.d_r * np.power((curr - prev), 2).sum() / (np.prod(curr.shape))
         )
 
         if self.rms < self.tol:

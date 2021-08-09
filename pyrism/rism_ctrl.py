@@ -39,6 +39,7 @@ class RismController:
         self.read_input()
         self.build_wk(self.vv)
         self.build_rho(self.vv)
+        self.solve_system(self.vv)
 
     def read_input(self):
         inp = toml.load(self.fname)
@@ -86,10 +87,7 @@ class RismController:
 
         slv = Solvers.Solver(inp["params"]["solver"]).get_solver()
         self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"])
-        print(self.solver)
         
-
-
     def add_species(self, spec_dat, data_object):
         new_spec = Core.Species(spec_dat[0])
         spdict = spec_dat[1]
@@ -178,226 +176,24 @@ class RismController:
                 dens.append(isp.dens)
                 i += 1
         dat.p = np.diag(dens)
+
+    def solve_system(self, dat):
+        clos = self.closure.get_closure()
+        IE = self.IE.get_IE()
+        for j in range(1, dat.nlam+1):
+            lam = 1.0 * j / dat.nlam
+            self.build_Ur(dat, lam)
+            self.build_renorm(dat, 1.0, lam)
+            dat.u_sr = dat.u - dat.ur_lr
+            self.solver.solve(IE, clos, lam)
                         
+        #dat.c -= dat.B * dat.ur_lr
+        #dat.t += dat.B * dat.ur_lr
+        print(dat.ur_lr)
+        gr = 1 + dat.c + dat.t
 
-"""
-    def build_Ur(self, lam):
-
-        vv = True
-        if vv == True:
-            Ur = np.zeros((self.grid.npts, self.nsv, self.nsv), dtype=np.float64)
-            for i, j in np.ndindex(self.nsv, self.nsv):
-                if i == j:
-                    eps = self.solvent_sites[i][1]
-                    sig = self.solvent_sites[i][2]
-                    q = self.solvent_sites[i][3]
-                    Ur[:, i, j] = self.compute_UR_LJ(
-                        eps, sig, lam
-                    ) + self.compute_UR_CMB(q, q, lam)
-                else:
-                    eps, sig = self.mixing_rules(
-                        self.solvent_sites[i][1],
-                        self.solvent_sites[j][1],
-                        self.solvent_sites[i][2],
-                        self.solvent_sites[j][2],
-                    )
-                    q1 = self.solvent_sites[i][3]
-                    q2 = self.solvent_sites[j][3]
-                    Ur[:, i, j] = self.compute_UR_LJ(
-                        eps, sig, lam
-                    ) + self.compute_UR_CMB(q1, q2, lam)
-        return Ur
-
-    def build_Ng_Pot(self, damping, lam):
-
-        vv = True
-        if vv == True:
-            Ng = np.zeros((self.grid.npts, self.nsv, self.nsv), dtype=np.float64)
-            for i, j in np.ndindex(self.nsv, self.nsv):
-                if i == j:
-                    q = self.solvent_sites[i][3]
-                    Ng[:, i, j] = self.compute_UR_LR(q, q, damping, 1.0, lam)
-                else:
-                    q1 = self.solvent_sites[i][3]
-                    q2 = self.solvent_sites[j][3]
-                    Ng[:, i, j] = self.compute_UR_LR(q1, q2, damping, 1.0, lam)
-        return Ng
-
-    def build_Ng_Pot_k(self, damping, lam):
-
-        vv = True
-        if vv == True:
-            Ng_k = np.zeros((self.grid.npts, self.nsv, self.nsv), dtype=np.float64)
-            for i, j in np.ndindex(self.nsv, self.nsv):
-                if i == j:
-                    q = self.solvent_sites[i][3]
-                    Ng_k[:, i, j] = self.compute_UK_LR(q, q, damping, lam)
-                else:
-                    q1 = self.solvent_sites[i][3]
-                    q2 = self.solvent_sites[j][3]
-                    Ng_k[:, i, j] = self.compute_UK_LR(q1, q2, damping, lam)
-        return Ng_k
-
-    def build_rho(self):
-
-        return np.diag([prm[-1] for prm in self.solvent_sites])
-
-    def picard_step(self, cr_cur, cr_prev, damp):
-        return cr_prev + damp * (cr_cur - cr_prev)
-
-    def find_peaks(self):
-        for i, j in np.ndindex(self.nsv, self.nsv):
-            fmax = argrelextrema(self.gr[:, i, j], np.greater)
-            fmin = argrelextrema(self.gr[:, i, j], np.less)
-            lbl1 = self.solvent_sites[i][0]
-            lbl2 = self.solvent_sites[j][0]
-            print(lbl1 + "-" + lbl2)
-            print("Maxima:")
-            print("r", self.grid.ri[fmax])
-            print("g(r)", self.gr[fmax, i, j].flatten())
-            print("Minima:")
-            print("r", self.grid.ri[fmin])
-            print("g(r)", self.gr[fmin, i, j].flatten())
-            print("\n")
-
-    def plot_gr(self, save=False):
-        for i in range(self.nsv):
-            for j in range(i, self.nsv):
-                lbl1 = self.solvent_sites[i][0]
-                lbl2 = self.solvent_sites[j][0]
-                plt.plot(self.grid.ri, self.gr[:, i, j], label=lbl1 + "-" + lbl2)
-        plt.axhline(1, color="grey", linestyle="--", linewidth=2)
-        plt.title("RDF of " + self.name + " at " + str(self.T) + " K")
-        plt.xlabel("r/A")
-        plt.ylabel("g(r)")
-        plt.legend()
-        if save == True:
-            plt.savefig(self.name + "_RDF.eps", format="eps")
+        plt.plot(dat.grid.ri, gr[:, 0, 0])
         plt.show()
-
-    def write_data(self):
-
-        gr = pd.DataFrame(self.grid.ri, columns=["r"])
-        cr = pd.DataFrame(self.grid.ri, columns=["r"])
-        tr = pd.DataFrame(self.grid.ri, columns=["r"])
-        for i, j in np.ndindex(self.nsv, self.nsv):
-            lbl1 = self.solvent_sites[i][0]
-            lbl2 = self.solvent_sites[j][0]
-            gr[lbl1 + "-" + lbl2] = self.gr[:, i, j]
-            cr[lbl1 + "-" + lbl2] = self.cr[:, i, j]
-            tr[lbl1 + "-" + lbl2] = self.tr[:, i, j]
-        cr.to_csv(self.name + "_" + str(self.T) + "K.cvv", index=False)
-        gr.to_csv(self.name + "_" + str(self.T) + "K.gvv", index=False)
-        tr.to_csv(self.name + "_" + str(self.T) + "K.tvv", index=False)
-
-    def cost(self, cr):
-        cr_old = cr.reshape((self.grid.npts, self.nsv, self.nsv))
-        trsr = self.RISM(self.wk, cr_old, self.Uklr, self.rho)
-        cr_new = self.closure(self.Ursr, trsr, self.clos)
-        self.cr = cr_new
-        self.tr = trsr
-        return (cr_new - cr_old).reshape(-1)
-
-    def dorism(self):
-        
-        nlam = self.lam
-        self.wk = self.build_wk()
-        self.rho = self.build_rho()
-        itermax = self.itermax
-        tol = self.tol
-        damp = self.damp
-        print(self.name)
-        print("\n")
-        print("System parameters\n")
-        print("Temperature: ", str(self.T) + " K")
-        print("-------------------------\n")
-        for j in range(1, nlam + 1):
-            vecfr = []
-            vecgr = []
-            A = np.zeros((2, 2), dtype=float)
-            b = np.zeros(2, dtype=float)
-            i = 0
-            lam = 1.0 * j / nlam
-            Ur = self.build_Ur(lam)
-            Ng = self.build_Ng_Pot(1.0, lam)
-            self.Ursr = Ur - Ng
-            # Ursr[Ursr < urmin] = urmin
-            self.Uklr = self.build_Ng_Pot_k(1.0, lam)
-            fr = np.exp(-1 * (self.Ursr)) - 1.0
-            if j == 1:
-                print("Building System...\n")
-                cr = fr
-            else:
-                print("Rebuilding System from previous cycle...\n")
-                cr = cr_lam
-
-            print(lam)
-            print("Iterating SSOZ Equations...\n")
-            # min_result = anderson(self.cost, cr.reshape(-1), verbose=True, M=20)
-            while i < itermax:
-                cr_prev = cr
-                trsr = self.RISM(self.wk, cr, self.Uklr, self.rho)
-                cr_A = self.closure(self.Ursr, trsr, self.clos)
-                if i < 3:
-                    vecfr.append(cr_prev)
-                    cr_next = self.picard_step(cr_A, cr_prev, damp)
-                    vecgr.append(cr_A)
-                else:
-                    vecdr = np.asarray(vecgr) - np.asarray(vecfr)
-                    dn = vecdr[-1].flatten()
-                    d01 = (vecdr[-1] - vecdr[-2]).flatten()
-                    d02 = (vecdr[-1] - vecdr[-3]).flatten()
-                    A[0, 0] = np.inner(d01, d01)
-                    A[0, 1] = np.inner(d01, d02)
-                    A[1, 0] = np.inner(d01, d02)
-                    A[1, 1] = np.inner(d02, d02)
-                    b[0] = np.inner(dn, d01)
-                    b[1] = np.inner(dn, d02)
-                    c = np.linalg.solve(A, b)
-                    cr_next = (
-                        (1 - c[0] - c[1]) * vecgr[-1]
-                        + c[0] * vecgr[-2]
-                        + c[1] * vecgr[-3]
-                    )
-                    vecfr.append(cr_prev)
-                    vecgr.append(cr_A)
-                    vecgr.pop(0)
-                    vecfr.pop(0)
-                y = np.abs(cr_next - cr_prev)
-                rms = np.sqrt(
-                    self.grid.d_r
-                    * np.power((cr_next - cr_prev), 2).sum()
-                    / (np.prod(cr_next.shape))
-                )
-                if i % 100 == 0:
-                    print("iteration: ", i, "\tRMS: ", rms, "\tDiff: ", np.amax(y))
-                if rms < tol:
-                    print("\nlambda: ", lam)
-                    print("total iterations: ", i)
-                    print("RMS: ", rms)
-                    print("Diff: ", np.amax(y))
-                    print("-------------------------")
-                    break
-                i += 1
-                if i == itermax:
-                    print("\nlambda: ", lam)
-                    print("total iterations: ", i)
-                    print("RMS: ", rms)
-                    print("Diff: ", np.amax(y))
-                    print("-------------------------")
-                cr = cr_next
-            # print(min_result)
-            cr_lam = cr
-        print("Iteration finished!\n")
-        self.cr = cr - Ng
-        self.tr = trsr + Ng
-        self.gr = 1 + self.cr + self.tr
-        self.Ur = Ur
-        self.Ng = Ng
-        self.find_peaks()
-        self.plot_gr()
-        # self.write_data()
- """
 
 if __name__ == "__main__":
     mol = RismController(sys.argv[1])
