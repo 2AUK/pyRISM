@@ -166,15 +166,14 @@ class RismController:
                         dat.ur_lr[:, i, j] = erfr(dat.grid.ri, qi, qj, damping, 1.0, lam, dat.B, dat.amph)
                         dat.uk_lr[:, i, j] = erfk(dat.grid.ki, qi, qj, damping, lam, dat.B, dat.amph)
                         j += 1
-            i += 1
+                i += 1
 
     def build_rho(self, dat):
-        i = 0
         dens = []
         for isp in dat.species:
             for iat in isp.atom_sites:
+                print(isp.dens)
                 dens.append(isp.dens)
-                i += 1
         dat.p = np.diag(dens)
 
     def solve_system(self, dat):
@@ -185,13 +184,15 @@ class RismController:
             self.build_Ur(dat, lam)
             self.build_renorm(dat, 1.0, lam)
             dat.u_sr = dat.u - dat.ur_lr
+            if j == 1:
+                dat.c = np.exp(-1 * (dat.u_sr)) - 1.0
+            else:
+                pass
             self.solver.solve(IE, clos, lam)
                         
-        #dat.c -= dat.B * dat.ur_lr
-        #dat.t += dat.B * dat.ur_lr
-        print(dat.ur_lr)
+        dat.c -= dat.B * dat.ur_lr
+        dat.t += dat.B * dat.ur_lr
         gr = 1 + dat.c + dat.t
-
         plt.plot(dat.grid.ri, gr[:, 0, 0])
         plt.show()
 

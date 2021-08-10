@@ -26,9 +26,7 @@ class SolverObject:
 
     def epilogue(self, curr_iter, nlam):
         print(
-            """Current Lambda: {nlam}
-            Total Iterations: {curr_iter}
-            RMS: {rms}""".format(
+            """Current Lambda: {nlam}\nTotal Iterations: {curr_iter}\nRMS: {rms}""".format(
                 nlam=nlam, curr_iter=curr_iter, rms=self.rms
             )
         )
