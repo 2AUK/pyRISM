@@ -143,16 +143,16 @@ class RismController:
                         qi = iat.params[-1]
                         qj = jat.params[-1]
                         if iat == jat:
-                            dat.u[:, i, j] = sr_pot(dat.grid.ri, i_sr_params, lam, dat.B) \
-                                + cou(dat.grid.ri, qi, qj, lam, dat.B, dat.amph)
+                            dat.u[:, i, j] = sr_pot(dat.grid.ri, i_sr_params, lam) \
+                                + cou(dat.grid.ri, qi, qj, lam, dat.amph)
                         else:
-                            mixed = mix(iat.params, jat.params)
-                            dat.u[:, i, j] = sr_pot(dat.grid.ri, mixed, lam, dat.B) \
-                                + cou(dat.grid.ri, qi, qj, lam, dat.B, dat.amph)
+                            mixed = mix(i_sr_params, j_sr_params)
+                            dat.u[:, i, j] = sr_pot(dat.grid.ri, mixed, lam) \
+                                + cou(dat.grid.ri, qi, qj, lam, dat.amph)
                         j += 1
                 i += 1
 
-    def build_renorm(self, dat, damping = 1.0, lam = 1):
+    def build_renorm(self, dat, damping=1.0, lam=1):
         erfr, _ = Potentials.Potential("erfr").get_potential()
         erfk, _ = Potentials.Potential("erfk").get_potential()
         i = 0
@@ -163,8 +163,8 @@ class RismController:
                     for jat in jsp.atom_sites:
                         qi = iat.params[-1]
                         qj = jat.params[-1]
-                        dat.ur_lr[:, i, j] = erfr(dat.grid.ri, qi, qj, damping, 1.0, lam, dat.B, dat.amph)
-                        dat.uk_lr[:, i, j] = erfk(dat.grid.ki, qi, qj, damping, lam, dat.B, dat.amph)
+                        dat.ur_lr[:, i, j] = erfr(dat.grid.ri, qi, qj, damping, 1.0, lam, dat.amph)
+                        dat.uk_lr[:, i, j] = erfk(dat.grid.ki, qi, qj, damping, lam, dat.amph)
                         j += 1
                 i += 1
 
@@ -184,15 +184,16 @@ class RismController:
             self.build_Ur(dat, lam)
             self.build_renorm(dat, 1.0, lam)
             dat.u_sr = dat.u - dat.ur_lr
+            fr = np.exp(-(dat.B * dat.u_sr)) - 1.0
             if j == 1:
-                dat.c = np.exp(-1 * (dat.u_sr)) - 1.0
+                dat.c = np.zeros_like(fr)
             else:
                 pass
             self.solver.solve(IE, clos, lam)
                         
         dat.c -= dat.B * dat.ur_lr
         dat.t += dat.B * dat.ur_lr
-        gr = 1 + dat.c + dat.t
+        gr = 1.0 + dat.c + dat.t
         plt.plot(dat.grid.ri, gr[:, 0, 0])
         plt.show()
 

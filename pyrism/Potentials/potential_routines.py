@@ -2,7 +2,7 @@ import numpy as np
 from scipy.special import erf
 
 
-def Lennard_Jones(r, params, lam, beta):
+def Lennard_Jones(r, params, lam):
     """
     Computes the Lennard-Jones potential with epsilon and sigma parameters
 
@@ -25,10 +25,10 @@ def Lennard_Jones(r, params, lam, beta):
         The result of the LJ computation
     """
     eps, sig = params
-    return beta * 4.0 * eps * ((sig / r) ** 12 - (sig / r) ** 6) * lam
+    return 4.0 * eps * ((sig / r) ** 12 - (sig / r) ** 6) * lam
 
 
-def Lennard_Jones_AB(r, C6, C12, lam, beta):
+def Lennard_Jones_AB(r, C6, C12, lam):
     """
     Computes the Lennard-Jones potential with C6 and C12 parameters
 
@@ -51,10 +51,10 @@ def Lennard_Jones_AB(r, C6, C12, lam, beta):
         The result of the LJ computation
     """
 
-    return beta * ((C12 / r ** 12) - (C6 / r ** 6)) * lam
+    return ((C12 / r ** 12) - (C6 / r ** 6)) * lam
 
 
-def hard_spheres(r, sigma, lam, beta):
+def hard_spheres(r, sigma, lam):
     """
     Computes the Lennard-Jones potential with C6 and C12 parameters
 
@@ -77,10 +77,10 @@ def hard_spheres(r, sigma, lam, beta):
         The result of the LJ computation
     """
 
-    return beta * np.where((r >= sigma), 0, np.inf) * lam
+    return np.where((r >= sigma), 0, np.inf) * lam
 
 
-def coulomb(r, q1, q2, lam, beta, charge_coeff):
+def coulomb(r, q1, q2, lam, charge_coeff):
     """
     Computes the Coulomb potential
 
@@ -102,10 +102,10 @@ def coulomb(r, q1, q2, lam, beta, charge_coeff):
     result: float
         The result of the LJ computation
     """
-    return lam * beta * charge_coeff * q1 * q2 / r
+    return lam * charge_coeff * q1 * q2 / r
 
 
-def coulomb_lr_r(r, q1, q2, damping, rscreen, lam, beta, charge_coeff):
+def coulomb_lr_r(r, q1, q2, damping, rscreen, lam, charge_coeff):
     """
     Computes the Ng renorm potential
 
@@ -129,10 +129,10 @@ def coulomb_lr_r(r, q1, q2, damping, rscreen, lam, beta, charge_coeff):
     result: float
         The result of the LJ computation
     """
-    return lam * beta * charge_coeff * q1 * q2 * erf(damping * r / rscreen) / r
+    return lam * charge_coeff * q1 * q2 * erf(damping * r / rscreen) / r
 
 
-def coulomb_lr_k(k, q1, q2, damping, lam, beta, charge_coeff):
+def coulomb_lr_k(k, q1, q2, damping, lam, charge_coeff):
     """
     Computes the Ng renorm potential
 
@@ -158,7 +158,6 @@ def coulomb_lr_k(k, q1, q2, damping, lam, beta, charge_coeff):
     """
     return (
         lam
-        * beta
         * 4
         * np.pi
         * q1

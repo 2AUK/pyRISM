@@ -25,7 +25,6 @@ def XRISM(data):
     """
     I = np.eye(data.ns1, M=data.ns2)
     ck = np.zeros((data.npts, data.ns1, data.ns2), dtype=np.float64)
-    t_sr = np.zeros((data.npts, data.ns1, data.ns2), dtype=np.float64)
     for i, j in np.ndindex(data.ns1, data.ns2):
         ck[:, i, j] = data.grid.dht(data.c[:, i, j])
         ck[:, i, j] -= data.B * data.uk_lr[:, i, j]
@@ -36,4 +35,3 @@ def XRISM(data):
     for i, j in np.ndindex(data.ns1, data.ns2):
         data.t[:, i, j] = data.grid.idht(data.h[:, i, j] - (
             data.B * data.uk_lr[:, i, j]))
-

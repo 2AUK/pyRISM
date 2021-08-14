@@ -35,8 +35,8 @@ def Lorentz_Berthelot(params1, params2) -> tuple:
     sig : float
     Mixed sigma parameter
     """
-    eps1, sig1, _ = params1
-    eps2, sig2, _ = params2
+    eps1, sig1 = params1
+    eps2, sig2 = params2
     eps = geometric_mean(eps1, eps2)
     sig = arithmetic_mean(sig1, sig2)
     return eps, sig

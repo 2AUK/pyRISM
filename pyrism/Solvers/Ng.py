@@ -46,7 +46,6 @@ class NgSolver(SolverObject):
             c_prev = self.data.c
             RISM(self.data)
             c_A = Closure(self.data)
-
             if i < 3:
                 c_next = self.step_Picard(c_A, c_prev)
             else:
@@ -60,7 +59,7 @@ class NgSolver(SolverObject):
 
             if i == self.max_iter:
                 print("Max iteration reached!")
-                epilogue(i, lam)
+                self.epilogue(i, lam)
                 break
 
             self.data.c = c_next
