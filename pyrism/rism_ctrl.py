@@ -27,19 +27,23 @@ class RismController:
     # Input filename
     fname: str
     name: str = field(init=False)
+    uv_check: bool = field(init=False, default=False)
     vv: Core.RISM_Obj = field(init=False)
     uv: Core.RISM_Obj = field(init=False)
     pot: Potentials.Potential = field(init=False)
     solver: Solvers.Solver = field(init=False)
     closure: Closures.Closure = field(init=False)
     IE: IntegralEquations.IntegralEquation = field(init=False)
+    IE_UV: IntegralEquations.IntegralEquation = field(init=False)
 
     def initialise_controller(self):
-        print("init")
         self.read_input()
         self.build_wk(self.vv)
         self.build_rho(self.vv)
+
+    def do_rism(self):
         self.solve_system(self.vv)
+        self.write_data(self.vv)
 
     def read_input(self):
         inp = toml.load(self.fname)
@@ -76,6 +80,7 @@ class RismController:
                 inp["system"]["radius"],
                 inp["system"]["lam"],
             )
+            self.uv_check = True
             solu_species = list(inp["solute"].items())[2 : self.uv.nsp1 + 2]
             for i in solu_species:
                 self.add_species(i, self.uv)
@@ -84,6 +89,8 @@ class RismController:
        
         self.closure = Closures.Closure(inp["params"]["closure"])
         self.IE = IntegralEquations.IntegralEquation(inp["params"]["IE"])
+        if self.uv_check:
+            self.IE_UV = IntegralEquations.IntegralEquation(inp["params"]["IE"] + "_UV")
 
         slv = Solvers.Solver(inp["params"]["solver"]).get_solver()
         self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"])
@@ -176,6 +183,24 @@ class RismController:
                 dens.append(isp.dens)
         dat.p = np.diag(dens)
 
+    def write_data(self, dat):
+        all_sites = []
+        for species in dat.species:
+            for site in species.atom_sites:
+                all_sites.append(site)
+        gr = pd.DataFrame(dat.grid.ri, columns=["r"])
+        cr = pd.DataFrame(dat.grid.ri, columns=["r"])
+        tr = pd.DataFrame(dat.grid.ri, columns=["r"])
+        for i, j in np.ndindex(dat.ns1, dat.ns2):
+            lbl1 = all_sites[i].atom_type
+            lbl2 = all_sites[j].atom_type
+            gr[lbl1+"-"+lbl2] = dat.g[:, i, j]
+            cr[lbl1+"-"+lbl2] = dat.c[:, i, j]
+            tr[lbl1+"-"+lbl2] = dat.t[:, i, j]
+        gr.to_csv(self.name + "_" + str(dat.T) + "K.gvv", index=False)
+        cr.to_csv(self.name + "_" + str(dat.T) + "K.cvv", index=False)
+        tr.to_csv(self.name + "_" + str(dat.T) + "K.tvv", index=False)
+
     def solve_system(self, dat):
         clos = self.closure.get_closure()
         IE = self.IE.get_IE()
@@ -184,18 +209,15 @@ class RismController:
             self.build_Ur(dat, lam)
             self.build_renorm(dat, 1.0, lam)
             dat.u_sr = dat.u - dat.ur_lr
-            fr = np.exp(-(dat.B * dat.u_sr)) - 1.0
             if j == 1:
-                dat.c = np.zeros_like(fr)
+                dat.c = np.zeros_like(dat.u_sr)
             else:
                 pass
             self.solver.solve(IE, clos, lam)
                         
         dat.c -= dat.B * dat.ur_lr
         dat.t += dat.B * dat.ur_lr
-        gr = 1.0 + dat.c + dat.t
-        plt.plot(dat.grid.ri, gr[:, 0, 0])
-        plt.show()
+        dat.g = 1.0 + dat.c + dat.t
 
 if __name__ == "__main__":
     mol = RismController(sys.argv[1])
