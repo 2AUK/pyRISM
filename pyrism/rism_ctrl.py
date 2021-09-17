@@ -222,3 +222,4 @@ class RismController:
 if __name__ == "__main__":
     mol = RismController(sys.argv[1])
     mol.initialise_controller()
+    mol.do_rism()
