@@ -4,25 +4,32 @@ kT = 1.0
 charge_coeff = 167101.0
 npts = 2048
 radius = 20.48
+lam = 10
+
+[params]
+potential = "LJ"
+closure = "PY"
+IE = "XRISM"
 solver = "Ng"
 picard_damping = 0.001
 itermax = 10000
-lam = 10
 tol = 1E-7
-closure = "KH"
 
 [solvent]
 nsv = 2
+nspv = 1
 
+[solvent.HCl]
+dens = 0.018
+ns = 2
 "H" = [
-    [20.0, 2.735, 0.2, 0.018], 
+    [20.0, 2.735, 0.2],
     [0.00000000e+00, 0.00000000e+00, 0.00000000e+00]
 ]
 
 "Cl" = [
-    [259.0, 3.353, -0.2, 0.018],
+    [259.0, 3.353, -0.2],
     [1.25700000e+00, 0.00000000e+00, 0.00000000e+00]
 ]
 
 [solute]
-nsu = 0

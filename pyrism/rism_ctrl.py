@@ -197,9 +197,9 @@ class RismController:
             gr[lbl1+"-"+lbl2] = dat.g[:, i, j]
             cr[lbl1+"-"+lbl2] = dat.c[:, i, j]
             tr[lbl1+"-"+lbl2] = dat.t[:, i, j]
-        gr.to_csv(self.name + "_" + str(dat.T) + "K.gvv", index=False)
-        cr.to_csv(self.name + "_" + str(dat.T) + "K.cvv", index=False)
-        tr.to_csv(self.name + "_" + str(dat.T) + "K.tvv", index=False)
+        gr.to_csv(self.name + "_" + str(dat.p[0, 0]) + "_" + str(dat.T) + "K.gvv", index=False)
+        cr.to_csv(self.name + "_" + str(dat.p[0, 0]) + "_" + str(dat.T) + "K.cvv", index=False)
+        tr.to_csv(self.name + "_" + str(dat.p[0, 0]) + "_" + str(dat.T) + "K.tvv", index=False)
 
     def solve_system(self, dat):
         clos = self.closure.get_closure()
