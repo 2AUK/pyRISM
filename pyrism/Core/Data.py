@@ -49,7 +49,7 @@ class RISM_Obj(object):
         self.ur_lr = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
         self.uk_lr = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
         self.c = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
-        self.w = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
+        self.w = np.zeros((self.npts, self.ns1, self.ns1), dtype=np.float64)
         self.g = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
         self.p = np.zeros((self.ns1, self.ns2), dtype=np.float64)
         self.grid = Grid(self.npts, self.radius)

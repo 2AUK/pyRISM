@@ -9,12 +9,6 @@ r = df.iloc[:, 0].to_numpy()
 gr = df.iloc[:, int(sys.argv[2])].to_numpy()
 r = np.asarray(r, dtype=np.float64)
 gr = np.asarray(gr, dtype=np.float64)
-matplotlib.font_manager.fontManager.addfont('/home/abdullah/.fonts/n/NewCenturySchoolbook.ttf')
-font = {'family' : 'New Century Schoolbook',
-        'weight' : 'normal',
-        'size' : 12}
-
-matplotlib.rc('font', **font)
 
 plt.axhline(1, color='grey', linestyle="--", linewidth=2)
 plt.xlabel("r/A")

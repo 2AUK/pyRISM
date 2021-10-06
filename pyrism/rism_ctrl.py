@@ -40,6 +40,10 @@ class RismController:
         self.read_input()
         self.build_wk(self.vv)
         self.build_rho(self.vv)
+        if self.uv_check:
+            self.build_wk(self.uv)
+        print(self.vv.w)
+        print(self.uv.w)
 
     def do_rism(self):
         self.solve_system(self.vv)
@@ -106,7 +110,7 @@ class RismController:
         data_object.species.append(new_spec)
 
     def distance_mat(self, dat):
-        distance_arr = np.zeros((dat.ns1, dat.ns2), dtype=float)
+        distance_arr = np.zeros((dat.ns1, dat.ns1), dtype=float)
         i = 0
         for isp in dat.species:
             for iat in isp.atom_sites:
@@ -125,7 +129,7 @@ class RismController:
         I = np.ones(dat.npts, dtype=np.float64)
         zero_vec = np.zeros(dat.npts, dtype=np.float64)
         dist_mat = self.distance_mat(dat)
-        for i, j in np.ndindex(dat.ns1, dat.ns2):
+        for i, j in np.ndindex(dat.ns1, dat.ns1):
             if dist_mat[i, j] < 0.0:
                 dat.w[:, i, j] = zero_vec
             elif dist_mat[i, j] == 0.0:
@@ -214,7 +218,7 @@ class RismController:
             else:
                 pass
             self.solver.solve(IE, clos, lam)
-                        
+
         dat.c -= dat.B * dat.ur_lr
         dat.t += dat.B * dat.ur_lr
         dat.g = 1.0 + dat.c + dat.t
