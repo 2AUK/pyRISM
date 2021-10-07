@@ -42,12 +42,13 @@ class RismController:
         self.build_rho(self.vv)
         if self.uv_check:
             self.build_wk(self.uv)
-        print(self.vv.w)
-        print(self.uv.w)
+        #print("wv\n", self.vv.w)
+        print("wu\n", self.uv.w)
 
     def do_rism(self):
-        self.solve_system(self.vv)
-        self.write_data(self.vv)
+        self.solve_system(self.vv, self.vv)
+        self.solve_system(self.vv, self.uv)
+        self.write_data(self.uv)
 
     def read_input(self):
         inp = toml.load(self.fname)
@@ -76,10 +77,10 @@ class RismController:
                 inp["system"]["temp"],
                 inp["system"]["kT"],
                 inp["system"]["charge_coeff"],
-                inp["solute"]["nsu"],
                 inp["solvent"]["nsv"],
-                inp["solute"]["nspu"],
+                inp["solute"]["nsu"],
                 inp["solvent"]["nspv"],
+                inp["solute"]["nspu"],
                 inp["system"]["npts"],
                 inp["system"]["radius"],
                 inp["system"]["lam"],
@@ -106,11 +107,13 @@ class RismController:
         new_spec.set_numsites(spdict["ns"])
         site_info = list(spdict.items())[2 : new_spec.ns + 2]
         for i in site_info:
-            new_spec.add_site(Core.Site(i[0], i[1][0], np.asarray(i[1][1])))
+            atom = Core.Site(i[0], i[1][0], np.asarray(i[1][1]))
+            new_spec.add_site(atom)
+            data_object.atoms.append(atom)
         data_object.species.append(new_spec)
 
     def distance_mat(self, dat):
-        distance_arr = np.zeros((dat.ns1, dat.ns1), dtype=float)
+        distance_arr = np.zeros((dat.ns2, dat.ns2), dtype=float)
         i = 0
         for isp in dat.species:
             for iat in isp.atom_sites:
@@ -129,7 +132,8 @@ class RismController:
         I = np.ones(dat.npts, dtype=np.float64)
         zero_vec = np.zeros(dat.npts, dtype=np.float64)
         dist_mat = self.distance_mat(dat)
-        for i, j in np.ndindex(dat.ns1, dat.ns1):
+        print(dat.w.shape)
+        for i, j in np.ndindex(dat.ns2, dat.ns2):
             if dist_mat[i, j] < 0.0:
                 dat.w[:, i, j] = zero_vec
             elif dist_mat[i, j] == 0.0:
@@ -140,42 +144,43 @@ class RismController:
                 )
 
 
-    def build_Ur(self, dat, lam=1):
+    def build_Ur(self, dat1, dat2, lam=1):
         sr_pot, mix = self.pot.get_potential()
         cou, _ = Potentials.Potential("cou").get_potential()
+        print(dat2.u.shape)
         i = 0
-        for isp in dat.species:
+        for isp in dat1.species:
             for iat in isp.atom_sites:
                 j = 0
-                for jsp in dat.species:
+                for jsp in dat2.species:
                     for jat in jsp.atom_sites:
                         i_sr_params = iat.params[:-1]
                         j_sr_params = jat.params[:-1]
                         qi = iat.params[-1]
                         qj = jat.params[-1]
                         if iat == jat:
-                            dat.u[:, i, j] = sr_pot(dat.grid.ri, i_sr_params, lam) \
-                                + cou(dat.grid.ri, qi, qj, lam, dat.amph)
+                            dat2.u[:, i, j] = sr_pot(dat2.grid.ri, i_sr_params, lam) \
+                                + cou(dat2.grid.ri, qi, qj, lam, dat2.amph)
                         else:
                             mixed = mix(i_sr_params, j_sr_params)
-                            dat.u[:, i, j] = sr_pot(dat.grid.ri, mixed, lam) \
-                                + cou(dat.grid.ri, qi, qj, lam, dat.amph)
+                            dat2.u[:, i, j] = sr_pot(dat2.grid.ri, mixed, lam) \
+                                + cou(dat2.grid.ri, qi, qj, lam, dat2.amph)
                         j += 1
                 i += 1
 
-    def build_renorm(self, dat, damping=1.0, lam=1):
+    def build_renorm(self, dat1, dat2, damping=1.0, lam=1):
         erfr, _ = Potentials.Potential("erfr").get_potential()
         erfk, _ = Potentials.Potential("erfk").get_potential()
         i = 0
-        for isp in dat.species:
+        for isp in dat1.species:
             for iat in isp.atom_sites:
                 j = 0
-                for jsp in dat.species:
+                for jsp in dat2.species:
                     for jat in jsp.atom_sites:
                         qi = iat.params[-1]
                         qj = jat.params[-1]
-                        dat.ur_lr[:, i, j] = erfr(dat.grid.ri, qi, qj, damping, 1.0, lam, dat.amph)
-                        dat.uk_lr[:, i, j] = erfk(dat.grid.ki, qi, qj, damping, lam, dat.amph)
+                        dat2.ur_lr[:, i, j] = erfr(dat2.grid.ri, qi, qj, damping, 1.0, lam, dat2.amph)
+                        dat2.uk_lr[:, i, j] = erfk(dat2.grid.ki, qi, qj, damping, lam, dat2.amph)
                         j += 1
                 i += 1
 
@@ -205,23 +210,23 @@ class RismController:
         cr.to_csv(self.name + "_" + str(dat.p[0, 0]) + "_" + str(dat.T) + "K.cvv", index=False)
         tr.to_csv(self.name + "_" + str(dat.p[0, 0]) + "_" + str(dat.T) + "K.tvv", index=False)
 
-    def solve_system(self, dat):
+    def solve_system(self, dat1, dat2):
         clos = self.closure.get_closure()
         IE = self.IE.get_IE()
-        for j in range(1, dat.nlam+1):
-            lam = 1.0 * j / dat.nlam
-            self.build_Ur(dat, lam)
-            self.build_renorm(dat, 1.0, lam)
-            dat.u_sr = dat.u - dat.ur_lr
+        for j in range(1, dat2.nlam+1):
+            lam = 1.0 * j / dat2.nlam
+            self.build_Ur(dat1, dat2, lam)
+            self.build_renorm(dat1, dat2, 1.0, lam)
+            dat2.u_sr = dat2.u - dat2.ur_lr
             if j == 1:
-                dat.c = np.zeros_like(dat.u_sr)
+                dat2.c = np.zeros_like(dat2.u_sr)
             else:
                 pass
             self.solver.solve(IE, clos, lam)
 
-        dat.c -= dat.B * dat.ur_lr
-        dat.t += dat.B * dat.ur_lr
-        dat.g = 1.0 + dat.c + dat.t
+        dat2.c -= dat2.B * dat2.ur_lr
+        dat2.t += dat2.B * dat2.ur_lr
+        dat2.g = 1.0 + dat2.c + dat2.t
 
 if __name__ == "__main__":
     mol = RismController(sys.argv[1])

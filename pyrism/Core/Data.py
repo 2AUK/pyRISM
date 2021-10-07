@@ -37,6 +37,7 @@ class RISM_Obj(object):
     p: np.ndarray = field(init=False)
     grid: Grid = field(init=False)
     species: list = field(init=False, default_factory=list)
+    atoms: list = field(init=False, default_factory=list)
 
     def __post_init__(self):
 
@@ -45,11 +46,11 @@ class RISM_Obj(object):
         self.t = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
         self.h = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
         self.u = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
-        self.u_sr = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
-        self.ur_lr = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
-        self.uk_lr = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
+        self.u_sr = np.zeros_like(self.u)
+        self.ur_lr = np.zeros_like(self.u)
+        self.uk_lr = np.zeros_like(self.u)
         self.c = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
-        self.w = np.zeros((self.npts, self.ns1, self.ns1), dtype=np.float64)
+        self.w = np.zeros((self.npts, self.ns2, self.ns2), dtype=np.float64)
         self.g = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
         self.p = np.zeros((self.ns1, self.ns2), dtype=np.float64)
         self.grid = Grid(self.npts, self.radius)
