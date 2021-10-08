@@ -35,6 +35,7 @@ class RismController:
     closure: Closures.Closure = field(init=False)
     IE: IntegralEquations.IntegralEquation = field(init=False)
     IE_UV: IntegralEquations.IntegralEquation = field(init=False)
+    solver_UV: Solvers.Solver = field(init=False)
 
     def initialise_controller(self):
         self.read_input()
@@ -43,12 +44,12 @@ class RismController:
         if self.uv_check:
             self.build_wk(self.uv)
         #print("wv\n", self.vv.w)
-        print("wu\n", self.uv.w)
+        #print("wu\n", self.uv.w)
 
     def do_rism(self):
         self.solve_system(self.vv, self.vv)
         self.solve_system(self.vv, self.uv)
-        self.write_data(self.uv)
+        self.write_data(self.vv, "vv")
 
     def read_input(self):
         inp = toml.load(self.fname)
@@ -192,7 +193,12 @@ class RismController:
                 dens.append(isp.dens)
         dat.p = np.diag(dens)
 
-    def write_data(self, dat):
+    def write_csv(self, df, fname, ext, p, T):
+        with open(fname+ext, 'w') as ofile:
+            ofile.write("# density: {p}, temp: {T}".format(p=p, T=T))
+            df.to_csv(ofile, index=False, header=True, mode='a')
+
+    def write_data(self, dat, ext):
         all_sites = []
         for species in dat.species:
             for site in species.atom_sites:
@@ -206,13 +212,18 @@ class RismController:
             gr[lbl1+"-"+lbl2] = dat.g[:, i, j]
             cr[lbl1+"-"+lbl2] = dat.c[:, i, j]
             tr[lbl1+"-"+lbl2] = dat.t[:, i, j]
-        gr.to_csv(self.name + "_" + str(dat.p[0, 0]) + "_" + str(dat.T) + "K.gvv", index=False)
+        self.write_csv(gr, self.name, ".g"+ext, dat.p, dat.T)
         cr.to_csv(self.name + "_" + str(dat.p[0, 0]) + "_" + str(dat.T) + "K.cvv", index=False)
         tr.to_csv(self.name + "_" + str(dat.p[0, 0]) + "_" + str(dat.T) + "K.tvv", index=False)
 
     def solve_system(self, dat1, dat2):
+        self.solve_vv(dat1)
+        if self.uv_check:
+            self.solve_uv(dat1, dat2)
+
+    def solve_uv(self, dat1, dat2):
         clos = self.closure.get_closure()
-        IE = self.IE.get_IE()
+        IE = self.IE_UV.get_IE()
         for j in range(1, dat2.nlam+1):
             lam = 1.0 * j / dat2.nlam
             self.build_Ur(dat1, dat2, lam)
@@ -227,6 +238,25 @@ class RismController:
         dat2.c -= dat2.B * dat2.ur_lr
         dat2.t += dat2.B * dat2.ur_lr
         dat2.g = 1.0 + dat2.c + dat2.t
+
+
+    def solve_vv(self, dat):
+        clos = self.closure.get_closure()
+        IE = self.IE.get_IE()
+        for j in range(1, dat.nlam+1):
+            lam = 1.0 * j / dat.nlam
+            self.build_Ur(dat, dat, lam)
+            self.build_renorm(dat, dat, 1.0, lam)
+            dat.u_sr = dat.u - dat.ur_lr
+            if j == 1:
+                dat.c = np.zeros_like(dat.u_sr)
+            else:
+                pass
+            self.solver.solve(IE, clos, lam)
+
+        dat.c -= dat.B * dat.ur_lr
+        dat.t += dat.B * dat.ur_lr
+        dat.g = 1.0 + dat.c + dat.t
 
 if __name__ == "__main__":
     mol = RismController(sys.argv[1])
