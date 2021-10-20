@@ -31,7 +31,7 @@ def XRISM(data):
     for i in range(data.grid.npts):
         iwcp = np.linalg.inv(I - data.w[i] @ ck[i] @ data.p)
         wcw = data.w[i] @ ck[i] @ data.w[i]
-        data.h[i] = iwcp @ wcw - ck[i]
+        data.h[i] = iwcp @ wcw
     for i, j in np.ndindex(data.ns1, data.ns2):
-        data.t[:, i, j] = data.grid.idht(data.h[:, i, j]) - (
+        data.t[:, i, j] = data.grid.idht(data.h[:, i, j] - ck[:, i, j]) - (
             data.B * data.ur_lr[:, i, j])

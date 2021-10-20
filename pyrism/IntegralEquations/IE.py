@@ -5,7 +5,7 @@ from .XRISM_UV import XRISM_UV
 
 class IntegralEquation(object):
     IE_dispatcher = {"XRISM": XRISM,
-                     "XRISM_UV": XRISM}
+                     "XRISM_UV": XRISM_UV}
 
     def __init__(self, IE):
         self.IE = IE

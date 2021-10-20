@@ -5,18 +5,19 @@ from dataclasses import dataclass, field
 @dataclass
 class SolverObject:
     
-    data: RISM_Obj
+    data_vv: RISM_Obj
     tol: float
     max_iter: int
     damp_picard: float
     rms: float = field(default=0.0)
+    data_uv: RISM_Obj = field(default=None)
 
     def step_Picard(self, curr, prev):
         return prev + self.damp_picard * (curr - prev)
 
     def converged(self, curr, prev):
         self.rms = np.sqrt(
-            self.data.grid.d_r * np.power((curr - prev), 2).sum() / (np.prod(curr.shape))
+            self.data_vv.grid.d_r * np.power((curr - prev), 2).sum() / (np.prod(curr.shape))
         )
 
         if self.rms < self.tol:

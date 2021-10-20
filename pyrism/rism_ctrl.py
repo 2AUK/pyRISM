@@ -47,9 +47,9 @@ class RismController:
         #print("wu\n", self.uv.w)
 
     def do_rism(self):
-        self.solve_system(self.vv, self.vv)
         self.solve_system(self.vv, self.uv)
         self.write_data(self.vv, "vv")
+        self.write_data(self.uv, "uv")
 
     def read_input(self):
         inp = toml.load(self.fname)
@@ -78,8 +78,8 @@ class RismController:
                 inp["system"]["temp"],
                 inp["system"]["kT"],
                 inp["system"]["charge_coeff"],
-                inp["solvent"]["nsv"],
                 inp["solute"]["nsu"],
+                inp["solvent"]["nsv"],
                 inp["solvent"]["nspv"],
                 inp["solute"]["nspu"],
                 inp["system"]["npts"],
@@ -100,6 +100,9 @@ class RismController:
 
         slv = Solvers.Solver(inp["params"]["solver"]).get_solver()
         self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"])
+        if self.uv_check:
+            slv_uv = Solvers.Solver(inp["params"]["solver"]).get_solver()
+            self.solver_UV = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv)
         
     def add_species(self, spec_dat, data_object):
         new_spec = Core.Species(spec_dat[0])
@@ -114,7 +117,7 @@ class RismController:
         data_object.species.append(new_spec)
 
     def distance_mat(self, dat):
-        distance_arr = np.zeros((dat.ns2, dat.ns2), dtype=float)
+        distance_arr = np.zeros((dat.ns1, dat.ns1), dtype=float)
         i = 0
         for isp in dat.species:
             for iat in isp.atom_sites:
@@ -134,7 +137,7 @@ class RismController:
         zero_vec = np.zeros(dat.npts, dtype=np.float64)
         dist_mat = self.distance_mat(dat)
         print(dat.w.shape)
-        for i, j in np.ndindex(dat.ns2, dat.ns2):
+        for i, j in np.ndindex(dat.ns1, dat.ns1):
             if dist_mat[i, j] < 0.0:
                 dat.w[:, i, j] = zero_vec
             elif dist_mat[i, j] == 0.0:
@@ -148,42 +151,29 @@ class RismController:
     def build_Ur(self, dat1, dat2, lam=1):
         sr_pot, mix = self.pot.get_potential()
         cou, _ = Potentials.Potential("cou").get_potential()
-        print(dat2.u.shape)
-        i = 0
-        for isp in dat1.species:
-            for iat in isp.atom_sites:
-                j = 0
-                for jsp in dat2.species:
-                    for jat in jsp.atom_sites:
-                        i_sr_params = iat.params[:-1]
-                        j_sr_params = jat.params[:-1]
-                        qi = iat.params[-1]
-                        qj = jat.params[-1]
-                        if iat == jat:
-                            dat2.u[:, i, j] = sr_pot(dat2.grid.ri, i_sr_params, lam) \
-                                + cou(dat2.grid.ri, qi, qj, lam, dat2.amph)
-                        else:
-                            mixed = mix(i_sr_params, j_sr_params)
-                            dat2.u[:, i, j] = sr_pot(dat2.grid.ri, mixed, lam) \
-                                + cou(dat2.grid.ri, qi, qj, lam, dat2.amph)
-                        j += 1
-                i += 1
+        for i, iat in enumerate(dat1.atoms):
+            for j, jat in enumerate(dat2.atoms):
+                i_sr_params = iat.params[:-1]
+                j_sr_params = jat.params[:-1]
+                qi = iat.params[-1]
+                qj = jat.params[-1]
+                if iat == jat:
+                    dat1.u[:, i, j] = sr_pot(dat2.grid.ri, i_sr_params, lam) \
+                        + cou(dat2.grid.ri, qi, qj, lam, dat2.amph)
+                else:
+                    mixed = mix(i_sr_params, j_sr_params)
+                    dat1.u[:, i, j] = sr_pot(dat2.grid.ri, mixed, lam) \
+                        + cou(dat2.grid.ri, qi, qj, lam, dat2.amph)
 
     def build_renorm(self, dat1, dat2, damping=1.0, lam=1):
         erfr, _ = Potentials.Potential("erfr").get_potential()
         erfk, _ = Potentials.Potential("erfk").get_potential()
-        i = 0
-        for isp in dat1.species:
-            for iat in isp.atom_sites:
-                j = 0
-                for jsp in dat2.species:
-                    for jat in jsp.atom_sites:
-                        qi = iat.params[-1]
-                        qj = jat.params[-1]
-                        dat2.ur_lr[:, i, j] = erfr(dat2.grid.ri, qi, qj, damping, 1.0, lam, dat2.amph)
-                        dat2.uk_lr[:, i, j] = erfk(dat2.grid.ki, qi, qj, damping, lam, dat2.amph)
-                        j += 1
-                i += 1
+        for i, iat in enumerate(dat1.atoms):
+            for j, jat in enumerate(dat2.atoms):
+                qi = iat.params[-1]
+                qj = jat.params[-1]
+                dat1.ur_lr[:, i, j] = erfr(dat2.grid.ri, qi, qj, damping, 1.0, lam, dat2.amph)
+                dat1.uk_lr[:, i, j] = erfk(dat2.grid.ki, qi, qj, damping, lam, dat2.amph)
 
     def build_rho(self, dat):
         dens = []
@@ -195,7 +185,7 @@ class RismController:
 
     def write_csv(self, df, fname, ext, p, T):
         with open(fname+ext, 'w') as ofile:
-            ofile.write("# density: {p}, temp: {T}".format(p=p, T=T))
+            ofile.write("# density: {p}, temp: {T}".format(p=p[0][0], T=T))
             df.to_csv(ofile, index=False, header=True, mode='a')
 
     def write_data(self, dat, ext):
@@ -213,8 +203,8 @@ class RismController:
             cr[lbl1+"-"+lbl2] = dat.c[:, i, j]
             tr[lbl1+"-"+lbl2] = dat.t[:, i, j]
         self.write_csv(gr, self.name, ".g"+ext, dat.p, dat.T)
-        cr.to_csv(self.name + "_" + str(dat.p[0, 0]) + "_" + str(dat.T) + "K.cvv", index=False)
-        tr.to_csv(self.name + "_" + str(dat.p[0, 0]) + "_" + str(dat.T) + "K.tvv", index=False)
+        self.write_csv(cr, self.name, ".c"+ext, dat.p, dat.T)
+        self.write_csv(tr, self.name, ".t"+ext, dat.p, dat.T)
 
     def solve_system(self, dat1, dat2):
         self.solve_vv(dat1)
@@ -226,14 +216,14 @@ class RismController:
         IE = self.IE_UV.get_IE()
         for j in range(1, dat2.nlam+1):
             lam = 1.0 * j / dat2.nlam
-            self.build_Ur(dat1, dat2, lam)
-            self.build_renorm(dat1, dat2, 1.0, lam)
+            self.build_Ur(dat2, dat1, lam)
+            self.build_renorm(dat2, dat1, 1.0, lam)
             dat2.u_sr = dat2.u - dat2.ur_lr
             if j == 1:
                 dat2.c = np.zeros_like(dat2.u_sr)
             else:
                 pass
-            self.solver.solve(IE, clos, lam)
+            self.solver_UV.solve_uv(IE, clos, lam)
 
         dat2.c -= dat2.B * dat2.ur_lr
         dat2.t += dat2.B * dat2.ur_lr

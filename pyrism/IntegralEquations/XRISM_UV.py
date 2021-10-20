@@ -11,9 +11,7 @@ def XRISM_UV(data_vv, data_uv):
         ck_uv[:, i, j] = data_uv.grid.dht(data_uv.c[:, i, j])
         ck_uv[:, i, j] -= data_uv.B * data_uv.uk_lr[:, i, j]
     for i in range(data_uv.grid.npts):
-        iwcp = np.linalg.inv(I - data_uv.w[i, :, :] @ ck_uv[i, :, :] @ data_vv.p)
-        wcw = data_uv.w[i, :, :] @ ck_uv[i, :, :] @ data_vv.w[i, :, :]
-        data_uv.h[i, :, :] = iwcp @ wcw - ck_uv[i, :, :]
+        data_uv.h[i] = data_uv.w[i] @ ck_uv[i] @ data_vv.w[i] + (data_uv.w[i] @ ck_uv[i]) @ (data_vv.p @ data_vv.h[i])
     for i, j in np.ndindex(data_uv.ns1, data_uv.ns2):
-        data_uv.t[:, i, j] = data_uv.grid.idht(data_uv.h[:, i, j]) - (
+        data_uv.t[:, i, j] = data_uv.grid.idht(data_uv.h[:, i, j] - ck_uv[:, i, j]) - (
             data_uv.B * data_uv.ur_lr[:, i, j])

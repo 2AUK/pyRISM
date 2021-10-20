@@ -43,9 +43,9 @@ class NgSolver(SolverObject):
         print("\nSolving RISM equation...\n")
 
         while i < self.max_iter:
-            c_prev = self.data.c
-            RISM(self.data)
-            c_A = Closure(self.data)
+            c_prev = self.data_vv.c
+            RISM(self.data_vv)
+            c_A = Closure(self.data_vv)
             if i < 3:
                 c_next = self.step_Picard(c_A, c_prev)
             else:
@@ -62,5 +62,35 @@ class NgSolver(SolverObject):
                 self.epilogue(i, lam)
                 break
 
-            self.data.c = c_next
+            self.data_vv.c = c_next
 
+
+
+    def solve_uv(self, RISM, Closure, lam):
+        i: int = 0
+        A = np.zeros((2, 2), dtype=np.float64)
+        b = np.zeros(2, dtype=np.float64)
+
+        print("\nSolving RISM equation...\n")
+
+        while i < self.max_iter:
+            c_prev = self.data_uv.c
+            RISM(self.data_vv, self.data_uv)
+            c_A = Closure(self.data_uv)
+            if i < 3:
+                c_next = self.step_Picard(c_A, c_prev)
+            else:
+                c_next = self.step_Ng(c_A, c_prev, A, b)
+
+            if self.converged(c_next, c_prev):
+                self.epilogue(i, lam)
+                break
+
+            i += 1
+
+            if i == self.max_iter:
+                print("Max iteration reached!")
+                self.epilogue(i, lam)
+                break
+
+            self.data_uv.c = c_next
