@@ -4,7 +4,7 @@ import pandas as pd
 import sys
 import numpy as np
 
-df = pd.read_csv(sys.argv[1], sep=',')
+df = pd.read_csv(sys.argv[1], sep=',', skiprows=[0])
 r = df.iloc[:, 0].to_numpy()
 gr = df.iloc[:, int(sys.argv[2])].to_numpy()
 r = np.asarray(r, dtype=np.float64)

@@ -1,0 +1,52 @@
+[system]
+temp = 200
+kT = 1.0
+charge_coeff = 167101.0
+npts = 512
+radius = 10.24
+lam = 5
+
+[params]
+potential = "LJ"
+closure = "HNC"
+IE = "XRISM"
+solver = "Ng"
+picard_damping = 0.001
+itermax = 10000
+tol = 1E-12
+
+[solvent]
+nsv = 2
+nspv = 1
+
+[solvent.nitrogen_like]
+dens = 0.0187
+ns = 2
+
+"N_1" = [
+      [43.45782, 3.34, 0.2],
+      [0.0, 0.0, 0.0]
+]
+
+"N_2" = [
+      [43.45782, 3.34, -0.2],
+      [1.1, 0.0, 0.0]
+]
+
+[solute]
+nsu = 2
+nspu = 1
+
+[solute.carbon_2]
+dens = 0.0
+ns = 2
+
+"C_1" = [
+      [44.90642, 3.2, 0.1],
+      [1.54, 0.0, 0.0]
+]
+
+"C_2" = [
+      [44.90642, 3.2, -0.1],
+      [0.0, 0.0, 0.0]
+]

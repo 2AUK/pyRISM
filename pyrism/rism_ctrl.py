@@ -20,7 +20,6 @@ from dataclasses import dataclass, field
 
 np.seterr(over="raise")
 
-
 @dataclass
 class RismController:
 
@@ -43,18 +42,18 @@ class RismController:
         self.build_rho(self.vv)
         if self.uv_check:
             self.build_wk(self.uv)
-        #print("wv\n", self.vv.w)
-        #print("wu\n", self.uv.w)
 
     def do_rism(self):
-        self.solve_system(self.vv, self.uv)
-        self.write_data(self.vv, "vv")
-        self.write_data(self.uv, "uv")
+        self.solve_vv(self.vv)
+        self.write_vv(self.vv)
+        if self.uv_check:
+            self.solve_uv(self.vv, self.uv)
+            self.write_uv(self.vv, self.uv)
 
     def read_input(self):
         inp = toml.load(self.fname)
         self.name = os.path.basename(self.fname).split(sep=".")[0]
-        if not inp["solvent"]:
+        if "solvent" not in inp:
             raise ("No solvent data found!")
         else:
             self.vv = Core.RISM_Obj(
@@ -73,7 +72,7 @@ class RismController:
             for i in solv_species:
                 self.add_species(i, self.vv)
 
-        if inp["solute"]:
+        if "solute" in inp:
             self.uv = Core.RISM_Obj(
                 inp["system"]["temp"],
                 inp["system"]["kT"],
@@ -102,7 +101,7 @@ class RismController:
         self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"])
         if self.uv_check:
             slv_uv = Solvers.Solver(inp["params"]["solver"]).get_solver()
-            self.solver_UV = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv)
+            self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv)
         
     def add_species(self, spec_dat, data_object):
         new_spec = Core.Species(spec_dat[0])
@@ -185,10 +184,10 @@ class RismController:
 
     def write_csv(self, df, fname, ext, p, T):
         with open(fname+ext, 'w') as ofile:
-            ofile.write("# density: {p}, temp: {T}".format(p=p[0][0], T=T))
+            ofile.write("# density: {p}, temp: {T}\n".format(p=p[0][0], T=T))
             df.to_csv(ofile, index=False, header=True, mode='a')
 
-    def write_data(self, dat, ext):
+    def write_vv(self, dat):
         all_sites = []
         for species in dat.species:
             for site in species.atom_sites:
@@ -202,14 +201,25 @@ class RismController:
             gr[lbl1+"-"+lbl2] = dat.g[:, i, j]
             cr[lbl1+"-"+lbl2] = dat.c[:, i, j]
             tr[lbl1+"-"+lbl2] = dat.t[:, i, j]
-        self.write_csv(gr, self.name, ".g"+ext, dat.p, dat.T)
-        self.write_csv(cr, self.name, ".c"+ext, dat.p, dat.T)
-        self.write_csv(tr, self.name, ".t"+ext, dat.p, dat.T)
+        self.write_csv(gr, self.name, ".gvv", dat.p, dat.T)
+        self.write_csv(cr, self.name, ".cvv", dat.p, dat.T)
+        self.write_csv(tr, self.name, ".tvv", dat.p, dat.T)
 
-    def solve_system(self, dat1, dat2):
-        self.solve_vv(dat1)
-        if self.uv_check:
-            self.solve_uv(dat1, dat2)
+    def write_uv(self, vv, uv):
+        gr = pd.DataFrame(uv.grid.ri, columns=["r"])
+        cr = pd.DataFrame(uv.grid.ri, columns=["r"])
+        tr = pd.DataFrame(uv.grid.ri, columns=["r"])
+        for i, iat in enumerate(uv.atoms):
+            for j, jat in enumerate(vv.atoms):
+                lbl1 = iat.atom_type
+                lbl2 = jat.atom_type
+                gr[lbl1+"-"+lbl2] = uv.g[:, i, j]
+                cr[lbl1+"-"+lbl2] = uv.c[:, i, j]
+                tr[lbl1+"-"+lbl2] = uv.t[:, i, j]
+        self.write_csv(gr, self.name, ".guv", uv.p, uv.T)
+        self.write_csv(cr, self.name, ".cuv", uv.p, uv.T)
+        self.write_csv(tr, self.name, ".tuv", uv.p, uv.T)
+
 
     def solve_uv(self, dat1, dat2):
         clos = self.closure.get_closure()
