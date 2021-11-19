@@ -44,11 +44,13 @@ class RismController:
             self.build_wk(self.uv)
 
     def do_rism(self):
-        self.solve_vv(self.vv)
-        self.write_vv(self.vv)
         if self.uv_check:
-            self.solve_uv(self.vv, self.uv)
+            self.solve(self.vv, self.uv)
+            self.write_vv(self.vv)
             self.write_uv(self.vv, self.uv)
+        else:
+            self.solve(self.vv)
+            self.write_vv(self.vv)
 
     def read_input(self):
         inp = toml.load(self.fname)
@@ -220,43 +222,54 @@ class RismController:
         self.write_csv(cr, self.name, ".cuv", uv.p, uv.T)
         self.write_csv(tr, self.name, ".tuv", uv.p, uv.T)
 
+    def solve(self, dat1, dat2=None):
+        for j in range(1, dat1.nlam+1):
+            lam = 1.0 * j / dat1.nlam
 
-    def solve_uv(self, dat1, dat2):
+            self.build_Ur(dat1, dat1, lam)
+            self.build_renorm(dat1, dat1, 1.0, lam)
+            dat1.u_sr = dat1.u - dat1.ur_lr
+
+            if self.uv_check:
+                self.build_Ur(dat2, dat1, lam)
+                self.build_renorm(dat2, dat1, 1.0, lam)
+                dat2.u_sr = dat2.u - dat2.ur_lr
+
+            if j == 1:
+                dat1.c = np.zeros_like(dat1.u_sr)
+                if self.uv_check:
+                    dat2.c = np.zeros_like(dat2.u_sr)
+                else:
+                    pass
+            self.solve_vv(lam)
+
+            if self.uv_check:
+                self.solve_uv(lam)
+
+        self.epilogue(dat1, dat2)
+
+    def solve_uv(self, lam):
         clos = self.closure.get_closure()
         IE = self.IE_UV.get_IE()
-        for j in range(1, dat2.nlam+1):
-            lam = 1.0 * j / dat2.nlam
-            self.build_Ur(dat2, dat1, lam)
-            self.build_renorm(dat2, dat1, 1.0, lam)
-            dat2.u_sr = dat2.u - dat2.ur_lr
-            if j == 1:
-                dat2.c = np.zeros_like(dat2.u_sr)
-            else:
-                pass
-            self.solver_UV.solve_uv(IE, clos, lam)
+        self.solver_UV.solve_uv(IE, clos, lam)
 
-        dat2.c -= dat2.B * dat2.ur_lr
-        dat2.t += dat2.B * dat2.ur_lr
-        dat2.g = 1.0 + dat2.c + dat2.t
-
-
-    def solve_vv(self, dat):
+    def solve_vv(self, lam):
         clos = self.closure.get_closure()
         IE = self.IE.get_IE()
-        for j in range(1, dat.nlam+1):
-            lam = 1.0 * j / dat.nlam
-            self.build_Ur(dat, dat, lam)
-            self.build_renorm(dat, dat, 1.0, lam)
-            dat.u_sr = dat.u - dat.ur_lr
-            if j == 1:
-                dat.c = np.zeros_like(dat.u_sr)
-            else:
-                pass
-            self.solver.solve(IE, clos, lam)
+        self.solver.solve(IE, clos, lam)
 
-        dat.c -= dat.B * dat.ur_lr
-        dat.t += dat.B * dat.ur_lr
-        dat.g = 1.0 + dat.c + dat.t
+    def epilogue(self, dat1, dat2=None):
+
+        dat1.c -= dat1.B * dat1.ur_lr
+        dat1.t += dat1.B * dat1.ur_lr
+        dat1.g = 1.0 + dat1.c + dat1.t
+        dat1.h = dat1.t + dat1.c
+
+        if self.uv_check:
+            dat2.c -= dat2.B * dat2.ur_lr
+            dat2.t += dat2.B * dat2.ur_lr
+            dat2.g = 1.0 + dat2.c + dat2.t
+            dat2.h = dat2.t + dat2.c
 
 if __name__ == "__main__":
     mol = RismController(sys.argv[1])
