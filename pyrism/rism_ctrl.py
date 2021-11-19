@@ -48,6 +48,7 @@ class RismController:
             self.solve(self.vv, self.uv)
             self.write_vv(self.vv)
             self.write_uv(self.vv, self.uv)
+            print(self.compute_free_energy_hnc(self.vv, self.uv))
         else:
             self.solve(self.vv)
             self.write_vv(self.vv)
@@ -137,7 +138,6 @@ class RismController:
         I = np.ones(dat.npts, dtype=np.float64)
         zero_vec = np.zeros(dat.npts, dtype=np.float64)
         dist_mat = self.distance_mat(dat)
-        print(dat.w.shape)
         for i, j in np.ndindex(dat.ns1, dat.ns1):
             if dist_mat[i, j] < 0.0:
                 dat.w[:, i, j] = zero_vec
@@ -180,7 +180,6 @@ class RismController:
         dens = []
         for isp in dat.species:
             for iat in isp.atom_sites:
-                print(isp.dens)
                 dens.append(isp.dens)
         dat.p = np.diag(dens)
 
@@ -270,6 +269,14 @@ class RismController:
             dat2.t += dat2.B * dat2.ur_lr
             dat2.g = 1.0 + dat2.c + dat2.t
             dat2.h = dat2.t + dat2.c
+
+    def compute_free_energy_hnc(self, dat1, dat2):
+        summed = np.zeros(dat2.npts, dtype=np.float64)
+        for i, j in np.ndindex(dat2.ns1, dat2.ns2):
+            summed += dat1.p[j, j] * dat2.grid.d_r * (dat2.grid.ri * dat2.grid.ri) * \
+                ((0.5 * dat2.t[:, i, j] * dat2.h[:, i, j]) - dat2.c[:, i, j])
+        mu_hnc = 4.0 * np.pi * np.sum(summed)
+        print(mu_hnc / dat2.B * 0.00198720414667, mu_hnc)
 
 if __name__ == "__main__":
     mol = RismController(sys.argv[1])

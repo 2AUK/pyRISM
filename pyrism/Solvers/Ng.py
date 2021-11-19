@@ -40,7 +40,7 @@ class NgSolver(SolverObject):
         A = np.zeros((2, 2), dtype=np.float64)
         b = np.zeros(2, dtype=np.float64)
 
-        print("\nSolving RISM equation...\n")
+        print("\nSolving solvent-solvent RISM equation...\n")
 
         while i < self.max_iter:
             c_prev = self.data_vv.c
@@ -71,7 +71,7 @@ class NgSolver(SolverObject):
         A = np.zeros((2, 2), dtype=np.float64)
         b = np.zeros(2, dtype=np.float64)
 
-        print("\nSolving RISM equation...\n")
+        print("\nSolving solute-solvent RISM equation...\n")
 
         while i < self.max_iter:
             c_prev = self.data_uv.c
