@@ -2,7 +2,7 @@
 rism_ctrl.py
 A pedagogical implementation of the RISM equations
 
-Handles the primary functions
+Initialises and solves the specified RISM problem.
 """
 import numpy as np
 import pandas as pd
@@ -22,8 +22,31 @@ np.seterr(over="raise")
 
 @dataclass
 class RismController:
+    """Initialises the parameters for the problem and starts the solver
 
-    # Input filename
+    Attributes
+    ----------
+    fname: str
+        Path to input file
+    name: str
+        Name of current RISM job (defaults to the file name)
+    uv_check: bool
+        Checks if a solute-solvent problem requires solving
+    vv: Core.RISM_Obj
+        Dataclass for parameters in solvent-solvent problem
+    uv: Core.RISM_Obj
+        Dataclass for parameters in solute-solvent problem
+    solver: Solvers.Solver
+        Dispatcher object to initialise solvent-solvent solver
+    solver_UV: Solvers.Solver
+        Dispatcher object to initialise solute-solvent solver
+    closure: Closures.Closure
+        Dispatcher object to initialise closures
+    IE: IntegralEquations.IntegralEquation
+        Dispatcher object to initialise solvent-solvent integral equation
+    IE_UV: IntegralEquations.IntegralEquation
+        Dispatcher object to initialise solute-solvent integral equation
+    """
     fname: str
     name: str = field(init=False)
     uv_check: bool = field(init=False, default=False)
@@ -31,12 +54,14 @@ class RismController:
     uv: Core.RISM_Obj = field(init=False)
     pot: Potentials.Potential = field(init=False)
     solver: Solvers.Solver = field(init=False)
+    solver_UV: Solvers.Solver = field(init=False)
     closure: Closures.Closure = field(init=False)
     IE: IntegralEquations.IntegralEquation = field(init=False)
     IE_UV: IntegralEquations.IntegralEquation = field(init=False)
-    solver_UV: Solvers.Solver = field(init=False)
+
 
     def initialise_controller(self):
+        """ Reads input file `fname` to create `vv` and `uv` and builds the intramolecular correlation and density matrices"""
         self.read_input()
         self.build_wk(self.vv)
         self.build_rho(self.vv)
@@ -276,7 +301,8 @@ class RismController:
             summed += dat1.p[j, j] * dat2.grid.d_r * (dat2.grid.ri * dat2.grid.ri) * \
                 ((0.5 * dat2.t[:, i, j] * dat2.h[:, i, j]) - dat2.c[:, i, j])
         mu_hnc = 4.0 * np.pi * np.sum(summed)
-        print(mu_hnc / dat2.B * 0.00198720414667, mu_hnc)
+        return (mu_hnc / dat2.B * 0.00198720414667)
+
 
 if __name__ == "__main__":
     mol = RismController(sys.argv[1])

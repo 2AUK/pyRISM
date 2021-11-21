@@ -1,0 +1,23 @@
+﻿pyrism
+======
+
+.. automodule:: pyrism
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+
