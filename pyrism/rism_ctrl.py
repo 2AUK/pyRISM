@@ -444,7 +444,8 @@ class RismController:
         for i, j in np.ndindex(dat2.ns1, dat2.ns2):
             summed += dat1.p[j, j] * dat2.grid.d_r * (dat2.grid.ri * dat2.grid.ri) * \
                 ((0.5 * dat2.t[:, i, j] * dat2.h[:, i, j]) - dat2.c[:, i, j])
-        mu_hnc = 4.0 * np.pi * np.sum(summed)
+        mu_hnc = 4.0 * np.pi * dat1.p[0, 0] * dat2.grid.d_r * \
+            np.sum(np.power(dat2.grid.ri, 2)[:, None, None] *  (0.5 * (dat2.t * dat2.h) - dat2.c))
         return (mu_hnc / dat2.B * 0.00198720414667)
 
 

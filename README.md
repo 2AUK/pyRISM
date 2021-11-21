@@ -7,7 +7,7 @@ pyrism
 A pedagogical implementation of the RISM equations
 
 ### Currently Implemented Features
-- XRISM for neat liquids
+- XRISM for neat liquids and solute-solvent systems
 
 #### Potentials
 - Lennard-Jones Potential
@@ -19,21 +19,18 @@ A pedagogical implementation of the RISM equations
 - Percus-Yevick (PY)
 - Kovalenko-Hirata (KH)
 - Partial Series Expansion (PSE-n)
-- Kobryn-Gusarov-Kovalenko (KGK)
 
 ### Usage
-Currently the inputs are just specified in `pyrism/rism_ctrl.py`
+Pass the input file as an argument to `rism_ctrl.py`
 
-Comment out which example you want to use and run `python rism_ctrl.py`
+`python rism_ctrl.py INPUT.toml`
 
 Example input files are provided in `pyrism\data` with references in `pyrism\data\README.md`
 
 ### Future Work
 - DRISM
-- Solute-solvent interactions
 - More potentials (Hard-sphere, AB-form LJ)
 - MDIIS solver
-- Chemical potentials
 
 ### Copyright
 
