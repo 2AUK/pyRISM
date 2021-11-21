@@ -26,26 +26,26 @@ class RismController:
 
     Attributes
     ----------
-    fname: str
-        Path to input file
-    name: str
-        Name of current RISM job (defaults to the file name)
-    uv_check: bool
-        Checks if a solute-solvent problem requires solving
-    vv: Core.RISM_Obj
-        Dataclass for parameters in solvent-solvent problem
-    uv: Core.RISM_Obj
-        Dataclass for parameters in solute-solvent problem
-    solver: Solvers.Solver
-        Dispatcher object to initialise solvent-solvent solver
-    solver_UV: Solvers.Solver
-        Dispatcher object to initialise solute-solvent solver
-    closure: Closures.Closure
-        Dispatcher object to initialise closures
-    IE: IntegralEquations.IntegralEquation
-        Dispatcher object to initialise solvent-solvent integral equation
-    IE_UV: IntegralEquations.IntegralEquation
-        Dispatcher object to initialise solute-solvent integral equation
+    fname : str
+    Path to input file
+    name : str
+    Name of current RISM job (defaults to the file name)
+    uv_check : bool
+    Checks if a solute-solvent problem requires solving
+    vv : Core.RISM_Obj
+    Dataclass for parameters in solvent-solvent problem
+    uv : Core.RISM_Obj
+    Dataclass for parameters in solute-solvent problem
+    solver : Solvers.Solver
+    Dispatcher object to initialise solvent-solvent solver
+    solver_UV : Solvers.Solver
+    Dispatcher object to initialise solute-solvent solver
+    closure : Closures.Closure
+    Dispatcher object to initialise closures
+    IE : IntegralEquations.IntegralEquation
+    Dispatcher object to initialise solvent-solvent integral equation
+    IE_UV : IntegralEquations.IntegralEquation
+    Dispatcher object to initialise solute-solvent integral equation
     """
     fname: str
     name: str = field(init=False)
@@ -61,7 +61,8 @@ class RismController:
 
 
     def initialise_controller(self):
-        """ Reads input file `fname` to create `vv` and `uv` and builds the intramolecular correlation and density matrices"""
+        """ Reads input file `fname` to create `vv` and `uv` and
+        builds the intramolecular correlation and density matrices"""
         self.read_input()
         self.build_wk(self.vv)
         self.build_rho(self.vv)
@@ -69,6 +70,7 @@ class RismController:
             self.build_wk(self.uv)
 
     def do_rism(self):
+        """ Solves the vv and uv (if applicable) problems and outputs the results"""
         if self.uv_check:
             self.solve(self.vv, self.uv)
             self.write_vv(self.vv)
@@ -79,6 +81,9 @@ class RismController:
             self.write_vv(self.vv)
 
     def read_input(self):
+        """ Reads .toml input file, populates vv and uv dataclasses
+        and properly initialises the appropriate potentials, solvers,
+        closures, and integral equations"""
         inp = toml.load(self.fname)
         self.name = os.path.basename(self.fname).split(sep=".")[0]
         if "solvent" not in inp:
@@ -132,6 +137,15 @@ class RismController:
             self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv)
         
     def add_species(self, spec_dat, data_object):
+        """Parses interaction sites and assigns them to relevant species
+
+        Parameters
+        ----------
+        spec_dat: List
+            Contains information on the current species pulled from the .toml file
+        data_object: Core.RISM_Obj
+            The dataclass to which species are being assigned
+        """
         new_spec = Core.Species(spec_dat[0])
         spdict = spec_dat[1]
         new_spec.set_density(spdict["dens"])
@@ -144,6 +158,19 @@ class RismController:
         data_object.species.append(new_spec)
 
     def distance_mat(self, dat):
+        """Computes the Euclidean distance matrix while
+        skipping distances between different sites of
+        different species
+
+        Parameters
+        ----------
+        dat: Core.RISM_Obj
+            Dataclass containing information required for distance matrix
+
+        Returns
+        -------
+        distance_arr: np.ndarray
+            nD-Array with distances between atomic sites"""
         distance_arr = np.zeros((dat.ns1, dat.ns1), dtype=float)
         i = 0
         for isp in dat.species:
@@ -160,6 +187,19 @@ class RismController:
         return distance_arr
 
     def build_wk(self, dat):
+        """Computes intramolecular correlation matrix in k-space for sites in same species
+
+        Parameters
+        ----------
+        dat: Core.RISM_Obj
+            Dataclass containing information required for intramolecular correlation
+
+        Notes
+        -----
+        Calculated directly in k-space because not required in r-space:
+
+        .. math:: \omega(k) = \frac{kl}{sin(kl)}
+        """
         I = np.ones(dat.npts, dtype=np.float64)
         zero_vec = np.zeros(dat.npts, dtype=np.float64)
         dist_mat = self.distance_mat(dat)
@@ -175,6 +215,22 @@ class RismController:
 
 
     def build_Ur(self, dat1, dat2, lam=1):
+        """Tabulates full short-range and Coulombic potential
+
+        Parameters
+        ----------
+        dat1: Core.RISM_Obj
+            Dataclass containing information required for potential
+        dat2: Core.RISM_Obj
+            Dataclass containing information required for potential
+        lam: float
+            :math: `\lambda` parameter for current charging cycle
+
+        Notes
+        -----
+        For solvent-solvent problem `dat1` and `dat2` are the same,
+        for the solute-solvent problem they both refer to the solvent
+        and solute dataclasses respectively."""
         sr_pot, mix = self.pot.get_potential()
         cou, _ = Potentials.Potential("cou").get_potential()
         for i, iat in enumerate(dat1.atoms):
@@ -192,6 +248,24 @@ class RismController:
                         + cou(dat2.grid.ri, qi, qj, lam, dat2.amph)
 
     def build_renorm(self, dat1, dat2, damping=1.0, lam=1):
+        """Tabulates full short-range and Coulombic potential
+
+        Parameters
+        ----------
+        dat1: Core.RISM_Obj
+            Dataclass containing information required for potential
+        dat2: Core.RISM_Obj
+            Dataclass containing information required for potential
+        damping: float
+            damping parameter for adding a screened charge
+        lam: float
+            :math: `\lambda` parameter for current charging cycle
+
+        Notes
+        -----
+        For solvent-solvent problem `dat1` and `dat2` are the same,
+        for the solute-solvent problem they both refer to the solvent
+        and solute dataclasses respectively."""
         erfr, _ = Potentials.Potential("erfr").get_potential()
         erfk, _ = Potentials.Potential("erfk").get_potential()
         for i, iat in enumerate(dat1.atoms):
@@ -202,6 +276,13 @@ class RismController:
                 dat1.uk_lr[:, i, j] = erfk(dat2.grid.ki, qi, qj, damping, lam, dat2.amph)
 
     def build_rho(self, dat):
+        """Builds diagonal matrix of species densities
+
+        Parameters
+        ----------
+        dat: Core.RISM_Obj
+            Dataclass containing species information
+        """
         dens = []
         for isp in dat.species:
             for iat in isp.atom_sites:
@@ -209,11 +290,32 @@ class RismController:
         dat.p = np.diag(dens)
 
     def write_csv(self, df, fname, ext, p, T):
+        """Writes a dataframe to a .csv file with a header
+
+        Parameters
+        ----------
+        df: pd.DataFrame
+            Contains the functions to write to file
+        fname: str
+            Name of output file
+        ext: str
+            Extension of output file
+        p: float
+            Number density
+        T: float
+            Temperature"""
         with open(fname+ext, 'w') as ofile:
             ofile.write("# density: {p}, temp: {T}\n".format(p=p[0][0], T=T))
             df.to_csv(ofile, index=False, header=True, mode='a')
 
     def write_vv(self, dat):
+        """Write solvent-solvent data to .csv file
+
+        Parameters
+        ----------
+        dat: Core.RISM_Obj
+            Dataclass containing correlation functions to output
+        """
         all_sites = []
         for species in dat.species:
             for site in species.atom_sites:
@@ -232,6 +334,13 @@ class RismController:
         self.write_csv(tr, self.name, ".tvv", dat.p, dat.T)
 
     def write_uv(self, vv, uv):
+        """Write solute-solvent data to .csv file
+
+        Parameters
+        ----------
+        dat: Core.RISM_Obj
+            Dataclass containing correlation functions to output
+        """
         gr = pd.DataFrame(uv.grid.ri, columns=["r"])
         cr = pd.DataFrame(uv.grid.ri, columns=["r"])
         tr = pd.DataFrame(uv.grid.ri, columns=["r"])
@@ -247,17 +356,22 @@ class RismController:
         self.write_csv(tr, self.name, ".tuv", uv.p, uv.T)
 
     def solve(self, dat1, dat2=None):
+        """Start solving RISM problem
+
+        Parameters
+        ----------
+        dat1: Core.RISM_Obj
+            Dataclass containing all information for problem
+        dat2: Core.RISM_Obj, optional
+            Dataclass containing all information for problem
+
+        Notes
+        -----
+        If `dat2` is not defined, the solvent-solvent problem is being solved.
+        With `dat2`, the solute-solvent is solved.
+        """
         for j in range(1, dat1.nlam+1):
             lam = 1.0 * j / dat1.nlam
-
-            self.build_Ur(dat1, dat1, lam)
-            self.build_renorm(dat1, dat1, 1.0, lam)
-            dat1.u_sr = dat1.u - dat1.ur_lr
-
-            if self.uv_check:
-                self.build_Ur(dat2, dat1, lam)
-                self.build_renorm(dat2, dat1, 1.0, lam)
-                dat2.u_sr = dat2.u - dat2.ur_lr
 
             if j == 1:
                 dat1.c = np.zeros_like(dat1.u_sr)
@@ -265,24 +379,54 @@ class RismController:
                     dat2.c = np.zeros_like(dat2.u_sr)
                 else:
                     pass
+
+            self.build_Ur(dat1, dat1, lam)
+            self.build_renorm(dat1, dat1, 1.0, lam)
+            dat1.u_sr = dat1.u - dat1.ur_lr
             self.solve_vv(lam)
 
             if self.uv_check:
+                self.build_Ur(dat2, dat1, lam)
+                self.build_renorm(dat2, dat1, 1.0, lam)
+                dat2.u_sr = dat2.u - dat2.ur_lr
                 self.solve_uv(lam)
 
         self.epilogue(dat1, dat2)
 
     def solve_uv(self, lam):
+        """Call closure and integral equation functions and start solute-solvent solver
+
+        Parameters
+        ----------
+        lam: float
+            :math: `\lambda` parameter for current charging cycle
+        """
         clos = self.closure.get_closure()
         IE = self.IE_UV.get_IE()
         self.solver_UV.solve_uv(IE, clos, lam)
 
     def solve_vv(self, lam):
+        """Call closure and integral equation functions and start solvent-solvent solver
+
+        Parameters
+        ----------
+        lam: float
+            :math: `\lambda` parameter for current charging cycle
+        """
         clos = self.closure.get_closure()
         IE = self.IE.get_IE()
         self.solver.solve(IE, clos, lam)
 
     def epilogue(self, dat1, dat2=None):
+        """Computes final total, direct and pair correlation functions
+
+        Parameters
+        ----------
+        dat1: Core.RISM_Obj
+            Dataclass containing all information for final functions
+        dat2: Core.RISM_Obj, optional
+            Dataclass containing all information for final functions
+        """
 
         dat1.c -= dat1.B * dat1.ur_lr
         dat1.t += dat1.B * dat1.ur_lr

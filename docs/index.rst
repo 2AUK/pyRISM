@@ -12,6 +12,7 @@ Welcome to pyrism's documentation!
 
    getting_started
    api
+   pyrism
 
 
 

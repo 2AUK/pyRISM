@@ -53,6 +53,7 @@ extensions = [
     'sphinx.ext.extlinks',
 ]
 
+mathjax_path = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML"
 autosummary_generate = True
 napoleon_google_docstring = False
 napoleon_use_param = False
