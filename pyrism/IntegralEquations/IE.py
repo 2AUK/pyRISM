@@ -1,11 +1,9 @@
 import numpy as np
 from .XRISM import XRISM
-from .XRISM_UV import XRISM_UV
 
 
 class IntegralEquation(object):
-    IE_dispatcher = {"XRISM": XRISM,
-                     "XRISM_UV": XRISM_UV}
+    IE_dispatcher = {"XRISM": XRISM}
 
     def __init__(self, IE):
         self.IE = IE

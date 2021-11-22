@@ -44,7 +44,7 @@ class NgSolver(SolverObject):
 
         while i < self.max_iter:
             c_prev = self.data_vv.c
-            RISM(self.data_vv)
+            RISM()
             c_A = Closure(self.data_vv)
             if i < 3:
                 c_next = self.step_Picard(c_A, c_prev)
@@ -75,7 +75,7 @@ class NgSolver(SolverObject):
 
         while i < self.max_iter:
             c_prev = self.data_uv.c
-            RISM(self.data_vv, self.data_uv)
+            RISM()
             c_A = Closure(self.data_uv)
             if i < 3:
                 c_next = self.step_Picard(c_A, c_prev)

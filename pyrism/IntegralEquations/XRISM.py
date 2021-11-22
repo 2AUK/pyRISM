@@ -1,37 +1,38 @@
 import numpy as np
 from Core import RISM_Obj
+from dataclasses import dataclass, field
 
+@dataclass
+class XRISM(object):
 
-def XRISM(data):
-    """
-    Computes RISM equation in the form:
+    data_vv: RISM_Obj
+    data_uv: RISM_Obj = None
 
-    h = w*c*(wcp)^-1*w*c
+    def compute_vv(self):
+        I = np.eye(self.data_vv.ns1, M=self.data_vv.ns2)
+        ck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
+        for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
+            ck[:, i, j] = self.data_vv.grid.dht(self.data_vv.c[:, i, j])
+            ck[:, i, j] -= self.data_vv.B * self.data_vv.uk_lr[:, i, j]
+        for i in range(self.data_vv.grid.npts):
+            iwcp = np.linalg.inv(I - self.data_vv.w[i] @ ck[i] @ self.data_vv.p)
+            wcw = self.data_vv.w[i] @ ck[i] @ self.data_vv.w[i]
+            self.data_vv.h[i] = iwcp @ wcw
+        for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
+            self.data_vv.t[:, i, j] = self.data_vv.grid.idht(self.data_vv.h[:, i, j] - ck[:, i, j]) - (
+                self.data_vv.B * self.data_vv.ur_lr[:, i, j])
 
-    Parameters
-    ----------
-    wk: Intramolecular correlation function 3D-array
-
-    cr: Direct correlation function 3D-array
-
-    vrlr: Long-range potential
-
-    rho: Number density matrix
-
-    Returns
-    -------
-    trsr: ndarray
-    An array containing short-range indirection correlation function
-    """
-    I = np.eye(data.ns1, M=data.ns2)
-    ck = np.zeros((data.npts, data.ns1, data.ns2), dtype=np.float64)
-    for i, j in np.ndindex(data.ns1, data.ns2):
-        ck[:, i, j] = data.grid.dht(data.c[:, i, j])
-        ck[:, i, j] -= data.B * data.uk_lr[:, i, j]
-    for i in range(data.grid.npts):
-        iwcp = np.linalg.inv(I - data.w[i] @ ck[i] @ data.p)
-        wcw = data.w[i] @ ck[i] @ data.w[i]
-        data.h[i] = iwcp @ wcw
-    for i, j in np.ndindex(data.ns1, data.ns2):
-        data.t[:, i, j] = data.grid.idht(data.h[:, i, j] - ck[:, i, j]) - (
-            data.B * data.ur_lr[:, i, j])
+    def compute_uv(self):
+        if self.data_uv is not None:
+            I = np.eye(self.data_uv.ns1, M=self.data_uv.ns2)
+            ck_uv = np.zeros((self.data_uv.npts, self.data_uv.ns1, self.data_uv.ns2), dtype=np.float64)
+            for i, j in np.ndindex(self.data_uv.ns1, self.data_uv.ns2):
+                ck_uv[:, i, j] = self.data_uv.grid.dht(self.data_uv.c[:, i, j])
+                ck_uv[:, i, j] -= self.data_uv.B * self.data_uv.uk_lr[:, i, j]
+            for i in range(self.data_uv.grid.npts):
+                self.data_uv.h[i] = (self.data_uv.w[i] @ ck_uv[i]) @ (self.data_vv.w[i] + self.data_vv.p @ self.data_vv.h[i])
+            for i, j in np.ndindex(self.data_uv.ns1, self.data_uv.ns2):
+                self.data_uv.t[:, i, j] = self.data_uv.grid.idht(self.data_uv.h[:, i, j] - ck_uv[:, i, j]) - (
+                    self.data_uv.B * self.data_uv.ur_lr[:, i, j])
+        else:
+            raise RuntimeError("uv dataclass not defined")

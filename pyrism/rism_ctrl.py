@@ -58,8 +58,8 @@ class RismController:
     solver_UV: Solvers.Solver = field(init=False)
     closure: Closures.Closure = field(init=False)
     IE: IntegralEquations.IntegralEquation = field(init=False)
-    IE_UV: IntegralEquations.IntegralEquation = field(init=False)
     SFE: Functionals.Functional = field(init=False)
+    SFE_GF: Functionals.Functional = field(init=False)
 
 
     def initialise_controller(self):
@@ -131,10 +131,12 @@ class RismController:
         self.pot = Potentials.Potential(inp["params"]["potential"])
        
         self.closure = Closures.Closure(inp["params"]["closure"])
-        self.IE = IntegralEquations.IntegralEquation(inp["params"]["IE"])
+        IE = IntegralEquations.IntegralEquation(inp["params"]["IE"]).get_IE()
 
         if self.uv_check:
-            self.IE_UV = IntegralEquations.IntegralEquation(inp["params"]["IE"] + "_UV")
+            self.IE = IE(self.vv, self.uv)
+        else:
+            self.IE = IE(self.vv)
 
         slv = Solvers.Solver(inp["params"]["solver"]).get_solver()
         self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"])
@@ -143,6 +145,7 @@ class RismController:
             self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv)
 
         self.SFE = Functionals.Functional(inp["params"]["closure"])
+        self.SFE_GF = Functionals.Functional("GF")
 
     def add_species(self, spec_dat, data_object):
         """Parses interaction sites and assigns them to relevant species
@@ -409,7 +412,7 @@ class RismController:
             :math: `\lambda` parameter for current charging cycle
         """
         clos = self.closure.get_closure()
-        IE = self.IE_UV.get_IE()
+        IE = self.IE.compute_uv
         self.solver_UV.solve_uv(IE, clos, lam)
 
     def solve_vv(self, lam):
@@ -421,7 +424,7 @@ class RismController:
             :math: `\lambda` parameter for current charging cycle
         """
         clos = self.closure.get_closure()
-        IE = self.IE.get_IE()
+        IE = self.IE.compute_vv
         self.solver.solve(IE, clos, lam)
 
     def epilogue(self, dat1, dat2=None):
@@ -447,6 +450,7 @@ class RismController:
             dat2.h = dat2.t + dat2.c
 
             print(self.SFE.get_functional()(self.uv))
+            print(self.SFE_GF.get_functional()(self.uv))
 
 
 if __name__ == "__main__":
