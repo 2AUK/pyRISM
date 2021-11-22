@@ -15,6 +15,7 @@ import Core
 import IntegralEquations
 import Solvers
 import Potentials
+import Functionals
 
 from dataclasses import dataclass, field
 
@@ -58,6 +59,7 @@ class RismController:
     closure: Closures.Closure = field(init=False)
     IE: IntegralEquations.IntegralEquation = field(init=False)
     IE_UV: IntegralEquations.IntegralEquation = field(init=False)
+    SFE: Functionals.Functional = field(init=False)
 
 
     def initialise_controller(self):
@@ -66,6 +68,8 @@ class RismController:
         self.read_input()
         self.build_wk(self.vv)
         self.build_rho(self.vv)
+         # Assuming infinite dilution, uv doesn't need p. Giving it vv's p makes later calculations easier
+        self.uv.p = self.vv.p
         if self.uv_check:
             self.build_wk(self.uv)
 
@@ -75,7 +79,6 @@ class RismController:
             self.solve(self.vv, self.uv)
             self.write_vv(self.vv)
             self.write_uv(self.vv, self.uv)
-            print(self.compute_free_energy_hnc(self.vv, self.uv))
         else:
             self.solve(self.vv)
             self.write_vv(self.vv)
@@ -92,6 +95,7 @@ class RismController:
             self.vv = Core.RISM_Obj(
                 inp["system"]["temp"],
                 inp["system"]["kT"],
+                inp["system"]["kU"],
                 inp["system"]["charge_coeff"],
                 inp["solvent"]["nsv"],
                 inp["solvent"]["nsv"],
@@ -109,6 +113,7 @@ class RismController:
             self.uv = Core.RISM_Obj(
                 inp["system"]["temp"],
                 inp["system"]["kT"],
+                inp["system"]["kU"],
                 inp["system"]["charge_coeff"],
                 inp["solute"]["nsu"],
                 inp["solvent"]["nsv"],
@@ -127,6 +132,7 @@ class RismController:
        
         self.closure = Closures.Closure(inp["params"]["closure"])
         self.IE = IntegralEquations.IntegralEquation(inp["params"]["IE"])
+
         if self.uv_check:
             self.IE_UV = IntegralEquations.IntegralEquation(inp["params"]["IE"] + "_UV")
 
@@ -135,7 +141,9 @@ class RismController:
         if self.uv_check:
             slv_uv = Solvers.Solver(inp["params"]["solver"]).get_solver()
             self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv)
-        
+
+        self.SFE = Functionals.Functional(inp["params"]["closure"])
+
     def add_species(self, spec_dat, data_object):
         """Parses interaction sites and assigns them to relevant species
 
@@ -372,7 +380,6 @@ class RismController:
         """
         for j in range(1, dat1.nlam+1):
             lam = 1.0 * j / dat1.nlam
-
             if j == 1:
                 dat1.c = np.zeros_like(dat1.u_sr)
                 if self.uv_check:
@@ -394,7 +401,7 @@ class RismController:
         self.epilogue(dat1, dat2)
 
     def solve_uv(self, lam):
-        """Call closure and integral equation functions and start solute-solvent solver
+        r"""Call closure and integral equation functions and start solute-solvent solver
 
         Parameters
         ----------
@@ -406,7 +413,7 @@ class RismController:
         self.solver_UV.solve_uv(IE, clos, lam)
 
     def solve_vv(self, lam):
-        """Call closure and integral equation functions and start solvent-solvent solver
+        r"""Call closure and integral equation functions and start solvent-solvent solver
 
         Parameters
         ----------
@@ -439,14 +446,7 @@ class RismController:
             dat2.g = 1.0 + dat2.c + dat2.t
             dat2.h = dat2.t + dat2.c
 
-    def compute_free_energy_hnc(self, dat1, dat2):
-        summed = np.zeros(dat2.npts, dtype=np.float64)
-        for i, j in np.ndindex(dat2.ns1, dat2.ns2):
-            summed += dat1.p[j, j] * dat2.grid.d_r * (dat2.grid.ri * dat2.grid.ri) * \
-                ((0.5 * dat2.t[:, i, j] * dat2.h[:, i, j]) - dat2.c[:, i, j])
-        mu_hnc = 4.0 * np.pi * dat1.p[0, 0] * dat2.grid.d_r * \
-            np.sum(np.power(dat2.grid.ri, 2)[:, None, None] * (0.5 * (dat2.t * dat2.h) - dat2.c))
-        return (mu_hnc / dat2.B * 0.00198720414667)
+            print(self.SFE.get_functional()(self.uv))
 
 
 if __name__ == "__main__":

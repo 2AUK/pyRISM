@@ -2,9 +2,8 @@ import numpy as np
 from Core import RISM_Obj
 
 
-def HyperNetted_Chain(data: RISM_Obj):
+def HyperNetted_Chain(data):
     return np.exp(-(data.B * data.u_sr) + data.t) - 1.0 - data.t
-
 
 def KovalenkoHirata(data):
     return np.where(
@@ -12,7 +11,6 @@ def KovalenkoHirata(data):
         np.exp(-(data.B * data.u_sr) + data.t) - 1.0 - data.t,
         -(data.B * data.u_sr),
     )
-
 
 def KobrynGusarovKovalenko(data):
     zeros = np.zeros_like(data.t)

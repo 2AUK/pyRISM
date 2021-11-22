@@ -11,6 +11,7 @@ class RISM_Obj(object):
     # Initial parameters required to instantiate the other attributes
     T: float
     kT: float
+    kU: float
     amph: float
     ns1: int
     ns2: int

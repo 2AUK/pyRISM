@@ -5,7 +5,6 @@ A pedagogical implementation of the RISM equations
 
 # Add imports here
 from .rism_ctrl import *
-from .Closures import *
 
 # Handle versioneer
 from ._version import get_versions
