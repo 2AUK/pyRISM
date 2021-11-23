@@ -22,6 +22,9 @@ class XRISM(object):
             self.data_vv.t[:, i, j] = self.data_vv.grid.idht(self.data_vv.h[:, i, j] - ck[:, i, j]) - (
                 self.data_vv.B * self.data_vv.ur_lr[:, i, j])
 
+    def vv_test(self):
+        pass
+
     def compute_uv(self):
         if self.data_uv is not None:
             I = np.eye(self.data_uv.ns1, M=self.data_uv.ns2)
@@ -36,3 +39,9 @@ class XRISM(object):
                     self.data_uv.B * self.data_uv.ur_lr[:, i, j])
         else:
             raise RuntimeError("uv dataclass not defined")
+
+def vv_impl():
+    pass
+
+def uv_impl():
+    pass

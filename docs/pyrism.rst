@@ -9,6 +9,7 @@ Subpackages
 
    pyrism.Closures
    pyrism.Core
+   pyrism.Functionals
    pyrism.IntegralEquations
    pyrism.Potentials
    pyrism.Solvers
@@ -29,14 +30,6 @@ pyrism.rism\_ctrl module
 ------------------------
 
 .. automodule:: pyrism.rism_ctrl
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pyrism.test\_classes module
----------------------------
-
-.. automodule:: pyrism.test_classes
    :members:
    :undoc-members:
    :show-inheritance:

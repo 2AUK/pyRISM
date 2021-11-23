@@ -69,8 +69,8 @@ class RismController:
         self.build_wk(self.vv)
         self.build_rho(self.vv)
          # Assuming infinite dilution, uv doesn't need p. Giving it vv's p makes later calculations easier
-        self.uv.p = self.vv.p
         if self.uv_check:
+            self.uv.p = self.vv.p
             self.build_wk(self.uv)
 
     def do_rism(self):
@@ -209,7 +209,7 @@ class RismController:
         -----
         Calculated directly in k-space because not required in r-space:
 
-        .. math:: \omega(k) = \frac{kl}{sin(kl)}
+        .. math:: \\omega(k) = \\frac{kl}{sin(kl)}
         """
         I = np.ones(dat.npts, dtype=np.float64)
         zero_vec = np.zeros(dat.npts, dtype=np.float64)
@@ -404,24 +404,24 @@ class RismController:
         self.epilogue(dat1, dat2)
 
     def solve_uv(self, lam):
-        r"""Call closure and integral equation functions and start solute-solvent solver
+        """Call closure and integral equation functions and start solute-solvent solver
 
         Parameters
         ----------
         lam: float
-            :math: `\lambda` parameter for current charging cycle
+            :math: `\\lambda` parameter for current charging cycle
         """
         clos = self.closure.get_closure()
         IE = self.IE.compute_uv
         self.solver_UV.solve_uv(IE, clos, lam)
 
     def solve_vv(self, lam):
-        r"""Call closure and integral equation functions and start solvent-solvent solver
+        """Call closure and integral equation functions and start solvent-solvent solver
 
         Parameters
         ----------
         lam: float
-            :math: `\lambda` parameter for current charging cycle
+            :math: `\\lambda` parameter for current charging cycle
         """
         clos = self.closure.get_closure()
         IE = self.IE.compute_vv

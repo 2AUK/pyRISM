@@ -12,6 +12,14 @@ pyrism.Closures.closure\_dispatcher module
    :undoc-members:
    :show-inheritance:
 
+pyrism.Closures.closure\_object module
+--------------------------------------
+
+.. automodule:: pyrism.Closures.closure_object
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pyrism.Closures.closure\_routines module
 ----------------------------------------
 
