@@ -16,6 +16,7 @@ import IntegralEquations
 import Solvers
 import Potentials
 import Functionals
+import Util
 
 from dataclasses import dataclass, field
 
@@ -66,10 +67,12 @@ class RismController:
         """ Reads input file `fname` to create `vv` and `uv` and
         builds the intramolecular correlation and density matrices"""
         self.read_input()
+        Util.align_dipole(self.vv)
         self.build_wk(self.vv)
         self.build_rho(self.vv)
          # Assuming infinite dilution, uv doesn't need p. Giving it vv's p makes later calculations easier
         if self.uv_check:
+            Util.align_dipole(self.uv)
             self.uv.p = self.vv.p
             self.build_wk(self.uv)
 
