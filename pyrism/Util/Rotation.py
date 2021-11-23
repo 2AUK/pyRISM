@@ -44,15 +44,6 @@ def quaternion_from_Euler_axis(angle, direction):
         quat[0:3] = direction / magn * np.sin(angle / 2.0)
     return quat
 
-def quat_mul(a, b):
-    c = np.zeros_like(a)
-    c[0] = a[0] * b[0] - np.dot(a[1:4], b[1:4])
-    c[1] = a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[3]
-    c[2] = a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1]
-    c[3] = a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[1]
-
-    return c
-
 def quaternion_rotate(vector, quat):
     pass
 
@@ -62,6 +53,11 @@ def align_dipole(dat):
     yaxis = np.asarray([0.0, 1.0, 0.0])
 
     for isp in dat.species:
+
+        print(dmvec)
+
+        if dmvec[2] == 0:
+            continue
 
         angle = -np.arccos(np.deg2rad(dmvec[0] / np.sqrt(np.sum(dmvec * dmvec))))
         angle = np.rad2deg(angle)
@@ -76,6 +72,8 @@ def align_dipole(dat):
         for iat in isp.atom_sites:
             new_dmvec += iat.params[-1] * iat.coords
 
+        print(new_dmvec)
+
         angle_2 = -np.arccos(np.deg2rad(new_dmvec[2] / np.sqrt(np.sum(new_dmvec * new_dmvec))))
         angle_2 = np.rad2deg(angle_2)
         quat_2 = quaternion_from_Euler_axis(angle_2, yaxis)
@@ -89,7 +87,4 @@ def align_dipole(dat):
         for iat in isp.atom_sites:
             final_dmvec += iat.params[-1] * iat.coords
 
-
-        print(dmvec)
-        print(new_dmvec)
         print(final_dmvec)
