@@ -9,6 +9,7 @@ class DRISM(object):
 
     data_vv: RISM_Obj
     data_uv: RISM_Obj = None
+    h_c0: np.ndarray = None
 
     def compute_vv(self):
         pass
