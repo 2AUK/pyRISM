@@ -68,6 +68,7 @@ class RismController:
         builds the intramolecular correlation and density matrices"""
         self.read_input()
         Util.align_dipole(self.vv)
+        print(self.IE.calculate_y())
         self.build_wk(self.vv)
         self.build_rho(self.vv)
          # Assuming infinite dilution, uv doesn't need p. Giving it vv's p makes later calculations easier
@@ -445,6 +446,8 @@ class RismController:
         dat1.t += dat1.B * dat1.ur_lr
         dat1.g = 1.0 + dat1.c + dat1.t
         dat1.h = dat1.t + dat1.c
+
+
 
         if self.uv_check:
             dat2.c -= dat2.B * dat2.ur_lr
