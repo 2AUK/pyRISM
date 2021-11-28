@@ -68,7 +68,6 @@ class RismController:
         builds the intramolecular correlation and density matrices"""
         self.read_input()
         Util.align_dipole(self.vv)
-        print(self.IE.calculate_y())
         self.build_wk(self.vv)
         self.build_rho(self.vv)
          # Assuming infinite dilution, uv doesn't need p. Giving it vv's p makes later calculations easier
@@ -135,12 +134,20 @@ class RismController:
         self.pot = Potentials.Potential(inp["params"]["potential"])
        
         self.closure = Closures.Closure(inp["params"]["closure"])
-        IE = IntegralEquations.IntegralEquation(inp["params"]["IE"]).get_IE()
 
-        if self.uv_check:
-            self.IE = IE(self.vv, self.uv)
+
+        if inp["params"]["IE"] == "DRISM":
+            IE = IntegralEquations.IntegralEquation(inp["params"]["IE"]).get_IE()
+            if self.uv_check:
+                self.IE = IE(self.vv, inp["params"]["diel"], inp["params"]["adbcor"], self.uv)
+            else:
+                self.IE = IE(self.vv, inp["params"]["diel"], inp["params"]["adbcor"])
         else:
-            self.IE = IE(self.vv)
+            IE = IntegralEquations.IntegralEquation(inp["params"]["IE"]).get_IE()
+            if self.uv_check:
+                self.IE = IE(self.vv, self.uv)
+            else:
+                self.IE = IE(self.vv)
 
         slv = Solvers.Solver(inp["params"]["solver"]).get_solver()
         self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"])

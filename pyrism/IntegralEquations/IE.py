@@ -1,9 +1,12 @@
 import numpy as np
 from .XRISM import XRISM
+from .DRISM import DRISM
 
 
 class IntegralEquation(object):
-    IE_dispatcher = {"XRISM": XRISM}
+    IE_dispatcher = {"XRISM": XRISM,
+                     "DRISM": DRISM,
+                     }
 
     def __init__(self, IE):
         self.IE = IE
