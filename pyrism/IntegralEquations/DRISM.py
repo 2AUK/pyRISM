@@ -77,13 +77,8 @@ class DRISM(object):
         self.D_matrix()
 
 
-def vv_impl(w, ckvv, rho, chi, ns1, ns2, npts):
-    I = np.eye(ns1, M=ns2)
-    w_bar = np.zeros((npts, ns1, ns2), dtype=np.float)
-    for i in range(npts):
-        w_bar = w[i] + rho * chi[i]
-        iwcp = np.lingalg.inv(I - w_bar[i] @ ckvv[i] @ w_bar[i])
-        wcw = w_bar[i] @ ckvv[i] @ w_bar[i]
+def vv_impl():
+    pass
 
 def uv_impl():
     pass
