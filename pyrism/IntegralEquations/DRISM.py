@@ -44,7 +44,7 @@ class DRISM(object):
         dmdensity = total_density * dm * dm
         ptxv = self.data_vv.species[0].dens / total_density
         self.y = 4.0 * np.pi * self.data_vv.B * dmdensity / 9.0
-        self.h_c0 = (((self.diel - 1.0) / self.y / (total_density * ptxv)) - 3.0)
+        self.h_c0 = (((self.diel - 1.0) / self.y) - 3.0) / (total_density * ptxv)
 
     def D_matrix(self):
 
@@ -52,7 +52,7 @@ class DRISM(object):
         d0y = np.zeros((self.data_vv.ns1), dtype=np.float)
         d1z = np.zeros((self.data_vv.ns1), dtype=np.float)
         for ki, k in enumerate(self.data_vv.grid.ki):
-            hck = self.h_c0 * np.exp(-(self.adbcor * k * k))
+            hck = self.h_c0 * np.exp(-1.0 * (self.adbcor ** 2) * (k ** 2) / 4.0)
             for isp in self.data_vv.species:
                 for iat in isp.atom_sites:
                     for i in np.ndindex((self.data_vv.ns1)):
