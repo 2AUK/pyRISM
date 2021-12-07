@@ -19,7 +19,6 @@ def dipole_moment(dat):
             centre_of_charge += np.abs(iat.params[-1]) * iat.coords
         centre_of_charge /= total_charge
 
-
         for iat in isp.atom_sites:
             iat.coords -= centre_of_charge
 
@@ -75,3 +74,6 @@ def align_dipole(dat):
         for iat in isp.atom_sites:
             final_dmvec += iat.params[-1] * iat.coords
         print(final_dmvec)
+
+def check_symmetric(a, rtol=1e-05, atol=1e-08):
+    return np.allclose(a, a.T, rtol=rtol, atol=atol)

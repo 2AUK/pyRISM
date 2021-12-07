@@ -1,6 +1,7 @@
 [system]
 temp = 210
 kT = 1.0
+kU = 0.00198720414667
 charge_coeff = 167101.0
 npts = 2048
 radius = 20.48
@@ -8,12 +9,14 @@ lam = 10
 
 [params]
 potential = "LJ"
-closure = "PY"
-IE = "XRISM"
+closure = "KH"
+IE = "DRISM"
 solver = "Ng"
 picard_damping = 0.001
 itermax = 10000
 tol = 1E-7
+diel = 78
+adbcor = 0.5
 
 [solvent]
 nsv = 2

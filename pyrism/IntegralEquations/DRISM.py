@@ -25,10 +25,10 @@ class DRISM(object):
             ck[:, i, j] = self.data_vv.grid.dht(self.data_vv.c[:, i, j])
             ck[:, i, j] -= self.data_vv.B * self.data_vv.uk_lr[:, i, j]
         for i in range(self.data_vv.grid.npts):
-            w_bar[i] = self.data_vv.w[i] + self.data_vv.p @ self.chi[i]
+            w_bar[i] = self.data_vv.w[i] + self.chi[i]
             iwcp = np.linalg.inv(I - w_bar[i] @ ck[i] @ self.data_vv.p)
             wcw = w_bar[i] @ ck[i] @ w_bar[i]
-            self.data_vv.h[i] = iwcp @ wcw
+            self.data_vv.h[i] = iwcp @ wcw + self.chi[i]
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
             self.data_vv.t[:, i, j] = self.data_vv.grid.idht(self.data_vv.h[:, i, j] - ck[:, i, j]) - (
                 self.data_vv.B * self.data_vv.ur_lr[:, i, j])
@@ -42,8 +42,9 @@ class DRISM(object):
         for isp in self.data_vv.species:
             total_density += isp.dens
         dmdensity = total_density * dm * dm
+        ptxv = self.data_vv.species[0].dens / total_density
         self.y = 4.0 * np.pi * self.data_vv.B * dmdensity / 9.0
-        self.h_c0 = ((self.diel - 1.0) / self.y) * total_density
+        self.h_c0 = (((self.diel - 1.0) / self.y / (total_density * ptxv)) - 3.0)
 
     def D_matrix(self):
 
@@ -75,7 +76,6 @@ class DRISM(object):
         self.calculate_DRISM_params()
         self.chi = np.zeros((self.data_vv.grid.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float)
         self.D_matrix()
-
 
 def vv_impl():
     pass
