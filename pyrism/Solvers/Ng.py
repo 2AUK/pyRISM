@@ -2,6 +2,7 @@ import numpy as np
 from Core import RISM_Obj
 from .Solver_object import *
 from dataclasses import dataclass, field
+import pdb
 
 @dataclass
 class NgSolver(SolverObject):
@@ -41,9 +42,8 @@ class NgSolver(SolverObject):
         b = np.zeros(2, dtype=np.float64)
 
         print("\nSolving solvent-solvent RISM equation...\n")
-
         while i < self.max_iter:
-            print("iter:", i)
+            print(i)
             c_prev = self.data_vv.c
             RISM()
             c_A = Closure(self.data_vv)
@@ -65,8 +65,6 @@ class NgSolver(SolverObject):
 
             self.data_vv.c = c_next
 
-
-
     def solve_uv(self, RISM, Closure, lam):
         i: int = 0
         A = np.zeros((2, 2), dtype=np.float64)
@@ -75,7 +73,6 @@ class NgSolver(SolverObject):
         print("\nSolving solute-solvent RISM equation...\n")
 
         while i < self.max_iter:
-
             c_prev = self.data_uv.c
             RISM()
             c_A = Closure(self.data_uv)

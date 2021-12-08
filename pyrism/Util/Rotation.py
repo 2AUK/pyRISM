@@ -55,7 +55,6 @@ def align_dipole(dat):
         quat = quaternion_from_Euler_axis(angle, np.copysign(zaxis, dmvec[1]))
         rotation_around_z = R.from_quat(quat)
         new_dmvec = np.zeros_like(dmvec)
-
         for iat in isp.atom_sites:
             iat.coords = rotation_around_z.apply(iat.coords)
 
@@ -65,11 +64,11 @@ def align_dipole(dat):
         angle_2 = -np.arccos(new_dmvec[2] / np.sqrt(np.sum(new_dmvec * new_dmvec)))
         quat_2 = quaternion_from_Euler_axis(angle_2, yaxis)
         final_dmvec = np.zeros_like(dmvec)
-
         rotation_around_y = R.from_quat(quat_2)
-
         for iat in isp.atom_sites:
+            print("before rotate", iat.coords)
             iat.coords = rotation_around_y.apply(iat.coords)
+            print("after rotate", iat.coords)
 
         for iat in isp.atom_sites:
             final_dmvec += iat.params[-1] * iat.coords
@@ -77,3 +76,9 @@ def align_dipole(dat):
 
 def check_symmetric(a, rtol=1e-05, atol=1e-08):
     return np.allclose(a, a.T, rtol=rtol, atol=atol)
+
+def j0(x):
+    return np.sin(x) / x
+
+def j1(x):
+    return ((np.sin(x) / x) - np.cos(x)) / x
