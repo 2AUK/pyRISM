@@ -12,6 +12,7 @@ class XRISM(object):
     def compute_vv(self):
         I = np.eye(self.data_vv.ns1, M=self.data_vv.ns2)
         ck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
+        print(self.data_vv.h)
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
             ck[:, i, j] = self.data_vv.grid.dht(self.data_vv.c[:, i, j])
             ck[:, i, j] -= self.data_vv.B * self.data_vv.uk_lr[:, i, j]
@@ -22,6 +23,7 @@ class XRISM(object):
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
             self.data_vv.t[:, i, j] = self.data_vv.grid.idht(self.data_vv.h[:, i, j] - ck[:, i, j]) - (
                 self.data_vv.B * self.data_vv.ur_lr[:, i, j])
+        print(self.data_vv.h)
 
     def vv_test(self):
         pass

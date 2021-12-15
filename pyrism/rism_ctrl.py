@@ -391,12 +391,15 @@ class RismController:
         If `dat2` is not defined, the solvent-solvent problem is being solved.
         With `dat2`, the solute-solvent is solved.
         """
+        fvv = np.exp(-dat1.B * dat1.u_sr) - 1.0
+        if self.uv_check:
+            fuv = np.exp(-dat2.B * dat2.u_sr) - 1.0
         for j in range(1, dat1.nlam+1):
             lam = 1.0 * j / dat1.nlam
             if j == 1:
-                dat1.c = np.zeros_like(dat1.u_sr)
+                dat1.c = fvv
                 if self.uv_check:
-                    dat2.c = np.zeros_like(dat2.u_sr)
+                    dat2.c = fuv
                 else:
                     pass
 

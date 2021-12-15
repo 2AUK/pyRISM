@@ -43,7 +43,7 @@ class NgSolver(SolverObject):
 
         print("\nSolving solvent-solvent RISM equation...\n")
         while i < self.max_iter:
-            print(i)
+            #self.epilogue(i, lam)
             c_prev = self.data_vv.c
             RISM()
             c_A = Closure(self.data_vv)

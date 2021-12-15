@@ -66,13 +66,10 @@ def align_dipole(dat):
         final_dmvec = np.zeros_like(dmvec)
         rotation_around_y = R.from_quat(quat_2)
         for iat in isp.atom_sites:
-            print("before rotate", iat.coords)
             iat.coords = rotation_around_y.apply(iat.coords)
-            print("after rotate", iat.coords)
 
         for iat in isp.atom_sites:
             final_dmvec += iat.params[-1] * iat.coords
-        print(final_dmvec)
 
 def check_symmetric(a, rtol=1e-05, atol=1e-08):
     return np.allclose(a, a.T, rtol=rtol, atol=atol)
