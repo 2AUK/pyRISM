@@ -7,7 +7,7 @@ pyrism
 A pedagogical implementation of the RISM equations
 
 ### Currently Implemented Features
-- XRISM for neat liquids and solute-solvent systems
+- XRISM and DRISM for neat liquids and solute-solvent systems
 
 #### Potentials
 - Lennard-Jones Potential
@@ -28,7 +28,6 @@ Pass the input file as an argument to `rism_ctrl.py`
 Example input files are provided in `pyrism\data` with references in `pyrism\data\README.md`
 
 ### Future Work
-- DRISM
 - More potentials (Hard-sphere, AB-form LJ)
 - MDIIS solver
 
