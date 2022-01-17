@@ -70,4 +70,4 @@ def inverse_discrete_hankel_transform(
      Transformed function from k-space to r-space
     """
     constant = d_k / (4 * np.pi * np.pi) / r
-    return constant * idst(fk * k, type=4)
+    return constant * dst(fk * k, type=4)

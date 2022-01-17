@@ -52,6 +52,8 @@ class NgSolver(SolverObject):
             else:
                 c_next = self.step_Ng(c_A, c_prev, A, b)
 
+            self.data_vv.c = c_next
+
             if self.converged(c_next, c_prev):
                 self.epilogue(i, lam)
                 break
@@ -62,8 +64,6 @@ class NgSolver(SolverObject):
                 print("Max iteration reached!")
                 self.epilogue(i, lam)
                 break
-
-            self.data_vv.c = c_next
 
     def solve_uv(self, RISM, Closure, lam):
         i: int = 0
@@ -81,6 +81,8 @@ class NgSolver(SolverObject):
             else:
                 c_next = self.step_Ng(c_A, c_prev, A, b)
 
+            self.data_uv.c = c_next
+
             if self.converged(c_next, c_prev):
                 self.epilogue(i, lam)
                 break
@@ -91,5 +93,3 @@ class NgSolver(SolverObject):
                 print("Max iteration reached!")
                 self.epilogue(i, lam)
                 break
-
-            self.data_uv.c = c_next

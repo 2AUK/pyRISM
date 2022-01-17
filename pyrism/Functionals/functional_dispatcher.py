@@ -4,7 +4,8 @@ class Functional(object):
 
     functional_dispatcher = {
         "GF": Gaussian_Fluctuations,
-        "HNC": HyperNetted_Chain
+        "HNC": HyperNetted_Chain,
+        "KH": Kovalenko_Hirata,
     }
 
     def __init__(self, SFE):

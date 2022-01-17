@@ -23,7 +23,6 @@ class DRISM(object):
         w_bar = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
         k = self.data_vv.grid.ki
         r = self.data_vv.grid.ri
-        #print(self.data_vv.h)
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
             ck[:, i, j] = self.data_vv.grid.dht(self.data_vv.c[:, i, j])
             ck[:, i, j] -= self.data_vv.B * self.data_vv.uk_lr[:, i, j]
@@ -36,7 +35,6 @@ class DRISM(object):
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
             self.data_vv.t[:, i, j] = self.data_vv.grid.idht(self.data_vv.h[:, i, j] - ck[:, i, j]) - (
                 self.data_vv.B * self.data_vv.ur_lr[:, i, j])
-        #print(self.data_vv.h)
 
     def compute_uv(self):
         if self.data_uv is not None:
