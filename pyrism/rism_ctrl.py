@@ -71,7 +71,7 @@ class RismController:
         self.build_rho(self.vv)
          # Assuming infinite dilution, uv doesn't need p. Giving it vv's p makes later calculations easier
         if self.uv_check:
-            Util.align_dipole(self.uv)
+
             self.uv.p = self.vv.p
             self.build_wk(self.uv)
 
@@ -137,6 +137,7 @@ class RismController:
 
         if inp["params"]["IE"] == "DRISM":
             IE = IntegralEquations.IntegralEquation(inp["params"]["IE"]).get_IE()
+            Util.align_dipole(self.uv)
             if self.uv_check:
                 self.IE = IE(self.vv, inp["params"]["diel"], inp["params"]["adbcor"], self.uv)
             else:
@@ -149,10 +150,17 @@ class RismController:
                 self.IE = IE(self.vv)
 
         slv = Solvers.Solver(inp["params"]["solver"]).get_solver()
-        self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"])
-        if self.uv_check:
-            slv_uv = Solvers.Solver(inp["params"]["solver"]).get_solver()
-            self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv)
+        if inp["params"]["solver"] == "MDIIS":
+            self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], m=inp["params"]["depth"])
+            if self.uv_check:
+                slv_uv = Solvers.Solver(inp["params"]["solver"]).get_solver()
+                self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv, m=inp["params"]["depth"])
+        else:
+            self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"])
+            if self.uv_check:
+                slv_uv = Solvers.Solver(inp["params"]["solver"]).get_solver()
+                self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv)
+
 
         self.SFE = Functionals.Functional(inp["params"]["closure"])
         self.SFE_GF = Functionals.Functional("GF")

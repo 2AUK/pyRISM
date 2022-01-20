@@ -1,9 +1,13 @@
 import numpy as np
 from .Ng import NgSolver
+from .MDIIS import MDIIS
 
 
 class Solver(object):
-    solver_dispatcher = {"Ng": NgSolver}
+    solver_dispatcher = {
+        "Ng": NgSolver,
+        "MDIIS": MDIIS,
+                         }
 
     def __init__(self, solv):
         self.solver = solv
