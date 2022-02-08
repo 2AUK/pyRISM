@@ -11,10 +11,10 @@ np.set_printoptions(edgeitems=30, linewidth=180,
 
 @dataclass
 class MDIIS(SolverObject):
-    m: int = field(default=1) #depth
+    m: int = field(default=1) # depth
     fr: list = field(init=False, default_factory=list)
     res: list = field(init=False, default_factory=list)
-
+    RMS_res: list = field(init=False, default_factory=list)
 
     def step_Picard(self, curr, prev):
         self.fr.append(curr.flatten())
@@ -48,6 +48,8 @@ class MDIIS(SolverObject):
         self.fr.append(curr.flatten())
         self.res.append((curr - prev).flatten())
 
+
+
         self.fr.pop(0)
         self.res.pop(0)
 
@@ -60,16 +62,36 @@ class MDIIS(SolverObject):
         b = np.zeros(2, dtype=np.float64)
 
         print("\nSolving solvent-solvent RISM equation...\n")
+        self.fr.clear()
+        self.res.clear()
+        self.RMS_res.clear()
+
         while i < self.max_iter:
             #self.epilogue(i, lam)
             c_prev = self.data_vv.c
             RISM()
             c_A = Closure(self.data_vv)
-            if i < self.m:
+            if len(self.fr) < self.m:
                 c_next = self.step_Picard(c_A, c_prev)
+                RMS = np.sqrt(
+                1 / self.data_vv.ns1 / self.data_vv.grid.npts * np.power((c_A-c_prev).sum(), 2)
+                )
+                self.RMS_res.append(RMS)
             else:
                 c_next = self.step_MDIIS(c_A, c_prev)
                 c_next = np.reshape(c_next, c_prev.shape)
+                RMS = np.sqrt(
+                1 / self.data_vv.ns1 / self.data_vv.grid.npts * np.power((c_A-c_prev).sum(), 2)
+                )
+                if RMS > 10 * min(self.RMS_res):
+                    min_index = self.RMS_res.index(min(self.RMS_res))
+                    c_next = np.reshape(self.fr[min_index], c_prev.shape)
+                    self.fr.clear()
+                    self.res.clear()
+                    self.RMS_res.clear()
+                self.RMS_res.append(RMS)
+                self.RMS_res.pop(0)
+
 
             self.data_vv.c = c_next
 
@@ -90,6 +112,9 @@ class MDIIS(SolverObject):
         b = np.zeros(2, dtype=np.float64)
 
         print("\nSolving solute-solvent RISM equation...\n")
+        self.fr.clear()
+        self.res.clear()
+        self.RMS_res.clear()
 
         while i < self.max_iter:
             c_prev = self.data_uv.c
@@ -97,10 +122,24 @@ class MDIIS(SolverObject):
             c_A = Closure(self.data_uv)
             if len(self.fr) < self.m:
                 c_next = self.step_Picard(c_A, c_prev)
+                RMS = np.sqrt(
+                1 / self.data_vv.ns1 / self.data_vv.grid.npts * np.power((c_A-c_prev).sum(), 2)
+                )
+                self.RMS_res.append(RMS)
             else:
                 c_next = self.step_MDIIS(c_A, c_prev)
                 c_next = np.reshape(c_next, c_prev.shape)
-
+                RMS = np.sqrt(
+                1 / self.data_uv.ns1 / self.data_uv.grid.npts * np.power((c_A-c_prev).sum(), 2)
+                )
+                if RMS > 10 * min(self.RMS_res):
+                    min_index = self.RMS_res.index(min(self.RMS_res))
+                    c_next = np.reshape(self.fr[min_index], c_prev.shape)
+                    self.fr.clear()
+                    self.res.clear()
+                    self.RMS_res.clear()
+                self.RMS_res.append(RMS)
+                self.RMS_res.pop(0)
             self.data_uv.c = c_next
 
             if self.converged(c_next, c_prev):
