@@ -51,6 +51,7 @@ class RismController:
     """
     fname: str
     name: str = field(init=False)
+    clos_name: str = field(init=False)
     uv_check: bool = field(init=False, default=False)
     vv: Core.RISM_Obj = field(init=False)
     uv: Core.RISM_Obj = field(init=False)
@@ -164,6 +165,7 @@ class RismController:
 
         self.SFE = Functionals.Functional(inp["params"]["closure"])
         self.SFE_GF = Functionals.Functional("GF")
+        self.clos_name = inp["params"]["closure"]
 
     def add_species(self, spec_dat, data_object):
         """Parses interaction sites and assigns them to relevant species
@@ -373,6 +375,8 @@ class RismController:
         gr = pd.DataFrame(uv.grid.ri, columns=["r"])
         cr = pd.DataFrame(uv.grid.ri, columns=["r"])
         tr = pd.DataFrame(uv.grid.ri, columns=["r"])
+        dr = pd.DataFrame(uv.grid.ri, columns=["r"])
+        d_GFr = pd.DataFrame(uv.grid.ri, columns=["r"])
         for i, iat in enumerate(uv.atoms):
             for j, jat in enumerate(vv.atoms):
                 lbl1 = iat.atom_type
@@ -380,9 +384,13 @@ class RismController:
                 gr[lbl1+"-"+lbl2] = uv.g[:, i, j]
                 cr[lbl1+"-"+lbl2] = uv.c[:, i, j]
                 tr[lbl1+"-"+lbl2] = uv.t[:, i, j]
+                dr[lbl1+"-"+lbl2] = uv.d[:, i, j]
+                d_GFr[lbl1+"-"+lbl2] = uv.d_GF[:, i, j]
         self.write_csv(gr, self.name, ".guv", uv.p, uv.T)
         self.write_csv(cr, self.name, ".cuv", uv.p, uv.T)
         self.write_csv(tr, self.name, ".tuv", uv.p, uv.T)
+        self.write_csv(dr, self.name + "_" + self.clos_name, ".duv", uv.p, uv.T)
+        self.write_csv(d_GFr, self.name + "_GF", ".duv", uv.p, uv.T)
 
     def solve(self, dat1, dat2=None):
         """Start solving RISM problem
@@ -449,6 +457,9 @@ class RismController:
         IE = self.IE.compute_vv
         self.solver.solve(IE, clos, lam)
 
+    def integrate(self, SFE, dr):
+        return dr * np.sum(SFE)
+
     def epilogue(self, dat1, dat2=None):
         """Computes final total, direct and pair correlation functions
 
@@ -472,10 +483,14 @@ class RismController:
             dat2.t += dat2.B * dat2.ur_lr
             dat2.g = 1.0 + dat2.c + dat2.t
             dat2.h = dat2.t + dat2.c
+            dat2.d = self.SFE.get_functional()(self.uv)
+            dat2.d_GF = self.SFE_GF.get_functional()(self.uv)
 
-            print(self.SFE.get_functional()(self.uv))
-            print(self.SFE_GF.get_functional()(self.uv))
-
+        SFE = self.integrate(dat2.d, dat2.grid.d_r)
+        GF = self.integrate(dat2.d_GF, dat2.grid.d_r)
+        SFE_text = "\n{clos_name}: {SFE_val} kcal/mol"
+        print(SFE_text.format(clos_name=self.clos_name, SFE_val=SFE))
+        print(SFE_text.format(clos_name="GF", SFE_val=GF))
 
 if __name__ == "__main__":
     mol = RismController(sys.argv[1])
