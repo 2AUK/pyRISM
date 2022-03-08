@@ -10,7 +10,7 @@ grs = []
 print(sys.argv[2])
 print(df.shape)
 if sys.argv[2] == "-":
-    for i in range(1, df.shape[1]-1):
+    for i in range(1, df.shape[1]):
         grs.append((df.columns[i], np.asarray(df.iloc[:, i].to_numpy())))
 else:
     for i in sys.argv[2:]:

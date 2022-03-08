@@ -27,8 +27,6 @@ class RISM_Obj(object):
     t: np.ndarray = field(init=False)
     h: np.ndarray = field(init=False)
     g: np.ndarray = field(init=False)
-    d: np.ndarray = field(init=False)
-    d_GF: np.ndarray = field(init=False)
 
     # Set of attributes that remain constant during the RISM calculation
     B: float = field(init=False)
@@ -47,8 +45,6 @@ class RISM_Obj(object):
         self.B = 1 / self.T / self.kT
         self.c_prev = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
         self.t = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
-        self.d = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
-        self.d_GF = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
         self.h = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
         self.u = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
         self.u_sr = np.zeros_like(self.u)

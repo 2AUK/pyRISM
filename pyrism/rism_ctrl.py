@@ -51,7 +51,7 @@ class RismController:
     """
     fname: str
     name: str = field(init=False)
-    clos_name: str = field(init=False)
+    write_check: bool = field(init=False, default=False)
     uv_check: bool = field(init=False, default=False)
     vv: Core.RISM_Obj = field(init=False)
     uv: Core.RISM_Obj = field(init=False)
@@ -60,31 +60,32 @@ class RismController:
     solver_UV: Solvers.Solver = field(init=False)
     closure: Closures.Closure = field(init=False)
     IE: IntegralEquations.IntegralEquation = field(init=False)
-    SFE: Functionals.Functional = field(init=False)
-    SFE_GF: Functionals.Functional = field(init=False)
+
 
 
     def initialise_controller(self):
         """ Reads input file `fname` to create `vv` and `uv` and
-        builds the intramolecular correlation and density matrices"""
+        builds the intra"""
         self.read_input()
         self.build_wk(self.vv)
         self.build_rho(self.vv)
          # Assuming infinite dilution, uv doesn't need p. Giving it vv's p makes later calculations easier
         if self.uv_check:
-
             self.uv.p = self.vv.p
             self.build_wk(self.uv)
+
 
     def do_rism(self):
         """ Solves the vv and uv (if applicable) problems and outputs the results"""
         if self.uv_check:
             self.solve(self.vv, self.uv)
-            self.write_vv(self.vv)
-            self.write_uv(self.vv, self.uv)
+            if self.write_check == True:
+                self.write_vv(self.vv)
+                self.write_uv(self.vv, self.uv)
         else:
             self.solve(self.vv)
-            self.write_vv(self.vv)
+            if self.write_check == True:
+                self.write_vv(self.vv)
 
     def read_input(self):
         """ Reads .toml input file, populates vv and uv dataclasses
@@ -162,10 +163,8 @@ class RismController:
                 slv_uv = Solvers.Solver(inp["params"]["solver"]).get_solver()
                 self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv)
 
-
-        self.SFE = Functionals.Functional(inp["params"]["closure"])
-        self.SFE_GF = Functionals.Functional("GF")
-        self.clos_name = inp["params"]["closure"]
+        if len(sys.argv) > 2:
+            self.write_check = bool(sys.argv[2])
 
     def add_species(self, spec_dat, data_object):
         """Parses interaction sites and assigns them to relevant species
@@ -384,8 +383,6 @@ class RismController:
                 gr[lbl1+"-"+lbl2] = uv.g[:, i, j]
                 cr[lbl1+"-"+lbl2] = uv.c[:, i, j]
                 tr[lbl1+"-"+lbl2] = uv.t[:, i, j]
-                dr[lbl1+"-"+lbl2] = uv.d[:, i, j]
-                d_GFr[lbl1+"-"+lbl2] = uv.d_GF[:, i, j]
         self.write_csv(gr, self.name, ".guv", uv.p, uv.T)
         self.write_csv(cr, self.name, ".cuv", uv.p, uv.T)
         self.write_csv(tr, self.name, ".tuv", uv.p, uv.T)
@@ -460,11 +457,38 @@ class RismController:
     def integrate(self, SFE, dr):
         return dr * np.sum(SFE)
 
+    def SFED_write(self, r, SFEDs, p, T):
+        dr = pd.DataFrame(r, columns=["r"])
+        for SFED_key in SFEDs:
+            dr[SFED_key] = SFEDs[SFED_key]
+        self.write_csv(dr, self.name + "_SFED", ".duv", p, T)
+
+
+    def SFED_calc(self, dat2):
+        SFED_HNC = Functionals.Functional("HNC").get_functional()(dat2)
+        SFED_KH = Functionals.Functional("KH").get_functional()(dat2)
+        SFED_GF = Functionals.Functional("GF").get_functional()(dat2)
+
+        SFE_HNC = self.integrate(SFED_HNC, dat2.grid.d_r)
+        SFE_KH = self.integrate(SFED_KH, dat2.grid.d_r)
+        SFE_GF = self.integrate(SFED_GF, dat2.grid.d_r)
+        SFE_text = "\n{clos_name}: {SFE_val} kcal/mol"
+
+        print(SFE_text.format(clos_name="KH", SFE_val=SFE_KH))
+        print(SFE_text.format(clos_name="HNC", SFE_val=SFE_HNC))
+        print(SFE_text.format(clos_name="GF", SFE_val=SFE_GF))
+
+        SFEDs = {"HNC": SFED_HNC,
+                 "KH": SFED_KH,
+                 "GF": SFED_GF}
+        self.SFED_write(dat2.grid.ri, SFEDs, dat2.p, dat2.T)
+
+
     def epilogue(self, dat1, dat2=None):
         """Computes final total, direct and pair correlation functions
 
         Parameters
-        ----------
+         ----------
         dat1: Core.RISM_Obj
             Dataclass containing all information for final functions
         dat2: Core.RISM_Obj, optional
@@ -476,21 +500,12 @@ class RismController:
         dat1.g = 1.0 + dat1.c + dat1.t
         dat1.h = dat1.t + dat1.c
 
-
-
         if self.uv_check:
             dat2.c -= dat2.B * dat2.ur_lr
             dat2.t += dat2.B * dat2.ur_lr
             dat2.g = 1.0 + dat2.c + dat2.t
             dat2.h = dat2.t + dat2.c
-            dat2.d = self.SFE.get_functional()(self.uv)
-            dat2.d_GF = self.SFE_GF.get_functional()(self.uv)
-
-        SFE = self.integrate(dat2.d, dat2.grid.d_r)
-        GF = self.integrate(dat2.d_GF, dat2.grid.d_r)
-        SFE_text = "\n{clos_name}: {SFE_val} kcal/mol"
-        print(SFE_text.format(clos_name=self.clos_name, SFE_val=SFE))
-        print(SFE_text.format(clos_name="GF", SFE_val=GF))
+            self.SFED_calc(dat2)
 
 if __name__ == "__main__":
     mol = RismController(sys.argv[1])
