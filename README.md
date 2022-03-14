@@ -2,7 +2,9 @@ pyrism
 ==============================
 [//]: # (Badges)
 [![Travis Build Status](https://travis-ci.com/REPLACE_WITH_OWNER_ACCOUNT/pyrism.svg?branch=master)](https://travis-ci.com/REPLACE_WITH_OWNER_ACCOUNT/pyrism)
-[![codecov](https://codecov.io/gh/REPLACE_WITH_OWNER_ACCOUNT/pyrism/branch/master/graph/badge.svg)](https://codecov.io/gh/REPLACE_WITH_OWNER_ACCOUNT/pyrism/branch/master)
+[![codecov](https://codecov.io/gh/REPLACE_WITH_OWNER_ACCOUNT/pyrism/branch/master/graph/badge.svg)](https://codecov.io/gh/REPLACE_WITH_OWNER_ACCOUNT/pyrism/obranch/master)
+[![DOI](https://zenodo.org/badge/267991398.svg)](https://zenodo.org/badge/latestdoi/267991398)
+
 
 A pedagogical implementation of the RISM equations
 
