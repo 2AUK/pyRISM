@@ -5,6 +5,7 @@ from Core import RISM_Obj
 from dataclasses import dataclass, field
 import Util
 from scipy.special import spherical_jn
+from numba import njit, prange
 
 @dataclass
 class DRISM(object):
@@ -18,6 +19,27 @@ class DRISM(object):
     y: float = field(init=False)
 
     def compute_vv(self):
+
+        ck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
+
+        for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
+            ck[..., i, j] = self.data_vv.grid.dht(self.data_vv.c[..., i, j])
+
+        self.data_vv.h = vv_impl(self.data_vv.ns1,
+                                 self.data_vv.ns2,
+                                 self.data_vv.npts,
+                                 ck,
+                                 self.data_vv.B,
+                                 self.data_vv.uk_lr,
+                                 self.data_vv.w,
+                                 self.data_vv.p,
+                                 self.chi)
+
+        for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
+            self.data_vv.t[:, i, j] = self.data_vv.grid.idht(self.data_vv.h[:, i, j] - ck[:, i, j]) \
+                - self.data_vv.B * self.data_vv.ur_lr[:, i, j]
+
+        """
         I = np.eye(self.data_vv.ns1, M=self.data_vv.ns2, dtype=np.float64)
         ck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
         w_bar = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
@@ -35,8 +57,32 @@ class DRISM(object):
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
             self.data_vv.t[:, i, j] = self.data_vv.grid.idht(self.data_vv.h[:, i, j] - ck[:, i, j]) - (
                 self.data_vv.B * self.data_vv.ur_lr[:, i, j])
-
+        """
     def compute_uv(self):
+        if self.data_uv is not None:
+
+            ck_uv = np.zeros((self.data_uv.npts, self.data_uv.ns1, self.data_uv.ns2), dtype=np.float64)
+
+            for i, j in np.ndindex(self.data_uv.ns1, self.data_uv.ns2):
+                ck_uv[..., i, j] = self.data_uv.grid.dht(self.data_uv.c[..., i, j])
+
+            self.data_uv.h = uv_impl(self.data_uv.ns1,
+                                     self.data_uv.ns2,
+                                     self.data_uv.npts,
+                                     ck_uv,
+                                     self.data_uv.B,
+                                     self.data_uv.uk_lr,
+                                     self.data_uv.w,
+                                     self.data_vv.w,
+                                     self.data_uv.p,
+                                     self.data_vv.h)
+
+            for i, j in np.ndindex(self.data_uv.ns1, self.data_uv.ns2):
+                self.data_uv.t[:, i, j] = self.data_uv.grid.idht(self.data_uv.h[:, i, j] - ck_uv[:, i, j]) \
+                    - self.data_uv.B * self.data_uv.ur_lr[:, i, j]
+        else:
+            raise RuntimeError("uv dataclass not defined")
+        """
         if self.data_uv is not None:
             I = np.eye(self.data_uv.ns1, M=self.data_uv.ns2)
             ck_uv = np.zeros((self.data_uv.npts, self.data_uv.ns1, self.data_uv.ns2), dtype=np.float64)
@@ -50,6 +96,7 @@ class DRISM(object):
                     self.data_uv.B * self.data_uv.ur_lr[:, i, j])
         else:
             raise RuntimeError("uv dataclass not defined")
+        """
 
     def calculate_DRISM_params(self):
         total_density = 0
@@ -94,8 +141,29 @@ class DRISM(object):
         self.chi = np.zeros((self.data_vv.grid.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float)
         self.D_matrix()
 
-def vv_impl():
-    pass
+@njit(parallel=True)
+def vv_impl(ns1, ns2, npts, ck, B, uk_lr, w, p, chi):
 
-def uv_impl():
-    pass
+    I = np.eye(ns1, M=ns2, dtype=np.float64)
+    w_bar = np.zeros((npts, ns1, ns2), dtype=np.float64)
+    h = np.zeros_like(w_bar)
+
+    ck -= B * uk_lr
+    for i in prange(npts):
+        w_bar[i] = (w[i] + p @ chi[i])
+        iwcp = np.linalg.inv(I - w_bar[i] @ ck[i] @ p)
+        wcw = w_bar[i] @ ck[i] @ w_bar[i]
+        h[i] = (iwcp @ wcw) + chi[i]
+
+    return h
+
+@njit(parallel=True)
+def uv_impl(ns1, ns2, npts, ck_uv, B, uk_lr, w_uv, w_vv, p, h_vv):
+    I = np.eye(ns1, M=ns2)
+    h_uv = np.zeros((npts, ns1, ns2), dtype=np.float64)
+
+    ck_uv -= B * uk_lr
+    for i in prange(npts):
+        h_uv[i] = (w_uv[i] @ ck_uv[i]) @ (w_vv[i] + p @ h_vv[i])
+
+    return h_uv

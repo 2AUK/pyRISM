@@ -404,7 +404,7 @@ class RismController:
         """
         fvv = np.exp(-dat1.B * dat1.u_sr) - 1.0
         print("\nRunning: " + self.name)
-        print("Temp: " + dat1.T)
+        print("Temp: " + str(dat1.T))
         if self.uv_check:
             fuv = np.exp(-dat2.B * dat2.u_sr) - 1.0
         for j in range(1, dat1.nlam+1):

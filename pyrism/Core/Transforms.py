@@ -9,7 +9,7 @@ transforms (Hankel transform) using the discrete sine transform function via sci
 
 import numpy as np
 from scipy.fftpack import dst, idst
-
+from numba import njit, jit
 
 def discrete_hankel_transform(
     r: np.ndarray, k: np.ndarray, fr: np.ndarray, d_r: float

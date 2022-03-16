@@ -4,7 +4,12 @@ from Core import RISM_Obj
 import numpy as np
 from dataclasses import dataclass, field
 from .Solver_object import *
+from numba import njit
+from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
+import warnings
 
+warnings.simplefilter('ignore', category=NumbaDeprecationWarning)
+warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)
 
 np.set_printoptions(edgeitems=30, linewidth=180,
     formatter=dict(float=lambda x: "%.5g" % x))
@@ -22,6 +27,13 @@ class MDIIS(SolverObject):
         return prev + self.damp_picard * (curr - prev)
 
     def step_MDIIS(self, curr, prev):
+        return step_MDIIS_impl(curr,
+                               prev,
+                               self.m,
+                               self.res,
+                               self.fr,
+                               self.damp_picard)
+        """
         A = np.zeros((self.m+1, self.m+1), dtype=np.float64)
         b = np.zeros(self.m+1, dtype=np.float64)
 
@@ -37,23 +49,23 @@ class MDIIS(SolverObject):
             A[i,j] = self.res[i] @ self.res[j]
         coef = np.linalg.solve(A, b)
 
-        c_A = 0
-        min_res = 0
+        c_A = np.zeros_like(self.fr[0])
+        min_res = np.zeros_like(self.fr[0])
         for i in range(self.m):
             c_A += coef[i] * self.fr[i]
             min_res += coef[i] * self.res[i]
+        print(c_A)
 
         c_new = c_A + self.damp_picard * min_res
 
         self.fr.append(curr.flatten())
         self.res.append((curr - prev).flatten())
 
-
-
         self.fr.pop(0)
         self.res.pop(0)
 
         return c_new
+        """
 
 
     def solve(self, RISM, Closure, lam):
@@ -152,3 +164,37 @@ class MDIIS(SolverObject):
                 print("Max iteration reached!")
                 self.epilogue(i, lam)
                 break
+
+@njit
+def step_MDIIS_impl(curr, prev, m, res, fr, damp_picard):
+    A = np.zeros((m+1, m+1), dtype=np.float64)
+    b = np.zeros(m+1, dtype=np.float64)
+
+    b[m] = -1
+
+    for i in range(m+1):
+        A[i, m] = -1
+        A[m, i] = -1
+
+    A[m, m] = 0
+
+    for i, j in np.ndindex((m, m)):
+        A[i,j] = res[i] @ res[j]
+
+    coef = np.linalg.solve(A, b)
+
+    c_A = np.zeros_like(fr[0])
+    min_res = np.zeros_like(fr[0])
+    for i in range(m):
+        c_A += coef[i] * fr[i]
+        min_res += coef[i] * res[i]
+
+    c_new = c_A + damp_picard * min_res
+
+    fr.append(curr.flatten())
+    res.append((curr - prev).flatten())
+
+    fr.pop(0)
+    res.pop(0)
+
+    return c_new
