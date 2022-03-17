@@ -45,7 +45,11 @@ def quaternion_from_Euler_axis(angle, direction):
     return quat
 
 def align_dipole(dat):
-    dm, dmvec = dipole_moment(dat)
+    if dipole_moment(dat) is None:
+        dm, dmvec = 1E-17, np.asarray([1E-17, 1E-17, 0.0])
+    else:
+        dm, dmvec = dipole_moment(dat)
+    print(dm, dmvec)
     zaxis = np.asarray([0.0, 0.0, 1.0])
     yaxis = np.asarray([0.0, 1.0, 0.0])
 
