@@ -17,6 +17,7 @@ import Solvers
 import Potentials
 import Functionals
 import Util
+from numba import njit, jit, prange
 
 from dataclasses import dataclass, field
 
@@ -264,8 +265,20 @@ class RismController:
         For solvent-solvent problem `dat1` and `dat2` are the same,
         for the solute-solvent problem they both refer to the solvent
         and solute dataclasses respectively."""
+
+
         sr_pot, mix = self.pot.get_potential()
         cou, _ = Potentials.Potential("cou").get_potential()
+        # dat1.u = build_Ur_impl(dat1.npts,
+        #                        dat1.ns1,
+        #                        dat1.ns2,
+        #                        sr_pot,
+        #                        mix,
+        #                        cou,
+        #                        dat1.atoms,
+        #                        dat2.atoms,
+        #                        dat2.grid.ri,
+        #                        dat2.amph)
         for i, iat in enumerate(dat1.atoms):
             for j, jat in enumerate(dat2.atoms):
                 i_sr_params = iat.params[:-1]
@@ -508,6 +521,40 @@ class RismController:
             dat2.g = 1.0 + dat2.c + dat2.t
             dat2.h = dat2.t + dat2.c
             self.SFED_calc(dat2)
+
+@jit
+def build_Ur_impl(npts, ns1, ns2, sr_pot, mix, cou, atoms1, atoms2, r, charge_coeff, lam=1):
+    """Tabulates full short-range and Coulombic potential
+
+        Parameters
+        ----------
+        dat1: Core.RISM_Obj
+            Dataclass containing information required for potential
+        dat2: Core.RISM_Obj
+            Dataclass containing information required for potential
+        lam: float
+            :math: `\lambda` parameter for current charging cycle
+
+        Notes
+        -----
+        For solvent-solvent problem `dat1` and `dat2` are the same,
+        for the solute-solvent problem they both refer to the solvent
+        and solute dataclasses respectively."""
+    u = np.zeros((npts, ns1, ns2), dtype=np.float64)
+    for i, iat in enumerate(atoms1):
+        for j, jat in enumerate(atoms2):
+            i_sr_params = iat.params[:-1]
+            j_sr_params = jat.params[:-1]
+            qi = iat.params[-1]
+            qj = jat.params[-1]
+            if iat == jat:
+                u[:, i, j] = sr_pot(r, i_sr_params, lam) \
+                    + cou(r, qi, qj, lam, charge_coeff)
+            else:
+                mixed = mix(i_sr_params, j_sr_params)
+                u[:, i, j] = sr_pot(r, mixed, lam) \
+                    + cou(r, qi, qj, lam, charge_coeff)
+        return u
 
 if __name__ == "__main__":
     mol = RismController(sys.argv[1])

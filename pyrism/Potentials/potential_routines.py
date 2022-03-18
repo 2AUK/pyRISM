@@ -1,7 +1,8 @@
 import numpy as np
 from scipy.special import erf
+from numba import njit
 
-
+@njit
 def Lennard_Jones(r, params, lam):
     """
     Computes the Lennard-Jones potential with epsilon and sigma parameters
@@ -79,7 +80,7 @@ def hard_spheres(r, sigma, lam):
 
     return np.where((r >= sigma), 0, np.inf) * lam
 
-
+@njit
 def coulomb(r, q1, q2, lam, charge_coeff):
     """
     Computes the Coulomb potential
@@ -103,7 +104,6 @@ def coulomb(r, q1, q2, lam, charge_coeff):
         The result of the LJ computation
     """
     return lam * charge_coeff * q1 * q2 / r
-
 
 def coulomb_lr_r(r, q1, q2, damping, rscreen, lam, charge_coeff):
     """
@@ -131,7 +131,7 @@ def coulomb_lr_r(r, q1, q2, damping, rscreen, lam, charge_coeff):
     """
     return lam * charge_coeff * q1 * q2 * erf(damping * r / rscreen) / r
 
-
+@njit
 def coulomb_lr_k(k, q1, q2, damping, lam, charge_coeff):
     """
     Computes the Ng renorm potential
@@ -158,11 +158,11 @@ def coulomb_lr_k(k, q1, q2, damping, lam, charge_coeff):
     """
     return (
         lam
-        * 4
+        * 4.0
         * np.pi
         * q1
         * q2
         * charge_coeff
-        * np.exp(-1.0 * k ** 2 / (4.0 * damping ** 2))
-        / k ** 2
+        * np.exp(-1.0 * k ** 2.0 / (4.0 * damping ** 2.0))
+        / k ** 2.0
     )

@@ -1,14 +1,15 @@
 import numpy as np
+from numba import njit, jit
 
-
+@njit
 def geometric_mean(A: float, B: float) -> float:
     return np.sqrt(A * B)
 
-
+@njit
 def arithmetic_mean(A: float, B: float) -> float:
     return 0.5 * (A + B)
 
-
+@jit
 def Lorentz_Berthelot(params1, params2) -> tuple:
     """
     Lorentz-Berthelot mixing rules to compute epsilon and sigma parameters of different site types
