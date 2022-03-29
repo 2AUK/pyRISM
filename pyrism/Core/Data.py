@@ -40,9 +40,12 @@ class RISM_Obj(object):
     species: list = field(init=False, default_factory=list)
     atoms: list = field(init=False, default_factory=list)
 
+    def calculate_beta(self):
+        self.B = 1 / self.T / self.kT
+
     def __post_init__(self):
 
-        self.B = 1 / self.T / self.kT
+        self.calculate_beta()
         self.c_prev = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
         self.t = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
         self.h = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)

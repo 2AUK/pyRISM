@@ -560,7 +560,9 @@ if __name__ == "__main__":
     mol = RismController(sys.argv[1])
     mol.initialise_controller()
     if len(sys.argv) > 3:
-        mol.vv.T = sys.argv[3]
+        mol.vv.T = float(sys.argv[3])
+        mol.vv.calculate_beta()
         if mol.uv_check:
-            mol.uv.T = sys.argv[3]
+            mol.uv.T = float(sys.argv[3])
+            mol.uv.calculate_beta()
     mol.do_rism()
