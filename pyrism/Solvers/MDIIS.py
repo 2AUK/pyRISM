@@ -72,6 +72,8 @@ class MDIIS(SolverObject):
         i: int = 0
         A = np.zeros((2, 2), dtype=np.float64)
         b = np.zeros(2, dtype=np.float64)
+        mean = (self.data_vv.ns1 + self.data_vv.ns2 + self.data_vv.grid.npts)
+        MAE = 0
 
         print("\nSolving solvent-solvent RISM equation...\n")
         self.fr.clear()
@@ -86,15 +88,17 @@ class MDIIS(SolverObject):
             if len(self.fr) < self.m:
                 c_next = self.step_Picard(c_A, c_prev)
                 RMS = np.sqrt(
-                1 / self.data_vv.ns1 / self.data_vv.grid.npts * np.power((c_A-c_prev).sum(), 2)
-                )
+                1 / mean * np.power((c_A-c_prev).sum(), 2)
+                ) / mean
                 self.RMS_res.append(RMS)
+                MAE = abs((c_A-c_prev).sum()) / mean
             else:
                 c_next = self.step_MDIIS(c_A, c_prev)
                 c_next = np.reshape(c_next, c_prev.shape)
                 RMS = np.sqrt(
-                1 / self.data_vv.ns1 / self.data_vv.grid.npts * np.power((c_A-c_prev).sum(), 2)
-                )
+                1 / mean * np.power((c_A-c_prev).sum(), 2)
+                ) / mean
+                MAE = abs((c_A-c_prev).sum()) / mean
                 if RMS > 10 * min(self.RMS_res):
                     min_index = self.RMS_res.index(min(self.RMS_res))
                     c_next = np.reshape(self.fr[min_index], c_prev.shape)
@@ -104,10 +108,10 @@ class MDIIS(SolverObject):
                 self.RMS_res.append(RMS)
                 self.RMS_res.pop(0)
 
-
             self.data_vv.c = c_next
 
             if self.converged(c_next, c_prev):
+                print(MAE)
                 self.epilogue(i, lam)
                 break
 
@@ -122,6 +126,8 @@ class MDIIS(SolverObject):
         i: int = 0
         A = np.zeros((2, 2), dtype=np.float64)
         b = np.zeros(2, dtype=np.float64)
+        mean = (self.data_uv.ns1 + self.data_uv.ns2 + self.data_uv.grid.npts)
+        MAE = 0
 
         print("\nSolving solute-solvent RISM equation...\n")
         self.fr.clear()
@@ -132,18 +138,21 @@ class MDIIS(SolverObject):
             c_prev = self.data_uv.c
             RISM()
             c_A = Closure(self.data_uv)
+
             if len(self.fr) < self.m:
                 c_next = self.step_Picard(c_A, c_prev)
                 RMS = np.sqrt(
-                1 / self.data_vv.ns1 / self.data_vv.grid.npts * np.power((c_A-c_prev).sum(), 2)
-                )
+                1 / mean * np.power((c_A-c_prev).sum(), 2)
+                ) / mean
                 self.RMS_res.append(RMS)
+                MAE = abs((c_A-c_prev).sum()) / mean
             else:
                 c_next = self.step_MDIIS(c_A, c_prev)
                 c_next = np.reshape(c_next, c_prev.shape)
                 RMS = np.sqrt(
-                1 / self.data_uv.ns1 / self.data_uv.grid.npts * np.power((c_A-c_prev).sum(), 2)
-                )
+                1 / mean * np.power((c_A-c_prev).sum(), 2)
+                ) / mean
+                MAE = abs((c_A-c_prev).sum()) / mean
                 if RMS > 10 * min(self.RMS_res):
                     min_index = self.RMS_res.index(min(self.RMS_res))
                     c_next = np.reshape(self.fr[min_index], c_prev.shape)
@@ -155,6 +164,7 @@ class MDIIS(SolverObject):
             self.data_uv.c = c_next
 
             if self.converged(c_next, c_prev):
+                print(MAE)
                 self.epilogue(i, lam)
                 break
 

@@ -20,15 +20,15 @@ class DRISM(object):
 
     def compute_vv(self):
 
-        ck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
+        kck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
 
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
-            ck[..., i, j] = self.data_vv.grid.dht(self.data_vv.c[..., i, j])
+            kck[..., i, j] = self.data_vv.grid.ki * self.data_vv.grid.dht(self.data_vv.c[..., i, j])
 
         self.data_vv.h = vv_impl(self.data_vv.ns1,
                                  self.data_vv.ns2,
                                  self.data_vv.npts,
-                                 ck,
+                                 kck,
                                  self.data_vv.B,
                                  self.data_vv.uk_lr,
                                  self.data_vv.w,
@@ -36,28 +36,9 @@ class DRISM(object):
                                  self.chi)
 
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
-            self.data_vv.t[:, i, j] = self.data_vv.grid.idht(self.data_vv.h[:, i, j] - ck[:, i, j]) \
+            self.data_vv.t[:, i, j] = self.data_vv.grid.idht((self.data_vv.h[:, i, j] - kck[:, i, j]) / self.data_vv.grid.ki) \
                 - self.data_vv.B * self.data_vv.ur_lr[:, i, j]
 
-        """
-        I = np.eye(self.data_vv.ns1, M=self.data_vv.ns2, dtype=np.float64)
-        ck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
-        w_bar = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
-        k = self.data_vv.grid.ki
-        r = self.data_vv.grid.ri
-        for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
-            ck[:, i, j] = self.data_vv.grid.dht(self.data_vv.c[:, i, j])
-            ck[:, i, j] -= self.data_vv.B * self.data_vv.uk_lr[:, i, j]
-        for i in range(self.data_vv.grid.npts):
-            chi = self.chi
-            w_bar[i] = (self.data_vv.w[i] + self.data_vv.p @ chi[i])
-            iwcp = np.linalg.inv(I - w_bar[i] @ ck[i] @ self.data_vv.p)
-            wcw = (w_bar[i] @ ck[i] @ w_bar[i])
-            self.data_vv.h[i] = (iwcp @ wcw) + (chi[i])
-        for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
-            self.data_vv.t[:, i, j] = self.data_vv.grid.idht(self.data_vv.h[:, i, j] - ck[:, i, j]) - (
-                self.data_vv.B * self.data_vv.ur_lr[:, i, j])
-        """
     def compute_uv(self):
         if self.data_uv is not None:
 
@@ -82,21 +63,6 @@ class DRISM(object):
                     - self.data_uv.B * self.data_uv.ur_lr[:, i, j]
         else:
             raise RuntimeError("uv dataclass not defined")
-        """
-        if self.data_uv is not None:
-            I = np.eye(self.data_uv.ns1, M=self.data_uv.ns2)
-            ck_uv = np.zeros((self.data_uv.npts, self.data_uv.ns1, self.data_uv.ns2), dtype=np.float64)
-            for i, j in np.ndindex(self.data_uv.ns1, self.data_uv.ns2):
-                ck_uv[:, i, j] = self.data_uv.grid.dht(self.data_uv.c[:, i, j])
-                ck_uv[:, i, j] -= self.data_uv.B * self.data_uv.uk_lr[:, i, j]
-            for i in range(self.data_uv.grid.npts):
-                self.data_uv.h[i] = (self.data_uv.w[i] @ ck_uv[i]) @ (self.data_vv.w[i] + self.data_vv.p @ self.data_vv.h[i])
-            for i, j in np.ndindex(self.data_uv.ns1, self.data_uv.ns2):
-                self.data_uv.t[:, i, j] = self.data_uv.grid.idht(self.data_uv.h[:, i, j] - ck_uv[:, i, j]) - (
-                    self.data_uv.B * self.data_uv.ur_lr[:, i, j])
-        else:
-            raise RuntimeError("uv dataclass not defined")
-        """
 
     def calculate_DRISM_params(self):
         total_density = 0

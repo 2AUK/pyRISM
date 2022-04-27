@@ -168,7 +168,10 @@ class RismController:
                 self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv)
 
         if len(sys.argv) > 2:
-            self.write_check = bool(sys.argv[2])
+            if sys.argv[2] == "True":
+                self.write_check = True
+            else:
+                self.write_check = False
 
     def add_species(self, spec_dat, data_object):
         """Parses interaction sites and assigns them to relevant species
@@ -186,6 +189,17 @@ class RismController:
         new_spec.set_numsites(spdict["ns"])
         site_info = list(spdict.items())[2 : new_spec.ns + 2]
         for i in site_info:
+            name = i[0]
+            params = i[1][0]
+            coords = np.asarray(i[1][1])
+            replace_str = "Replacing 0 {param} parameter of {lbl} with {value}"
+            if i[0].startswith("H"):
+                if params[0] == 0.0:
+                    print(replace_str.format(param="epsilon", lbl=name, value=0.2 * data_object.T))
+                    params[0] = 0.2 * data_object.T
+                if params[1] == 0.0:
+                    print(replace_str.format(param="sigma", lbl=name, value=0.4))
+                    params[1] = 0.4
             atom = Core.Site(i[0], i[1][0], np.asarray(i[1][1]))
             new_spec.add_site(atom)
             data_object.atoms.append(atom)

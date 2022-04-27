@@ -7,7 +7,7 @@ Defines Grid object to handle generation and transforms
 from dataclasses import dataclass, field
 import numpy as np
 from scipy.fftpack import dst, idst
-from .Transforms import discrete_hankel_transform, inverse_discrete_hankel_transform
+#from .Transforms import discrete_hankel_transform, inverse_discrete_hankel_transform
 
 
 @dataclass(init=True)
@@ -82,3 +82,8 @@ class Grid:
            Transformed function from k-space to r-space
         """
         return inverse_discrete_hankel_transform(self.ri, self.ki, fk, self.d_k)
+
+
+if __name__ == "__main__":
+    new_grid = Grid(10, 20.48)
+    print(new_grid)
