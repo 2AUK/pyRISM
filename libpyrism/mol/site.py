@@ -13,7 +13,12 @@ class InteractionSite:
     name: str
     coordinates: np.ndarray
     parameters: tuple
-    sitetype: SiteKind
+    charge: float
+    sitetype: SiteKind = field(default=SiteKind.atom_centered)
+
+    def __post_init__(self):
+        if coordinates.size != 3:
+            raise ValueError("Require x, y and z coordinates!")
 
     def _parameter_check(self):
         if 0 in self.parameters:
@@ -24,6 +29,6 @@ class InteractionSite:
 
 
 if __name__ == "__main__":
-    new_good_site = InteractionSite("H", [1.0, 0.0, 0.0], (78.15, 0.4), SiteKind.atom_centered)
+    new_good_site = InteractionSite("H", [1.0, 0.0, 0.0], (78.15, 0.4), 0.0)
     print(new_good_site)
-    new_bad_site = InteractionSite("X", [0, 0, 0], (0.0, 0.8), SiteKind.atom_centered)
+    new_bad_site = InteractionSite("X", [0, 0, 0], (0.0, 0.8), 0.0, SiteKind.auxilliary)
