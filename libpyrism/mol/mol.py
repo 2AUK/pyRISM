@@ -2,11 +2,11 @@
 from dataclasses import dataclass, field
 from enum import Enum
 from .site import InteractionSite
+import toml
 
 class SpeciesKind(Enum):
     Solvent = 0
     Solute = 1
-
 
 @dataclass
 class InteractionSiteMolecule:
@@ -20,10 +20,19 @@ class InteractionSiteMolecule:
         self.sites.append(site)
         return self
 
+    def read_from_toml(self, input_toml):
+        pass
+
+    def read_from_dict(self, input_dict):
+        pass
+
     def check(self):
         if len(self.sites) != self.nsites:
             raise ValueError("Mismatch between nsites and length of sites list!")
         return self
+
+    def __lt__(self, other):
+        return self.SpeciesKind < other.SpeciesKind
 
 
 if __name__ == "__main__":

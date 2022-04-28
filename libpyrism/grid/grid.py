@@ -5,7 +5,11 @@ import numpy as np
 
 @dataclass(init=True)
 class Grid(object):
-    """Grid object - all functions are tabulated with Grid
+    """
+    Grid object - all functions are tabulated with Grid
+    A midpoint grid is generated using the number of points `npts` and
+    interval [0, `radius`].
+    DST Type IV is use for transforms on the grid.
 
     Attributes
     ----------
@@ -51,3 +55,8 @@ class Grid(object):
         k_grid = np.arange(0.5, self.npts) * self.dk
 
         return r_grid, k_grid
+
+if __name__ == "__main__":
+    new_grid = Grid(16384, 20.48)
+    print(np.arange(0.5, 16384))
+    print(new_grid.r_grid)

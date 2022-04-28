@@ -17,16 +17,13 @@ class InteractionSite:
     sitetype: SiteKind = field(default=SiteKind.atom_centered)
 
     def __post_init__(self):
+        self._check()
+
+    def _check(self):
         if coordinates.size != 3:
             raise ValueError("Require x, y and z coordinates!")
-
-    def _parameter_check(self):
         if 0 in self.parameters:
             raise ValueError("Site {name} has a parameter set to 0!".format(name=self.name))
-
-    def __post_init__(self):
-        self._parameter_check()
-
 
 if __name__ == "__main__":
     new_good_site = InteractionSite("H", [1.0, 0.0, 0.0], (78.15, 0.4), 0.0)
