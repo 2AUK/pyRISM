@@ -32,3 +32,4 @@ class RISMProblem:
         """
         Perform checks, generate PairTable, initialise functions.
         """
+        pass
