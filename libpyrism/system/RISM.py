@@ -40,7 +40,7 @@ class RISMProblem:
         species_list = [*solv_list, *solu_list]
         return RISMProblem(
             species_list,
-            PairTable(species_list),
+            PairTable.generate_tables(species_list),
             problemtype
         )
 
@@ -67,4 +67,4 @@ class RISMProblem:
 
 if __name__ == "__main__":
     new_RISM = RISMProblem.from_toml("data/Me_Eth_water.toml")
-    print(new_RISM)
+    print(new_RISM.pairs)

@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 from itertools import product, chain
 from mol import SpeciesKind
+from copy import deepcopy
 
 @dataclass
 class PairTable:
@@ -19,34 +20,40 @@ class PairTable:
     species: list
     A table containing
     """
-    species: list
-    upairs: list = field(init=False, default_factory=list)
-    vpairs: list = field(init=False, default_factory=list)
-    uvpairs: list = field(init=False, default_factory=list)
+    upairs: list = field(default_factory=list)
+    vpairs: list = field(default_factory=list)
+    uvpairs: list = field(default_factory=list)
+    upairs_flat: list = field(default_factory=list)
+    vpairs_flat: list = field(default_factory=list)
 
-    def __post_init__(self):
-        self.generate_tables()
+    @classmethod
+    def generate_tables(self, species_list):
+        species_list.sort()
+        all_species = chain(*[[x.sites] for x in species_list])
+        solvent_species = chain(*[[x.sites] for x in species_list if x.moltype == SpeciesKind.Solvent])
+        solute_species = chain(*[[x.sites] for x in species_list if x.moltype == SpeciesKind.Solute])
+        solv_flat = chain(*[x.sites for x in species_list if x.moltype == SpeciesKind.Solvent])
+        solu_flat =  chain(*[x.sites for x in species_list if x.moltype == SpeciesKind.Solute])
+        upairs = self._pairs_in_list(self, list(solute_species))
+        vpairs = self._pairs_in_list(self, list(solvent_species))
+        upairs_flat = self._pairs_in_list_flat(self, list(solu_flat))
+        vpairs_flat = self._pairs_in_list_flat(self, list(solv_flat))
+        uvpairs = self._pairs_in_list_flat(self, list(chain(*(all_species))))
 
-    def generate_tables(self):
-        self.species.sort()
-        all_species = chain(*[x.sites for x in self.species])
-        solvent_species = chain(*[x.sites for x in self.species if x.moltype == SpeciesKind.Solvent])
-        solute_species = chain(*[x.sites for x in self.species if x.moltype == SpeciesKind.Solute])
-        self.upairs = self._pairs_in_list(solvent_species)
-        self.vpairs = self._pairs_in_list(solute_species)
-        self.uvpairs = self._pairs_in_list(all_species)
+        return PairTable (
+            upairs,
+            vpairs,
+            uvpairs,
+            upairs_flat,
+            vpairs_flat,
+        )
 
-    def iter_solute_pairs(self):
-        return iter(self.upairs)
-
-    def iter_solvent_pairs(self):
-        return iter(self.vpairs)
-
-    def iter_all_pairs(self):
-        return iter(self.uvpairs)
 
     def _pairs_in_list(self, input_list):
-        return list(product(input_list, repeat=2))
+        return [list(product(range(len(item)), repeat=2)) for item in input_list]
+
+    def _pairs_in_list_flat(self, input_list):
+        return list(product(range(len(input_list)), repeat=2))
 
     def _filter_species(self, input_list, filter):
         for x in input_list:
