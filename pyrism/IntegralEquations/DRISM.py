@@ -24,7 +24,6 @@ class DRISM(object):
 
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
             ck[..., i, j] = self.data_vv.grid.dht(self.data_vv.c[..., i, j])
-
         self.data_vv.h = vv_impl(self.data_vv.ns1,
                                  self.data_vv.ns2,
                                  self.data_vv.npts,
