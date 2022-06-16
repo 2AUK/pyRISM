@@ -7,6 +7,7 @@ from .Solver_object import *
 from numba import njit
 from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
 import warnings
+import sys
 
 warnings.simplefilter('ignore', category=NumbaDeprecationWarning)
 warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)
@@ -81,8 +82,15 @@ class MDIIS(SolverObject):
         while i < self.max_iter:
             #self.epilogue(i, lam)
             c_prev = self.data_vv.c
-            RISM()
-            c_A = Closure(self.data_vv)
+            try:
+                RISM()
+                c_A = Closure(self.data_vv)
+            except FloatingPointError as e:
+                print(e)
+                print("Possible divergence")
+                print("iteration: {i}".format(i=i))
+                print("diff: {diff}".format(diff=(c_A-c_prev).sum()))
+                sys.exit(1)
             if len(self.fr) < self.m:
                 c_next = self.step_Picard(c_A, c_prev)
                 RMS = np.sqrt(
@@ -130,8 +138,15 @@ class MDIIS(SolverObject):
 
         while i < self.max_iter:
             c_prev = self.data_uv.c
-            RISM()
-            c_A = Closure(self.data_uv)
+            try:
+                RISM()
+                c_A = Closure(self.data_uv)
+            except FloatingPointError as e:
+                print(e)
+                print("Possible divergence")
+                print("iteration: {i}".format(i=i))
+                print("diff: {diff}".format(diff=(c_A-c_prev).sum()))
+                sys.exit(1)
             if len(self.fr) < self.m:
                 c_next = self.step_Picard(c_A, c_prev)
                 RMS = np.sqrt(

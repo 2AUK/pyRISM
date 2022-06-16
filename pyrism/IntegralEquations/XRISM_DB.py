@@ -1,11 +1,14 @@
+#!/usr/bin/env python3
+
 import numpy as np
 import Util
 from Core import RISM_Obj
+import Potentials
 from dataclasses import dataclass, field
 from numba import jit, njit, prange
 
 @dataclass
-class XRISM(object):
+class XRISM_DB(object):
 
     data_vv: RISM_Obj
     data_uv: RISM_Obj = None

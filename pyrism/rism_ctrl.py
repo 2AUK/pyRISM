@@ -285,7 +285,7 @@ class RismController:
                 j_sr_params = jat.params[:-1]
                 qi = iat.params[-1]
                 qj = jat.params[-1]
-                if iat == jat:
+                if iat is jat:
                     dat1.u[:, i, j] = sr_pot(dat2.grid.ri, i_sr_params, lam) \
                         + cou(dat2.grid.ri, qi, qj, lam, dat2.amph)
                 else:
