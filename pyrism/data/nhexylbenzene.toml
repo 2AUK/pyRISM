@@ -3,16 +3,17 @@ temp = 298
 kT = 1.0
 kU = 0.00198720414667
 charge_coeff = 167101.0
-npts = 1024
-radius = 10.24
-lam = 10
+npts = 16384
+radius = 20.48
+lam = 1
 
 [params]
 potential = "LJ"
-closure = "HNC"
+closure = "KH"
 IE = "DRISM"
-solver = "Ng"
-picard_damping = 0.001
+solver = "MDIIS"
+picard_damping = 0.5
+depth = 8
 itermax = 10000
 tol = 1e-7
 diel = 78.497

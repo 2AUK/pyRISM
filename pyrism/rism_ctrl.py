@@ -140,10 +140,15 @@ class RismController:
 
         if inp["params"]["IE"] == "DRISM":
             IE = IntegralEquations.IntegralEquation(inp["params"]["IE"]).get_IE()
-            if Util.dipole_moment(self.uv) is not None:
-                Util.align_dipole(self.uv)
+            if Util.dipole_moment(self.vv) is not None:
+                Util.align_dipole(self.vv)
             else:
-                print("No dipole moment, skipping alignment step...")
+                print("No solvent dipole moment")
+            if self.uv_check:
+                if Util.dipole_moment(self.uv) is not None:
+                    Util.align_dipole(self.uv)
+                else:
+                    print("No dipole moment, skipping alignment step...")
             if self.uv_check:
                 self.IE = IE(self.vv, inp["params"]["diel"], inp["params"]["adbcor"], self.uv)
             else:
