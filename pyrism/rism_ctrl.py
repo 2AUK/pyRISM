@@ -18,6 +18,7 @@ import Potentials
 import Functionals
 import Util
 from numba import njit, jit, prange
+import cProfile
 
 from dataclasses import dataclass, field
 
@@ -439,8 +440,6 @@ class RismController:
 
             self.build_Ur(dat1, dat1, lam)
             self.build_renorm(dat1, dat1, 1.0, lam)
-            print(dat1.u)
-            print(dat1.u.shape, dat1.u.strides)
             dat1.u_sr = dat1.u - dat1.ur_lr
             self.solve_vv(lam)
 
@@ -573,3 +572,4 @@ if __name__ == "__main__":
             mol.uv.T = float(sys.argv[3])
             mol.uv.calculate_beta()
     mol.do_rism()
+    #cProfile.run("mol.do_rism()")
