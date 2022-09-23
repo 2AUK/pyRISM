@@ -439,6 +439,8 @@ class RismController:
 
             self.build_Ur(dat1, dat1, lam)
             self.build_renorm(dat1, dat1, 1.0, lam)
+            print(dat1.u)
+            print(dat1.u.shape, dat1.u.strides)
             dat1.u_sr = dat1.u - dat1.ur_lr
             self.solve_vv(lam)
 

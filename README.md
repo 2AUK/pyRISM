@@ -25,8 +25,10 @@ A pedagogical implementation of the RISM equations
 ### Usage
 Pass the input file as an argument to `rism_ctrl.py`
 
-`python rism_ctrl.py INPUT.toml`
+`python rism_ctrl.py INPUT.toml <True/False [OPTIONAL, default=False]> <Temp [OPTIONAL]>`
 
+The second argument allows you to define whether pyRISM outputs the correlation functions to files.
+The third argument allows you to override the temperature set in the `.toml` file.
 Example input files are provided in `pyrism\data` with references in `pyrism\data\README.md`
 
 ### Future Work
