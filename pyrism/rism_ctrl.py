@@ -19,6 +19,7 @@ import Functionals
 import Util
 from numba import njit, jit, prange
 import cProfile
+import timeit
 
 from dataclasses import dataclass, field
 
@@ -572,4 +573,3 @@ if __name__ == "__main__":
             mol.uv.T = float(sys.argv[3])
             mol.uv.calculate_beta()
     mol.do_rism()
-    #cProfile.run("mol.do_rism()")
