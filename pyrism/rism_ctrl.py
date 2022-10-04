@@ -18,8 +18,7 @@ import Potentials
 import Functionals
 import Util
 from numba import njit, jit, prange
-import cProfile
-import timeit
+import time
 
 from dataclasses import dataclass, field
 

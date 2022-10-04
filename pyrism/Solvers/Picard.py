@@ -49,7 +49,7 @@ class Picard(SolverObject):
     def solve_uv(self, RISM, Closure, lam):
         i: int = 0
 
-        print("\nSolving solvent-solvent RISM equation...\n")
+        print("\nSolving solute-solvent RISM equation...\n")
         while i < self.max_iter:
 
             c_prev = self.data_uv.c
@@ -64,7 +64,7 @@ class Picard(SolverObject):
 
             c_next = self.step_Picard(c_A, c_prev)
 
-            self.data_vv.c = c_next
+            self.data_uv.c = c_next
 
             if self.converged(c_next, c_prev):
                 self.epilogue(i, lam)
