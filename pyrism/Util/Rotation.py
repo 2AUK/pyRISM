@@ -3,7 +3,7 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-def dipole_moment(dat):
+def total_moment(dat):
     for isp in dat.species:
         total_charge = 0.0
         centre_of_charge = np.zeros(3, dtype=np.float)
@@ -32,6 +32,34 @@ def dipole_moment(dat):
 
         return dipole_mom, dipole_mom_vec
 
+def dipole_moment(isp):
+    total_charge = 0.0
+    centre_of_charge = np.zeros(3, dtype=np.float)
+    dipole_mom_vec = np.zeros(3, dtype=np.float)
+
+    for iat in isp.atom_sites:
+        total_charge += np.abs(iat.params[-1])
+
+    if total_charge == 0:
+        return (0.0, np.asarray([0.0, 0.0, 0.0]))
+
+    for iat in isp.atom_sites:
+        centre_of_charge += np.abs(iat.params[-1]) * iat.coords
+    centre_of_charge /= total_charge
+
+    for iat in isp.atom_sites:
+        iat.coords -= centre_of_charge
+
+    for iat in isp.atom_sites:
+        dipole_mom_vec += iat.params[-1] * iat.coords
+
+    dipole_mom = np.sqrt(np.sum(dipole_mom_vec * dipole_mom_vec))
+
+    if dipole_mom < 1E-16:
+        return (0.0, np.asarray([0.0, 0.0, 0.0]))
+
+    return dipole_mom, dipole_mom_vec
+
 
 def quaternion_from_Euler_axis(angle, direction):
     quat = np.zeros(4, dtype=np.float)
@@ -45,12 +73,13 @@ def quaternion_from_Euler_axis(angle, direction):
     return quat
 
 def align_dipole(dat):
-    dm, dmvec = dipole_moment(dat)
     zaxis = np.asarray([0.0, 0.0, 1.0])
     yaxis = np.asarray([0.0, 1.0, 0.0])
 
     for isp in dat.species:
-
+        dm, dmvec = dipole_moment(isp)
+        if not dmvec.any():
+            continue
         angle = -np.arccos(dmvec[0] / np.sqrt(np.sum(dmvec * dmvec)))
         quat = quaternion_from_Euler_axis(angle, np.copysign(zaxis, dmvec[1]))
         rotation_around_z = R.from_quat(quat)

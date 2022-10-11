@@ -111,7 +111,8 @@ class RismController:
                 inp["system"]["radius"],
                 inp["system"]["lam"],
             )
-            solv_species = list(inp["solvent"].items())[2 : self.vv.nsp1 + 2]
+            solv_species = list(inp["solvent"].items())[2:self.vv.nsp1 + 2]
+            print(solv_species)
             for i in solv_species:
                 self.add_species(i, self.vv)
 
@@ -141,12 +142,12 @@ class RismController:
 
         if inp["params"]["IE"] == "DRISM":
             IE = IntegralEquations.IntegralEquation(inp["params"]["IE"]).get_IE()
-            if Util.dipole_moment(self.vv) is not None:
+            if Util.total_moment(self.vv) is not None:
                 Util.align_dipole(self.vv)
             else:
                 print("No solvent dipole moment")
             if self.uv_check:
-                if Util.dipole_moment(self.uv) is not None:
+                if Util.total_moment(self.uv) is not None:
                     Util.align_dipole(self.uv)
                 else:
                     print("No dipole moment, skipping alignment step...")

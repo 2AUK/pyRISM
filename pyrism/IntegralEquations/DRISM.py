@@ -100,7 +100,7 @@ class DRISM(object):
     def calculate_DRISM_params(self):
         total_density = 0
         Util.align_dipole(self.data_vv)
-        dm, _ = Util.dipole_moment(self.data_vv)
+        dm, _ = Util.total_moment(self.data_vv)
         for isp in self.data_vv.species:
             total_density += isp.dens
         dmdensity = total_density * dm * dm
