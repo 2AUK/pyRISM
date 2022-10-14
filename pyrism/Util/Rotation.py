@@ -4,6 +4,8 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 
 def total_moment(dat):
+    total_mom = []
+    dm_vecs = []
     for isp in dat.species:
         total_charge = 0.0
         centre_of_charge = np.zeros(3, dtype=np.float)
@@ -30,7 +32,10 @@ def total_moment(dat):
         if dipole_mom < 1E-16:
             continue
 
-        return dipole_mom, dipole_mom_vec
+        total_mom.append(dipole_mom)
+        dm_vecs.append(dipole_mom_vec)
+
+    return (np.asarray(total_mom).sum(), dm_vecs)
 
 def dipole_moment(isp):
     total_charge = 0.0
