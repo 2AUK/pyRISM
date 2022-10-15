@@ -103,7 +103,7 @@ class DRISM(object):
         dm, _ = Util.total_moment(self.data_vv)
         for isp in self.data_vv.species:
             total_density += isp.dens
-        dmdensity = total_density * dm * dm
+            dmdensity += isp.dens * dm * dm
         ptxv = self.data_vv.species[0].dens / total_density
         self.y = 4.0 * np.pi * dmdensity / 9.0
         self.h_c0 = (((self.diel - 1.0) / self.y) - 3.0) / (total_density * ptxv)
