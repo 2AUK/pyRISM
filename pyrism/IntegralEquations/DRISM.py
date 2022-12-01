@@ -43,7 +43,7 @@ class DRISM(object):
     def compute_vv(self):
 
         ck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
-        self.precondition()
+        #self.precondition()
         r = self.data_vv.grid.ri
         k = self.data_vv.grid.ki
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
@@ -63,7 +63,7 @@ class DRISM(object):
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
             self.data_vv.t[:, i, j] = self.data_vv.grid.idht(self.data_vv.h[:, i, j] - ck[:, i, j]) \
                 - self.data_vv.B * self.data_vv.ur_lr[:, i, j]
-        self.unprecondition()
+        #self.unprecondition()
         #self.data_vv.h /= r[:, np.newaxis, np.newaxis]
         #self.data_vv.t /= r[:, np.newaxis, np.newaxis]
 
@@ -199,9 +199,9 @@ def vv_impl(ns1, ns2, npts, ck, B, uk_lr, w, p, chi, wbar):
     h = np.zeros_like(w_bar)
     ck -= B * uk_lr
     for i in prange(npts):
-        w_bar_tr = np.transpose(wbar[i])
-        iwcp = np.linalg.inv((I - p @ w_bar_tr @ ck[i]))
-        wcw = (w_bar_tr @ ck[i] @ wbar[i])
+        w_bar[i] = (w[i] + p @ chi[i])
+        iwcp = np.linalg.inv(I - w_bar[i] @ ck[i] @ p)
+        wcw = w_bar[i] @ ck[i] @ w_bar[i]
         h[i] = (iwcp @ wcw) + chi[i]
 
     return h

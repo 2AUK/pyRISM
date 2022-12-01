@@ -219,6 +219,7 @@ def step_MDIIS_impl(curr, prev, m, res, fr, damp_picard):
     for i, j in np.ndindex((m, m)):
         A[i,j] = res[i] @ res[j]
 
+    print(np.linalg.cond(A))
     coef = np.linalg.solve(A, b)
 
     c_A = np.zeros_like(fr[0])
