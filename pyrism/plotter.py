@@ -22,6 +22,7 @@ r = np.asarray(r, dtype=np.float64)
 plt.axhline(1, color='grey', linestyle="--", linewidth=2)
 plt.xlabel(r'r (Angstrom)')
 plt.ylabel(r'g(r)')
+plt.xlim([0,10])
 for gr in grs:
     plt.plot(r, gr[1], label=gr[0])
 

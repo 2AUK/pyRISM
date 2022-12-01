@@ -8,6 +8,7 @@ from numba import njit
 from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
 import warnings
 import sys
+import matplotlib.pyplot as plt
 
 warnings.simplefilter('ignore', category=NumbaDeprecationWarning)
 warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)
@@ -68,6 +69,24 @@ class MDIIS(SolverObject):
         return c_new
         """
 
+    def precondition(self):
+        r = self.data_vv.grid.ri[:, np.newaxis, np.newaxis]
+        k = self.data_vv.grid.ki[:, np.newaxis, np.newaxis]
+
+        self.data_vv.c *= r
+        self.data_vv.ur_lr *= r
+        self.data_vv.w *= k
+        self.data_vv.uk_lr *= k
+
+    def remove_preconditioning(self):
+        r = self.data_vv.grid.ri[:, np.newaxis, np.newaxis]
+        k = self.data_vv.grid.ki[:, np.newaxis, np.newaxis]
+
+        self.data_vv.c /= r
+        self.data_vv.ur_lr /= r
+        self.data_vv.w /= k
+        self.data_vv.uk_lr /= k
+        self.data_vv.t /= r
 
     def solve(self, RISM, Closure, lam):
         i: int = 0
@@ -78,13 +97,17 @@ class MDIIS(SolverObject):
         self.fr.clear()
         self.res.clear()
         self.RMS_res.clear()
-
+        fig = plt.figure()
+        #self.precondition()
         while i < self.max_iter:
             #self.epilogue(i, lam)
+            print(i)
             c_prev = self.data_vv.c
             try:
                 RISM()
+                #self.remove_preconditioning()
                 c_A = Closure(self.data_vv)
+                #self.precondition()
             except FloatingPointError as e:
                 print(e)
                 print("Possible divergence")
@@ -114,11 +137,11 @@ class MDIIS(SolverObject):
 
 
             self.data_vv.c = c_next
-
             if self.converged(c_next, c_prev):
                 self.epilogue(i, lam)
                 break
 
+            self.epilogue(i, lam)
             i += 1
 
             if i == self.max_iter:

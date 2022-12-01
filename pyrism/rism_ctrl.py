@@ -325,6 +325,7 @@ class RismController:
             for j, jat in enumerate(dat2.atoms):
                 qi = iat.params[-1]
                 qj = jat.params[-1]
+                print(iat, jat)
                 dat1.ur_lr[:, i, j] = erfr(dat2.grid.ri, qi, qj, damping, 1.0, lam, dat2.amph)
                 dat1.uk_lr[:, i, j] = erfk(dat2.grid.ki, qi, qj, damping, lam, dat2.amph)
 
@@ -433,14 +434,18 @@ class RismController:
         for j in range(1, dat1.nlam+1):
             lam = 1.0 * j / dat1.nlam
             if j == 1:
-                dat1.c = fvv
+                dat1.c = -dat1.B * dat1.ur_lr
                 if self.uv_check:
-                    dat2.c = fuv
+                    dat2.c = -dat2.B * dat2.ur_lr
                 else:
                     pass
 
             self.build_Ur(dat1, dat1, lam)
             self.build_renorm(dat1, dat1, 1.0, lam)
+            print("Long-range R")
+            print(mol.vv.ur_lr[..., 0, 0])
+            print("Long-range K")
+            print(mol.vv.uk_lr[..., 0, 0])
             dat1.u_sr = dat1.u - dat1.ur_lr
             self.solve_vv(lam)
 
@@ -573,3 +578,11 @@ if __name__ == "__main__":
             mol.uv.T = float(sys.argv[3])
             mol.uv.calculate_beta()
     mol.do_rism()
+    print("C_vv")
+    print(mol.vv.c)
+    print("Energy")
+    print(mol.vv.B * mol.vv.u)
+    print("Long-range R")
+    print(mol.vv.B * mol.vv.ur_lr)
+    print("Long-range K")
+    print(mol.vv.B * mol.vv.uk_lr)

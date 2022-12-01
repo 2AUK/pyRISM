@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.special import erf
+from scipy.special import erf, erfc
 from numba import njit
 
 @njit
@@ -131,6 +131,8 @@ def coulomb_lr_r(r, q1, q2, damping, rscreen, lam, charge_coeff):
     """
     return lam * charge_coeff * q1 * q2 * erf(damping * r / rscreen) / r
 
+    #return lam * charge_coeff * q1 * q2 * (1.0 - erfc( r / rscreen))
+
 @njit
 def coulomb_lr_k(k, q1, q2, damping, lam, charge_coeff):
     """
@@ -155,6 +157,18 @@ def coulomb_lr_k(k, q1, q2, damping, lam, charge_coeff):
     -------
     result: float
         The result of the LJ computation
+    """
+    """
+    return (
+        lam
+        * 4.0
+        * np.pi
+        * q1
+        * q2
+        * charge_coeff
+        * np.exp(-np.power((damping * k / 2.0), 2.0))
+        / k
+    )
     """
     return (
         lam
