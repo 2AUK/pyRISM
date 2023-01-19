@@ -179,8 +179,10 @@ class DRISM(object):
         print(self.data_vv.grid.ki)
         hck = self.h_c0 * np.exp(-np.power(self.adbcor * self.data_vv.grid.ki / 2.0, 2.0))
         print(hck)
-        #plt.plot(self.data_vv.grid.ki, hck)
-        #plt.show()
+        plt.plot(self.data_vv.grid.ki, hck)
+        plt.xlabel("$k$")
+        plt.ylabel("$h_c(k)$")
+        plt.show()
 
     def __post_init__(self):
         self.wbar = np.zeros((self.data_vv.grid.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
