@@ -10,6 +10,7 @@ class SystemPotential():
     tot: np.ndarray = field(init=False)
     sh: np.ndarray = field(init=False)
     lo: np.ndarray = field(init=False)
+    qtot: np.ndarray = field(init=False)
     qsh: np.ndarray = field(init=False)
     qlo: np.ndarray = field(init=False)
 
