@@ -18,8 +18,8 @@ class SystemPotential():
 class PotentialEvaluator():
     short_potential: Potential = field(init=False)
     long_potential: Potential = field(init=False)
-    q_potential: Potential = field(init=False)
-    q_long_potential: Potential = field(init=False)
+    q_long_k_potential: Potential = field(init=False)
+    q_short_r_potential: Potential = field(init=False)
 
     def add_short_pot(self, potential):
         self.short_potential = potential
