@@ -43,7 +43,7 @@ class DRISM(object):
     def compute_vv(self):
 
         ck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
-        self.precondition()
+        #self.precondition()
         r = self.data_vv.grid.ri
         k = self.data_vv.grid.ki
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
@@ -63,7 +63,7 @@ class DRISM(object):
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
             self.data_vv.t[:, i, j] = self.data_vv.grid.idht(self.data_vv.h[:, i, j] - ck[:, i, j]) \
                 - self.data_vv.B * self.data_vv.ur_lr[:, i, j]
-        self.unprecondition()
+        #self.unprecondition()
         #self.data_vv.h /= r[:, np.newaxis, np.newaxis]
         #self.data_vv.t /= r[:, np.newaxis, np.newaxis]
 
@@ -142,11 +142,8 @@ class DRISM(object):
                 qsp += iat.params[-1]
             kap_denom += isp.dens * 1.0 * qsp**2
         self.kappa = np.sqrt(4.0 * np.pi * kap_denom / self.diel)
-        print(self.kappa)
-        print(np.exp(self.kappa))
         ptxv = self.data_vv.species[0].dens / total_density
         self.y = 4.0 * np.pi * dmdensity / 9.0
-        print(self.y)
         self.h_c0 = (((self.diel - 1.0) / self.y) - 3.0) / (total_density)
 
     def D_matrix(self):
@@ -175,10 +172,7 @@ class DRISM(object):
                         d1z[i] = Util.j1(k_coord[2])
             for i, j in np.ndindex((self.data_vv.ns1, self.data_vv.ns2)):
                 self.chi[ki, i, j] = d0x[i] * d0y[i] * d1z[i] * hck * d0x[j] * d0y[j] * d1z[j]
-        print(self.data_vv.grid.d_k)
-        print(self.data_vv.grid.ki)
         hck = self.h_c0 * np.exp(-np.power(self.adbcor * self.data_vv.grid.ki / 2.0, 2.0))
-        print(hck)
         #plt.plot(self.data_vv.grid.ki, hck)
         #plt.show()
 
@@ -189,7 +183,6 @@ class DRISM(object):
         self.D_matrix()
         for i in np.arange(self.data_vv.grid.npts):
             self.wbar[i] = self.data_vv.w[i] + self.data_vv.p * self.chi[i]
-        print(self.chi)
 
 @njit(parallel=True)
 def vv_impl(ns1, ns2, npts, ck, B, uk_lr, w, p, chi, wbar):

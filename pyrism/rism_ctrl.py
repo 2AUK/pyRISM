@@ -442,10 +442,6 @@ class RismController:
 
             self.build_Ur(dat1, dat1, lam)
             self.build_renorm(dat1, dat1, 1.0, lam)
-            print("Long-range R")
-            print(mol.vv.ur_lr[..., 0, 0])
-            print("Long-range K")
-            print(mol.vv.uk_lr[..., 0, 0])
             dat1.u_sr = dat1.u - dat1.ur_lr
             self.solve_vv(lam)
 
@@ -578,11 +574,3 @@ if __name__ == "__main__":
             mol.uv.T = float(sys.argv[3])
             mol.uv.calculate_beta()
     mol.do_rism()
-    print("C_vv")
-    print(mol.vv.c)
-    print("Energy")
-    print(mol.vv.B * mol.vv.u)
-    print("Long-range R")
-    print(mol.vv.B * mol.vv.ur_lr)
-    print("Long-range K")
-    print(mol.vv.B * mol.vv.uk_lr)
