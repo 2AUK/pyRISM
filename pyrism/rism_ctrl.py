@@ -112,7 +112,6 @@ class RismController:
                 inp["system"]["lam"],
             )
             solv_species = list(inp["solvent"].items())[2:self.vv.nsp1 + 2]
-            print(solv_species)
             for i in solv_species:
                 self.add_species(i, self.vv)
 
@@ -325,7 +324,6 @@ class RismController:
             for j, jat in enumerate(dat2.atoms):
                 qi = iat.params[-1]
                 qj = jat.params[-1]
-                print(iat, jat)
                 dat1.ur_lr[:, i, j] = erfr(dat2.grid.ri, qi, qj, damping, 1.0, lam, dat2.amph)
                 dat1.uk_lr[:, i, j] = erfk(dat2.grid.ki, qi, qj, damping, lam, dat2.amph)
 

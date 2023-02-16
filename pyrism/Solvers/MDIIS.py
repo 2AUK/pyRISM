@@ -97,11 +97,9 @@ class MDIIS(SolverObject):
         self.fr.clear()
         self.res.clear()
         self.RMS_res.clear()
-        fig = plt.figure()
         #self.precondition()
         while i < self.max_iter:
             #self.epilogue(i, lam)
-            print(i)
             c_prev = self.data_vv.c
             try:
                 RISM()
@@ -141,7 +139,6 @@ class MDIIS(SolverObject):
                 self.epilogue(i, lam)
                 break
 
-            self.epilogue(i, lam)
             i += 1
 
             if i == self.max_iter:

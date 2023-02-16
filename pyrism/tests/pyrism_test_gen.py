@@ -8,14 +8,23 @@ from rism_ctrl import *
 
 
 pathlist = Path('../data').resolve().rglob('*.toml')
+f = open("pyrism_outputs.log", 'a')
+print(list(pathlist))
 for path in pathlist:
     toml_file = str(path)
     print(toml_file)
     try:
         mol = RismController(toml_file)
         mol.initialise_controller()
-        mol.write_check = True
+    except Exception as e:
+        f.write("{file} not successful due to error: {e}\n".format(file=toml_file, e=e))
+        f.flush()
+        continue
+    mol.write_check = True
+    try:
         mol.do_rism()
     except:
-        print("{file} did not converge".format(file=toml_file))
+        f.write("{file} did not converge\n".format(file=toml_file))
+        f.flush()
         continue
+f.close()
