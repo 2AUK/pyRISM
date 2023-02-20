@@ -1,19 +1,21 @@
 [system]
 temp = 200
 kT = 1.0
+kU = 0.00198720414667
 charge_coeff = 167101.0
-npts = 512
-radius = 10.24
-lam = 5
+npts = 16384
+radius = 20.48
+lam = 1
 
 [params]
 potential = "LJ"
 closure = "HNC"
 IE = "XRISM"
-solver = "Ng"
-picard_damping = 0.001
+solver = "MDIIS"
+depth = 8
+picard_damping = 0.1
 itermax = 10000
-tol = 1E-12
+tol = 1E-7
 
 [solvent]
 nsv = 2

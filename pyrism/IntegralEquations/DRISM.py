@@ -21,6 +21,7 @@ class DRISM(object):
     y: float = field(init=False)
     kappa: float = field(init=False)
 
+    """
     def precondition(self):
         r = self.data_vv.grid.ri[:, np.newaxis, np.newaxis]
         k = self.data_vv.grid.ki[:, np.newaxis, np.newaxis]
@@ -39,6 +40,7 @@ class DRISM(object):
         self.data_vv.t /= r
         self.chi /= k
         self.wbar /= k
+    """
 
     def compute_vv(self):
 
@@ -57,8 +59,7 @@ class DRISM(object):
                                  self.data_vv.uk_lr,
                                  self.data_vv.w,
                                  self.data_vv.p,
-                                 self.chi,
-                                 self.wbar)
+                                 self.chi)
 
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
             self.data_vv.t[:, i, j] = self.data_vv.grid.idht(self.data_vv.h[:, i, j] - ck[:, i, j]) \
@@ -144,7 +145,7 @@ class DRISM(object):
         self.kappa = np.sqrt(4.0 * np.pi * kap_denom / self.diel)
         ptxv = self.data_vv.species[0].dens / total_density
         self.y = 4.0 * np.pi * dmdensity / 9.0
-        self.h_c0 = (((self.diel - 1.0) / self.y) - 3.0) / (total_density)
+        self.h_c0 = (((self.diel - 1.0) / self.y) - 3.0) / (total_density * ptxv)
 
     def D_matrix(self):
 
@@ -152,7 +153,7 @@ class DRISM(object):
         d0y = np.zeros((self.data_vv.ns1), dtype=np.float)
         d1z = np.zeros((self.data_vv.ns1), dtype=np.float)
         for ki, k in enumerate(self.data_vv.grid.ki):
-            hck = self.h_c0 * np.exp(-np.power(self.adbcor * k / 2.0, 2.0))
+            hck = self.h_c0 * np.exp(-np.power((self.adbcor * k / 2.0), 2.0))
             i = -1
             for isp in self.data_vv.species:
                 for iat in isp.atom_sites:
@@ -171,30 +172,24 @@ class DRISM(object):
                     else:
                         d1z[i] = Util.j1(k_coord[2])
             for i, j in np.ndindex((self.data_vv.ns1, self.data_vv.ns2)):
-                self.chi[ki, i, j] = d0x[i] * d0y[i] * d1z[i] * hck * d0x[j] * d0y[j] * d1z[j]
-        hck = self.h_c0 * np.exp(-np.power(self.adbcor * self.data_vv.grid.ki / 2.0, 2.0))
-        #plt.plot(self.data_vv.grid.ki, hck)
-        #plt.show()
+                self.chi[ki, i, j] = d0x[i] * d0y[i] * d1z[i] * d0x[j] * d0y[j] * d1z[j] * hck
 
     def __post_init__(self):
-        self.wbar = np.zeros((self.data_vv.grid.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
         self.calculate_DRISM_params()
         self.chi = np.zeros((self.data_vv.grid.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float)
         self.D_matrix()
-        for i in np.arange(self.data_vv.grid.npts):
-            self.wbar[i] = self.data_vv.w[i] + self.data_vv.p * self.chi[i]
 
 @njit(parallel=True)
-def vv_impl(ns1, ns2, npts, ck, B, uk_lr, w, p, chi, wbar):
+def vv_impl(ns1, ns2, npts, ck, B, uk_lr, w, p, chi):
 
     I = np.eye(ns1, M=ns2, dtype=np.float64)
     w_bar = np.zeros((npts, ns1, ns2), dtype=np.float64)
     h = np.zeros_like(w_bar)
     ck -= B * uk_lr
     for i in prange(npts):
-        w_bar_tr = np.transpose(wbar[i])
-        iwcp = np.linalg.inv((I - p @ w_bar_tr @ ck[i]))
-        wcw = (w_bar_tr @ ck[i] @ wbar[i])
+        w_bar[i] = (w[i] + p @ chi[i])
+        iwcp = np.linalg.inv(I - w_bar[i] @ ck[i] @ p)
+        wcw = w_bar[i] @ ck[i] @ w_bar[i]
         h[i] = (iwcp @ wcw) + chi[i]
 
     return h

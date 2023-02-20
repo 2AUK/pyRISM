@@ -67,7 +67,6 @@ class MDIIS(SolverObject):
         self.res.pop(0)
 
         return c_new
-        """
 
     def precondition(self):
         r = self.data_vv.grid.ri[:, np.newaxis, np.newaxis]
@@ -87,6 +86,7 @@ class MDIIS(SolverObject):
         self.data_vv.w /= k
         self.data_vv.uk_lr /= k
         self.data_vv.t /= r
+        """
 
     def solve(self, RISM, Closure, lam):
         i: int = 0
