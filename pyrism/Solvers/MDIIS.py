@@ -157,7 +157,7 @@ class MDIIS(SolverObject):
         self.RMS_res.clear()
 
         while i < self.max_iter:
-            c_prev = self.data_uv.c
+            c_prev = self.data_uv.c.copy()
             try:
                 RISM()
                 c_A = Closure(self.data_uv)
@@ -187,7 +187,7 @@ class MDIIS(SolverObject):
                     self.RMS_res.clear()
                 self.RMS_res.append(RMS)
                 self.RMS_res.pop(0)
-            self.data_uv.c = c_next
+            self.data_uv.c = c_next.copy()
 
             if self.converged(c_next, c_prev):
                 self.epilogue(i, lam)

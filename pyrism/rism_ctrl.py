@@ -19,10 +19,12 @@ import Functionals
 import Util
 from numba import njit, jit, prange
 import time
+import warnings
 
 from dataclasses import dataclass, field
 
 np.seterr(over="raise")
+warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 @dataclass
 class RismController:
@@ -167,6 +169,11 @@ class RismController:
             if self.uv_check:
                 slv_uv = Solvers.Solver(inp["params"]["solver"]).get_solver()
                 self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv, m=inp["params"]["depth"])
+        elif inp["params"]["solver"] == "Gillan":
+            self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], nbasis=inp["params"]["nbasis"])
+            if self.uv_check:
+                slv_uv = Solvers.Solver(inp["params"]["solver"]).get_solver()
+                self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv, nbasis=inp["params"]["nbasis"])
         else:
             self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"])
             if self.uv_check:
