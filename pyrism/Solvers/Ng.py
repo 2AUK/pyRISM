@@ -1,5 +1,5 @@
 import numpy as np
-from Core import RISM_Obj
+from pyrism.Core import RISM_Obj
 from .Solver_object import *
 from dataclasses import dataclass, field
 import pdb

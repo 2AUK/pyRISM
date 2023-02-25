@@ -1,5 +1,5 @@
 import numpy as np
-from Core import RISM_Obj
+from pyrism.Core import RISM_Obj
 
 
 def Gaussian_Fluctuations(data):

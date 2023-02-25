@@ -1,6 +1,6 @@
 import numpy as np
-import Util
-from Core import RISM_Obj
+from pyrism import Util
+from pyrism.Core import RISM_Obj
 from dataclasses import dataclass, field
 from numba import jit, njit, prange
 

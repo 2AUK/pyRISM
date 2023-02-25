@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from Core import RISM_Obj
+from pyrism.Core import RISM_Obj
 from dataclasses import dataclass, field
-import Util
+from pyrism import Util
 from scipy.special import spherical_jn
 from numba import njit, prange
 import matplotlib.pyplot as plt

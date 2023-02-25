@@ -10,13 +10,13 @@ import matplotlib.pyplot as plt
 import toml
 import os
 import sys
-import Closures
-import Core
-import IntegralEquations
-import Solvers
-import Potentials
-import Functionals
-import Util
+from pyrism import Closures
+from pyrism import Core
+from pyrism import IntegralEquations
+from pyrism import Solvers
+from pyrism import Potentials
+from pyrism import Functionals
+from pyrism import Util
 from numba import njit, jit, prange
 import time
 import warnings

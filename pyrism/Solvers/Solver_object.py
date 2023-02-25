@@ -1,4 +1,4 @@
-from Core import RISM_Obj
+from pyrism.Core import RISM_Obj
 import numpy as np
 from dataclasses import dataclass, field
 from numba import njit

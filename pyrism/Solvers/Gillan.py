@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from Core import RISM_Obj
+from pyrism.Core import RISM_Obj
 import numpy as np
 from scipy.optimize import newton_krylov
 from .Solver_object import *
