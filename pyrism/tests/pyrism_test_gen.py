@@ -10,7 +10,7 @@ if __name__ == "__main__":
     pathlist = list(Path('../data').resolve().rglob('*.toml'))
     output_path = Path('./outputs').resolve()
     name = [path.stem for path in list(pathlist)]
-    f = open("pyrism_outputs.log", 'a')
+    f = open("pyrism_outputs.log", 'w')
     for i, path in enumerate(pathlist):
         toml_file = str(path)
         print(toml_file)
