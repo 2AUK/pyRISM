@@ -9,6 +9,12 @@
 
    
    
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      build_Ur_impl
+   
    
 
    
