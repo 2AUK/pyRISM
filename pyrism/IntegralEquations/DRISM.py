@@ -149,9 +149,9 @@ class DRISM(object):
 
     def D_matrix(self):
 
-        d0x = np.zeros((self.data_vv.ns1), dtype=np.float)
-        d0y = np.zeros((self.data_vv.ns1), dtype=np.float)
-        d1z = np.zeros((self.data_vv.ns1), dtype=np.float)
+        d0x = np.zeros((self.data_vv.ns1), dtype=np.float64)
+        d0y = np.zeros((self.data_vv.ns1), dtype=np.float64)
+        d1z = np.zeros((self.data_vv.ns1), dtype=np.float64)
         for ki, k in enumerate(self.data_vv.grid.ki):
             hck = self.h_c0 * np.exp(-np.power((self.adbcor * k / 2.0), 2.0))
             i = -1
@@ -176,7 +176,7 @@ class DRISM(object):
 
     def __post_init__(self):
         self.calculate_DRISM_params()
-        self.chi = np.zeros((self.data_vv.grid.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float)
+        self.chi = np.zeros((self.data_vv.grid.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
         self.D_matrix()
 
 @njit(parallel=True)

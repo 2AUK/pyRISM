@@ -8,8 +8,8 @@ def total_moment(dat):
     dm_vecs = []
     for isp in dat.species:
         total_charge = 0.0
-        centre_of_charge = np.zeros(3, dtype=np.float)
-        dipole_mom_vec = np.zeros(3, dtype=np.float)
+        centre_of_charge = np.zeros(3, dtype=np.float64)
+        dipole_mom_vec = np.zeros(3, dtype=np.float64)
 
         for iat in isp.atom_sites:
             total_charge += np.abs(iat.params[-1])
@@ -39,8 +39,8 @@ def total_moment(dat):
 
 def dipole_moment(isp):
     total_charge = 0.0
-    centre_of_charge = np.zeros(3, dtype=np.float)
-    dipole_mom_vec = np.zeros(3, dtype=np.float)
+    centre_of_charge = np.zeros(3, dtype=np.float64)
+    dipole_mom_vec = np.zeros(3, dtype=np.float64)
 
     for iat in isp.atom_sites:
         total_charge += np.abs(iat.params[-1])
@@ -67,7 +67,7 @@ def dipole_moment(isp):
 
 
 def quaternion_from_Euler_axis(angle, direction):
-    quat = np.zeros(4, dtype=np.float)
+    quat = np.zeros(4, dtype=np.float64)
 
     magn = np.sqrt(np.sum(direction * direction))
     quat[3] = np.cos(angle / 2.0)
