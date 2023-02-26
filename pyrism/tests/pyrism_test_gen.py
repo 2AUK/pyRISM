@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
 import sys
-sys.path.append('..')
 
 from pathlib import Path
-from rism_ctrl import *
+from pyrism.rism_ctrl import *
 
 if __name__ == "__main__":
-    pathlist = list(Path('../data').resolve().rglob('*.toml'))
+    pathlist = list(Path('./inputs').resolve().rglob('*.toml'))
     output_path = Path('./outputs').resolve()
     name = [path.stem for path in list(pathlist)]
     f = open("pyrism_outputs.log", 'w')
@@ -24,7 +23,6 @@ if __name__ == "__main__":
             f.write("{file} not successful due to error: {e}\n".format(file=toml_file, e=e))
             f.flush()
             continue
-        mol.write_check = True
         try:
             mol.do_rism()
         except:

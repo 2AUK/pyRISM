@@ -4,11 +4,11 @@ A pedagogical implementation of the RISM equations
 
 Initialises and solves the specified RISM problem.
 """
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import toml
-import os
 import sys
 from pyrism import Closures
 from pyrism import Core
