@@ -23,6 +23,7 @@ if __name__ == "__main__":
             f.write("{file} not successful due to error: {e}\n".format(file=toml_file, e=e))
             f.flush()
             continue
+        mol.write_check = True
         try:
             mol.do_rism()
         except:
