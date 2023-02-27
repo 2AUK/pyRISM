@@ -26,6 +26,5 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Test with unittest
       run: |
-        pwd
-        echo ~
-        python -m unittest discover pyrism/tests
+        cd pyrism/tests
+        python -m unittest discover .
