@@ -64,6 +64,8 @@ class RismController:
     solver_UV: Solvers.Solver = field(init=False)
     closure: Closures.Closure = field(init=False)
     IE: IntegralEquations.IntegralEquation = field(init=False)
+    SFED: dict = field(init=False, default_factory=dict)
+    SFE: dict = field(init=False, default_factory=dict)
 
 
 
@@ -83,13 +85,8 @@ class RismController:
         """ Solves the vv and uv (if applicable) problems and outputs the results"""
         if self.uv_check:
             self.solve(self.vv, self.uv)
-            if self.write_check == True:
-                self.write_vv(self.vv)
-                self.write_uv(self.vv, self.uv)
         else:
             self.solve(self.vv)
-            if self.write_check == True:
-                self.write_vv(self.vv)
 
     def read_input(self):
         """ Reads .toml input file, populates vv and uv dataclasses
@@ -348,7 +345,7 @@ class RismController:
                 dens.append(isp.dens)
         dat.p = np.diag(dens)
 
-    def write_csv(self, df, fname, ext, p, T):
+    def write_csv(self, df, fname, ext, p, T, SFE=None):
         """Writes a dataframe to a .csv file with a header
 
         Parameters
@@ -364,7 +361,10 @@ class RismController:
         T: float
             Temperature"""
         with open(fname+ext, 'w') as ofile:
-            ofile.write("# density: {p}, temp: {T}\n".format(p=p[0][0], T=T))
+            if SFE is not None:
+                ofile.write("# density: {p}, temp: {T}, HNC: {HNC}, GF: {GF}, KH: {KH}\n".format(p=p[0][0], T=T, HNC=SFE['HNC'], GF=SFE['GF'], KH=SFE['KH']))
+            else:
+                ofile.write("# density: {p}, temp: {T}\n".format(p=p[0][0], T=T))
             df.to_csv(ofile, index=False, header=True, mode='a')
 
     def write_vv(self, dat):
@@ -415,7 +415,14 @@ class RismController:
         self.write_csv(gr, self.name, ".guv", uv.p, uv.T)
         self.write_csv(cr, self.name, ".cuv", uv.p, uv.T)
         self.write_csv(tr, self.name, ".tuv", uv.p, uv.T)
-
+    
+    def write_output(self):
+        if self.uv_check:
+            self.write_vv(self.vv)
+            self.write_uv(self.vv, self.uv)
+            self.SFED_write(self.uv.grid.ri, self.SFED, self.SFE, self.uv.p, self.uv.T)
+        else:
+            self.write_vv(self.vv)
     def solve(self, dat1, dat2=None):
         """Start solving RISM problem
 
@@ -485,11 +492,11 @@ class RismController:
     def integrate(self, SFE, dr):
         return dr * np.sum(SFE)
 
-    def SFED_write(self, r, SFEDs, p, T):
+    def SFED_write(self, r, SFEDs, SFEs, p, T):
         dr = pd.DataFrame(r, columns=["r"])
         for SFED_key in SFEDs:
             dr[SFED_key] = SFEDs[SFED_key]
-        self.write_csv(dr, self.name + "_SFED", ".duv", p, T)
+        self.write_csv(dr, self.name + "_SFED", ".duv", p, T, SFE=SFEs)
 
 
     def SFED_calc(self, dat2):
@@ -506,10 +513,12 @@ class RismController:
         print(SFE_text.format(clos_name="HNC", SFE_val=SFE_HNC))
         print(SFE_text.format(clos_name="GF", SFE_val=SFE_GF))
 
-        SFEDs = {"HNC": SFED_HNC,
+        self.SFED = {"HNC": SFED_HNC,
                  "KH": SFED_KH,
                  "GF": SFED_GF}
-        self.SFED_write(dat2.grid.ri, SFEDs, dat2.p, dat2.T)
+        self.SFE = {"HNC": SFE_HNC,
+                "KH": SFE_KH,
+                "GF": SFE_GF}
 
 
     def epilogue(self, dat1, dat2=None):
@@ -579,3 +588,6 @@ if __name__ == "__main__":
             mol.uv.T = float(sys.argv[3])
             mol.uv.calculate_beta()
     mol.do_rism()
+    if len(sys.argv) > 2:
+        if bool(sys.argv[2]) == True:
+            mol.write_output()
