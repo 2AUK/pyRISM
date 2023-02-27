@@ -36,12 +36,12 @@ class NgSolver(SolverObject):
         self.fr.pop(0)
         return c_next
 
-    def solve(self, RISM, Closure, lam):
+    def solve(self, RISM, Closure, lam, verbose=False):
         i: int = 0
         A = np.zeros((2, 2), dtype=np.float64)
         b = np.zeros(2, dtype=np.float64)
-
-        print("\nSolving solvent-solvent RISM equation...\n")
+        if verbose == True:
+            print("\nSolving solvent-solvent RISM equation...\n")
         while i < self.max_iter:
             #self.epilogue(i, lam)
             c_prev = self.data_vv.c
@@ -54,23 +54,27 @@ class NgSolver(SolverObject):
 
             self.data_vv.c = c_next
 
-            if self.converged(c_next, c_prev):
+            if self.converged(c_next, c_prev) and verbose == True:
                 self.epilogue(i, lam)
+                break
+            elif self.converged(c_next, c_prev):
                 break
 
             i += 1
 
-            if i == self.max_iter:
+            if i == self.max_iter and verbose == True:
                 print("Max iteration reached!")
                 self.epilogue(i, lam)
                 break
+            elif i == self.max_iter:
+                break
 
-    def solve_uv(self, RISM, Closure, lam):
+    def solve_uv(self, RISM, Closure, lam, verbose=False):
         i: int = 0
         A = np.zeros((2, 2), dtype=np.float64)
         b = np.zeros(2, dtype=np.float64)
-
-        print("\nSolving solute-solvent RISM equation...\n")
+        if verbose == True:
+            print("\nSolving solute-solvent RISM equation...\n")
 
         while i < self.max_iter:
             c_prev = self.data_uv.c
@@ -83,13 +87,17 @@ class NgSolver(SolverObject):
 
             self.data_uv.c = c_next
 
-            if self.converged(c_next, c_prev):
+            if self.converged(c_next, c_prev) and verbose == True:
                 self.epilogue(i, lam)
+                break
+            elif self.converged(c_next, c_prev):
                 break
 
             i += 1
 
-            if i == self.max_iter:
+            if i == self.max_iter and verbose == True:
                 print("Max iteration reached!")
                 self.epilogue(i, lam)
+                break
+            elif i == self.max_iter:
                 break

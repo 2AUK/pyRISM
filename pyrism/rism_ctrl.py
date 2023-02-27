@@ -460,17 +460,17 @@ class RismController:
             self.build_Ur(dat1, dat1, lam)
             self.build_renorm(dat1, dat1, 1.0, lam)
             dat1.u_sr = dat1.u - dat1.ur_lr
-            self.solve_vv(lam)
+            self.solve_vv(lam, verbose)
 
             if self.uv_check:
                 self.build_Ur(dat2, dat1, lam)
                 self.build_renorm(dat2, dat1, 1.0, lam)
                 dat2.u_sr = dat2.u - dat2.ur_lr
-                self.solve_uv(lam)
+                self.solve_uv(lam, verbose)
 
         self.epilogue(dat1, dat2)
 
-    def solve_uv(self, lam):
+    def solve_uv(self, lam, verbose=False):
         """Call closure and integral equation functions and start solute-solvent solver
 
         Parameters
@@ -480,9 +480,9 @@ class RismController:
         """
         clos = self.closure.get_closure()
         IE = self.IE.compute_uv
-        self.solver_UV.solve_uv(IE, clos, lam)
+        self.solver_UV.solve_uv(IE, clos, lam, verbose)
 
-    def solve_vv(self, lam):
+    def solve_vv(self, lam, verbose=False):
         """Call closure and integral equation functions and start solvent-solvent solver
 
         Parameters
@@ -492,7 +492,7 @@ class RismController:
         """
         clos = self.closure.get_closure()
         IE = self.IE.compute_vv
-        self.solver.solve(IE, clos, lam)
+        self.solver.solve(IE, clos, lam, verbose)
 
     def integrate(self, SFE, dr):
         return dr * np.sum(SFE)
@@ -512,11 +512,11 @@ class RismController:
         SFE_HNC = self.integrate(SFED_HNC, dat2.grid.d_r)
         SFE_KH = self.integrate(SFED_KH, dat2.grid.d_r)
         SFE_GF = self.integrate(SFED_GF, dat2.grid.d_r)
-        SFE_text = "\n{clos_name}: {SFE_val} kcal/mol"
+        # SFE_text = "\n{clos_name}: {SFE_val} kcal/mol"
 
-        print(SFE_text.format(clos_name="KH", SFE_val=SFE_KH))
-        print(SFE_text.format(clos_name="HNC", SFE_val=SFE_HNC))
-        print(SFE_text.format(clos_name="GF", SFE_val=SFE_GF))
+        # print(SFE_text.format(clos_name="KH", SFE_val=SFE_KH))
+        # print(SFE_text.format(clos_name="HNC", SFE_val=SFE_HNC))
+        # print(SFE_text.format(clos_name="GF", SFE_val=SFE_GF))
 
         self.SFED = {"HNC": SFED_HNC,
                  "KH": SFED_KH,

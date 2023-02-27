@@ -88,12 +88,13 @@ class MDIIS(SolverObject):
         self.data_vv.t /= r
         """
 
-    def solve(self, RISM, Closure, lam):
+    def solve(self, RISM, Closure, lam, verbose=False):
         i: int = 0
         A = np.zeros((2, 2), dtype=np.float64)
         b = np.zeros(2, dtype=np.float64)
 
-        print("\nSolving solvent-solvent RISM equation...\n")
+        if verbose == True:
+            print("\nSolving solvent-solvent RISM equation...\n")
         self.fr.clear()
         self.res.clear()
         self.RMS_res.clear()
@@ -135,23 +136,28 @@ class MDIIS(SolverObject):
 
 
             self.data_vv.c = c_next
-            if self.converged(c_next, c_prev):
+            if self.converged(c_next, c_prev) and verbose == True:
                 self.epilogue(i, lam)
+                break
+            elif self.converged(c_next, c_prev):
                 break
 
             i += 1
 
-            if i == self.max_iter:
+            if i == self.max_iter and verbose == True:
                 print("Max iteration reached!")
                 self.epilogue(i, lam)
                 break
+            elif i == self.max_iter:
+                break
 
-    def solve_uv(self, RISM, Closure, lam):
+    def solve_uv(self, RISM, Closure, lam, verbose=False):
         i: int = 0
         A = np.zeros((2, 2), dtype=np.float64)
         b = np.zeros(2, dtype=np.float64)
 
-        print("\nSolving solute-solvent RISM equation...\n")
+        if verbose == True:
+            print("\nSolving solute-solvent RISM equation...\n")
         self.fr.clear()
         self.res.clear()
         self.RMS_res.clear()
@@ -189,15 +195,20 @@ class MDIIS(SolverObject):
                 self.RMS_res.pop(0)
             self.data_uv.c = c_next.copy()
 
-            if self.converged(c_next, c_prev):
+            if self.converged(c_next, c_prev) and verbose == True:
                 self.epilogue(i, lam)
                 break
+            elif self.converged(c_next, c_prev):
+                break
+
 
             i += 1
 
-            if i == self.max_iter:
+            if i == self.max_iter and verbose == True:
                 print("Max iteration reached!")
                 self.epilogue(i, lam)
+                break
+            elif i == self.max_iter:
                 break
 
 @njit
