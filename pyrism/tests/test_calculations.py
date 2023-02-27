@@ -2,6 +2,7 @@ from pyrism.rism_ctrl import *
 import unittest
 import numpy as np
 import warnings
+from pathlib import Path
 
 class TestRISMJobs(unittest.TestCase):
 
@@ -10,7 +11,7 @@ class TestRISMJobs(unittest.TestCase):
         warnings.simplefilter('ignore')
 
     def test_2_propanol(self):
-        mol = RismController("./inputs/2_propanol.toml")
+        mol = RismController(Path("./inputs/2_propanol.toml").resolve())
         mol.initialise_controller()
         mol.do_rism(verbose=self.verbosity)
 
