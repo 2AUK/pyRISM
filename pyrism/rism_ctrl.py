@@ -55,7 +55,6 @@ class RismController:
     """
     fname: str
     name: str = field(init=False)
-    write_check: bool = field(init=False, default=False)
     uv_check: bool = field(init=False, default=False)
     vv: Core.RISM_Obj = field(init=False)
     uv: Core.RISM_Obj = field(init=False)
@@ -81,12 +80,12 @@ class RismController:
             self.build_wk(self.uv)
 
 
-    def do_rism(self):
+    def do_rism(self, verbose=False):
         """ Solves the vv and uv (if applicable) problems and outputs the results"""
         if self.uv_check:
-            self.solve(self.vv, self.uv)
+            self.solve(self.vv, dat2=self.uv, verbose=verbose)
         else:
-            self.solve(self.vv)
+            self.solve(self.vv, dat2=None, verbose=verbose)
 
     def read_input(self):
         """ Reads .toml input file, populates vv and uv dataclasses
@@ -177,8 +176,6 @@ class RismController:
                 slv_uv = Solvers.Solver(inp["params"]["solver"]).get_solver()
                 self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv)
 
-        if len(sys.argv) > 2:
-            self.write_check = bool(sys.argv[2])
 
     def add_species(self, spec_dat, data_object):
         """Parses interaction sites and assigns them to relevant species
@@ -423,7 +420,8 @@ class RismController:
             self.SFED_write(self.uv.grid.ri, self.SFED, self.SFE, self.uv.p, self.uv.T)
         else:
             self.write_vv(self.vv)
-    def solve(self, dat1, dat2=None):
+
+    def solve(self, dat1, dat2=None, verbose=False):
         """Start solving RISM problem
 
         Parameters
@@ -439,8 +437,15 @@ class RismController:
         With `dat2`, the solute-solvent is solved.
         """
         fvv = np.exp(-dat1.B * dat1.u_sr) - 1.0
-        print("\nRunning: " + self.name)
-        print("Temp: " + str(dat1.T))
+        if verbose == True:
+            output_str="""-- pyRISM --\nRunning: {name},\nTemperature: {T},\nSolvent Density: {p}\nMethod: {IE}\nClosure: {clos}\nPotential: {pot},
+            """.format(name=self.name,
+                    T=str(dat1.T),
+                    p=str(dat1.p[0][0]),
+                    IE=self.IE.__class__.__name__,
+                    clos=self.closure.get_closure().__name__,
+                    pot=self.pot.get_potential()[0].__name__)
+            print(output_str)
         if self.uv_check:
             fuv = np.exp(-dat2.B * dat2.u_sr) - 1.0
         for j in range(1, dat1.nlam+1):
@@ -587,7 +592,7 @@ if __name__ == "__main__":
         if mol.uv_check:
             mol.uv.T = float(sys.argv[3])
             mol.uv.calculate_beta()
-    mol.do_rism()
+    mol.do_rism(verbose=True)
     if len(sys.argv) > 2:
         if bool(sys.argv[2]) == True:
             mol.write_output()
