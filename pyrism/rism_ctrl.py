@@ -438,7 +438,7 @@ class RismController:
         """
         fvv = np.exp(-dat1.B * dat1.u_sr) - 1.0
         if verbose == True:
-            output_str="""-- pyRISM --\nRunning: {name},\nTemperature: {T},\nSolvent Density: {p}\nMethod: {IE}\nClosure: {clos}\nPotential: {pot},
+            output_str="""\n-- pyRISM --\nRunning: {name},\nTemperature: {T},\nSolvent Density: {p}\nMethod: {IE}\nClosure: {clos}\nPotential: {pot},
             """.format(name=self.name,
                     T=str(dat1.T),
                     p=str(dat1.p[0][0]),
