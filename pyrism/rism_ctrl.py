@@ -413,7 +413,9 @@ class RismController:
         self.write_csv(cr, self.name, ".cuv", uv.p, uv.T)
         self.write_csv(tr, self.name, ".tuv", uv.p, uv.T)
     
-    def write_output(self):
+    def write_output(self, duv_only=False):
+        if duv_only and self.uv_check:
+            self.SFED_write(self.uv.grid.ri, self.SFED, self.SFE, self.uv.p, self.uv.T)
         if self.uv_check:
             self.write_vv(self.vv)
             self.write_uv(self.vv, self.uv)
