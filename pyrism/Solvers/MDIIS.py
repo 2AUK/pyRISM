@@ -112,7 +112,6 @@ class MDIIS(SolverObject):
                 print("Possible divergence")
                 print("iteration: {i}".format(i=i))
                 print("diff: {diff}".format(diff=(c_A-c_prev).sum()))
-                sys.exit(1)
             if len(self.fr) < self.m:
                 c_next = self.step_Picard(c_A, c_prev)
                 RMS = np.sqrt(
@@ -172,7 +171,6 @@ class MDIIS(SolverObject):
                 print("Possible divergence")
                 print("iteration: {i}".format(i=i))
                 print("diff: {diff}".format(diff=(c_A-c_prev).sum()))
-                sys.exit(1)
             if len(self.fr) < self.m:
                 c_next = self.step_Picard(c_A, c_prev)
                 RMS = np.sqrt(
