@@ -1,4 +1,4 @@
-pyrism
+pyRISM
 ==============================
 [//]: # (Badges)
 [![DOI](https://zenodo.org/badge/267991398.svg)](https://zenodo.org/badge/latestdoi/267991398)
