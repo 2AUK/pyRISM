@@ -5,6 +5,10 @@ A pedagogical implementation of the RISM equations
 Initialises and solves the specified RISM problem.
 """
 import os
+os.environ['MKL_CBWR'] = 'AUTO'
+os.environ['MKL_DYNAMIC'] = 'FALSE'
+os.environ['OMP_DYNAMIC'] = 'FALSE'
+#os.environ['MKL_VERBOSE'] = '1'
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt

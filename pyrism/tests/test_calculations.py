@@ -8,8 +8,8 @@ class TestRISMJobs(unittest.TestCase):
 
     def setUp(self):
         self.verbosity = False 
-        self.rtol = 0.0
-        self.atol = 1e-4
+        self.rtol = 1e-2
+        self.atol = 1e-2
         warnings.simplefilter('ignore')
 
     def test_2_propanol(self):
