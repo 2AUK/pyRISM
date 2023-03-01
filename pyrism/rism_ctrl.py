@@ -416,7 +416,7 @@ class RismController:
     def write_output(self, duv_only=False):
         if duv_only and self.uv_check:
             self.SFED_write(self.uv.grid.ri, self.SFED, self.SFE, self.uv.p, self.uv.T)
-        if self.uv_check:
+        elif self.uv_check:
             self.write_vv(self.vv)
             self.write_uv(self.vv, self.uv)
             self.SFED_write(self.uv.grid.ri, self.SFED, self.SFE, self.uv.p, self.uv.T)
@@ -597,4 +597,4 @@ if __name__ == "__main__":
     mol.do_rism(verbose=True)
     if len(sys.argv) > 2:
         if bool(sys.argv[2]) == True:
-            mol.write_output()
+            mol.write_output(duv_only=True)
