@@ -134,7 +134,7 @@ class MDIIS(SolverObject):
                     self.RMS_res.clear()
                 self.RMS_res.append(RMS)
                 self.RMS_res.pop(0)
-            self.data_uv.c = c_next.copy()
+            self.data_uv.c = c_next
 
             if self.converged(c_next, c_prev) and verbose == True:
                 self.epilogue(i, lam)

@@ -30,12 +30,12 @@ class TestRISMJobs(unittest.TestCase):
 
         assert_allclose(test_case, mol.uv.t, self.rtol, self.atol)
 
-    def test_chg_org_solu(self):
-        mol = RismController("inputs/org_solv.toml")
+    def test_24dimepen(self):
+        mol = RismController("inputs/24dimepen.toml")
         mol.initialise_controller()
         mol.do_rism(verbose=self.verbosity)
 
-        test_case = np.genfromtxt('outputs/org_solv/org_solv.cuv', delimiter=',', skip_header=2)[:, 1:].reshape((mol.uv.grid.npts, mol.uv.ns1, mol.uv.ns2))
+        test_case = np.genfromtxt('outputs/24dimepen/24dimepen.cuv', delimiter=',', skip_header=2)[:, 1:].reshape((mol.uv.grid.npts, mol.uv.ns1, mol.uv.ns2))
 
         assert_allclose(test_case, mol.uv.c, self.rtol, self.atol)
 
