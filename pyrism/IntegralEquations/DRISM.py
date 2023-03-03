@@ -21,36 +21,15 @@ class DRISM(object):
     y: float = field(init=False)
     kappa: float = field(init=False)
 
-    """
-    def precondition(self):
-        r = self.data_vv.grid.ri[:, np.newaxis, np.newaxis]
-        k = self.data_vv.grid.ki[:, np.newaxis, np.newaxis]
-        self.data_vv.ur_lr *= r
-        self.data_vv.uk_lr *= k
-        self.data_vv.c *= r
-        self.chi *= k
-        self.wbar *= k
-
-    def unprecondition(self):
-        r = self.data_vv.grid.ri[:, np.newaxis, np.newaxis]
-        k = self.data_vv.grid.ki[:, np.newaxis, np.newaxis]
-        self.data_vv.ur_lr /= r
-        self.data_vv.uk_lr /= k
-        self.data_vv.c /= r
-        self.data_vv.t /= r
-        self.chi /= k
-        self.wbar /= k
-    """
-
     def compute_vv(self):
 
         ck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
-        #self.precondition()
+
         r = self.data_vv.grid.ri
         k = self.data_vv.grid.ki
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
             ck[..., i, j] = self.data_vv.grid.dht(self.data_vv.c[..., i, j])
-            #self.data_vv.uk_lr[..., i, j] *= k
+
         self.data_vv.h = vv_impl(self.data_vv.ns1,
                                  self.data_vv.ns2,
                                  self.data_vv.npts,
@@ -64,29 +43,7 @@ class DRISM(object):
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
             self.data_vv.t[:, i, j] = self.data_vv.grid.idht(self.data_vv.h[:, i, j] - ck[:, i, j]) \
                 - self.data_vv.B * self.data_vv.ur_lr[:, i, j]
-        #self.unprecondition()
-        #self.data_vv.h /= r[:, np.newaxis, np.newaxis]
-        #self.data_vv.t /= r[:, np.newaxis, np.newaxis]
 
-        """
-        I = np.eye(self.data_vv.ns1, M=self.data_vv.ns2, dtype=np.float64)
-        ck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
-        w_bar = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
-        k = self.data_vv.grid.ki
-        r = self.data_vv.grid.ri
-        for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
-            ck[:, i, j] = self.data_vv.grid.dht(self.data_vv.c[:, i, j])
-            ck[:, i, j] -= self.data_vv.B * self.data_vv.uk_lr[:, i, j]
-        for i in range(self.data_vv.grid.npts):
-            chi = self.chi
-            w_bar[i] = (self.data_vv.w[i] + self.data_vv.p @ chi[i])
-            iwcp = np.linalg.inv(I - w_bar[i] @ ck[i] @ self.data_vv.p)
-            wcw = (w_bar[i] @ ck[i] @ w_bar[i])
-            self.data_vv.h[i] = (iwcp @ wcw) + (chi[i])
-        for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
-            self.data_vv.t[:, i, j] = self.data_vv.grid.idht(self.data_vv.h[:, i, j] - ck[:, i, j]) - (
-                self.data_vv.B * self.data_vv.ur_lr[:, i, j])
-        """
     def compute_uv(self):
         if self.data_uv is not None:
 
