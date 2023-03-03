@@ -15,7 +15,10 @@ def cli(filename, temperature, verbosity, write):
         if mol.uv_check:
             mol.uv.T = float(temperature)
             mol.uv.calculate_beta()
-    mol.do_rism(verbose=verbosity)
+    try:
+        mol.do_rism(verbose=verbosity)
+    except RuntimeError as e:
+        print(e)
     if write == 'duv':
         mol.write_output(duv_only=True)
     elif write == 'all':
