@@ -35,58 +35,6 @@ class MDIIS(SolverObject):
                                self.res,
                                self.fr,
                                self.damp_picard)
-        """
-        A = np.zeros((self.m+1, self.m+1), dtype=np.float64)
-        b = np.zeros(self.m+1, dtype=np.float64)
-
-        b[self.m] = -1
-
-        for i in range(self.m+1):
-            A[i, self.m] = -1
-            A[self.m, i] = -1
-
-        A[self.m, self.m] = 0
-
-        for i, j in np.ndindex((self.m, self.m)):
-            A[i,j] = self.res[i] @ self.res[j]
-        coef = np.linalg.solve(A, b)
-
-        c_A = np.zeros_like(self.fr[0])
-        min_res = np.zeros_like(self.fr[0])
-        for i in range(self.m):
-            c_A += coef[i] * self.fr[i]
-            min_res += coef[i] * self.res[i]
-        print(c_A)
-
-        c_new = c_A + self.damp_picard * min_res
-
-        self.fr.append(curr.flatten())
-        self.res.append((curr - prev).flatten())
-
-        self.fr.pop(0)
-        self.res.pop(0)
-
-        return c_new
-
-    def precondition(self):
-        r = self.data_vv.grid.ri[:, np.newaxis, np.newaxis]
-        k = self.data_vv.grid.ki[:, np.newaxis, np.newaxis]
-
-        self.data_vv.c *= r
-        self.data_vv.ur_lr *= r
-        self.data_vv.w *= k
-        self.data_vv.uk_lr *= k
-
-    def remove_preconditioning(self):
-        r = self.data_vv.grid.ri[:, np.newaxis, np.newaxis]
-        k = self.data_vv.grid.ki[:, np.newaxis, np.newaxis]
-
-        self.data_vv.c /= r
-        self.data_vv.ur_lr /= r
-        self.data_vv.w /= k
-        self.data_vv.uk_lr /= k
-        self.data_vv.t /= r
-        """
 
     def solve(self, RISM, Closure, lam, verbose=False):
         i: int = 0
@@ -98,20 +46,16 @@ class MDIIS(SolverObject):
         self.fr.clear()
         self.res.clear()
         self.RMS_res.clear()
-        #self.precondition()
         while i < self.max_iter:
-            #self.epilogue(i, lam)
             c_prev = self.data_vv.c
             try:
                 RISM()
-                #self.remove_preconditioning()
                 c_A = Closure(self.data_vv)
-                #self.precondition()
             except FloatingPointError as e:
-                print(e)
                 print("Possible divergence")
                 print("iteration: {i}".format(i=i))
                 print("diff: {diff}".format(diff=(c_A-c_prev).sum()))
+                raise e
             if len(self.fr) < self.m:
                 c_next = self.step_Picard(c_A, c_prev)
                 RMS = np.sqrt(
@@ -144,11 +88,10 @@ class MDIIS(SolverObject):
             i += 1
 
             if i == self.max_iter and verbose == True:
-                print("Max iteration reached!")
                 self.epilogue(i, lam)
-                break
+                raise RuntimeError("max iteration reached")
             elif i == self.max_iter:
-                break
+                raise RuntimeError("max iteration reached")
 
     def solve_uv(self, RISM, Closure, lam, verbose=False):
         i: int = 0
@@ -167,10 +110,10 @@ class MDIIS(SolverObject):
                 RISM()
                 c_A = Closure(self.data_uv)
             except FloatingPointError as e:
-                print(e)
                 print("Possible divergence")
                 print("iteration: {i}".format(i=i))
                 print("diff: {diff}".format(diff=(c_A-c_prev).sum()))
+                raise e
             if len(self.fr) < self.m:
                 c_next = self.step_Picard(c_A, c_prev)
                 RMS = np.sqrt(
@@ -203,11 +146,10 @@ class MDIIS(SolverObject):
             i += 1
 
             if i == self.max_iter and verbose == True:
-                print("Max iteration reached!")
                 self.epilogue(i, lam)
-                break
+                raise RuntimeError("max iteration reached")
             elif i == self.max_iter:
-                break
+                raise RuntimeError("max iteration reached")
 
 @njit
 def step_MDIIS_impl(curr, prev, m, res, fr, damp_picard):
