@@ -24,9 +24,11 @@ class MDIIS(SolverObject):
     RMS_res: list = field(init=False, default_factory=list)
 
     def step_Picard(self, curr, prev):
-        self.fr.append(curr.flatten())
-        self.res.append((curr - prev).flatten())
-        return prev + self.damp_picard * (curr - prev)
+
+        c_new = prev + self.damp_picard * (curr - prev)
+        self.fr.append(c_new.flatten())
+        self.res.append((c_new - curr).flatten())
+        return c_new
 
     def step_MDIIS(self, curr, prev):
         return step_MDIIS_impl(curr,
@@ -101,29 +103,29 @@ class MDIIS(SolverObject):
         #self.precondition()
         while i < self.max_iter:
             #self.epilogue(i, lam)
-            c_prev = self.data_vv.c
+            if verbose:
+                self.epilogue(i, lam)
             try:
                 RISM()
                 #self.remove_preconditioning()
                 c_A = Closure(self.data_vv)
                 #self.precondition()
             except FloatingPointError as e:
-                print(e)
                 print("Possible divergence")
                 print("iteration: {i}".format(i=i))
                 print("diff: {diff}".format(diff=(c_A-c_prev).sum()))
+                raise e
+            c_prev = self.data_vv.h * self.data_vv.grid.ri[:, np.newaxis, np.newaxis]
+            c_A *= self.data_vv.grid.ri[:, np.newaxis, np.newaxis]
+            c_A += (self.data_vv.t * self.data_vv.grid.ri[:, np.newaxis, np.newaxis])
             if len(self.fr) < self.m:
                 c_next = self.step_Picard(c_A, c_prev)
-                RMS = np.sqrt(
-                1 / self.data_vv.ns1 / self.data_vv.grid.npts * np.power((c_A-c_prev).sum(), 2)
-                )
+                RMS = np.linalg.norm(sum(self.res) / self.data_vv.ns1 / self.data_vv.grid.npts)
                 self.RMS_res.append(RMS)
             else:
                 c_next = self.step_MDIIS(c_A, c_prev)
                 c_next = np.reshape(c_next, c_prev.shape)
-                RMS = np.sqrt(
-                1 / self.data_vv.ns1 / self.data_vv.grid.npts * np.power((c_A-c_prev).sum(), 2)
-                )
+                RMS = np.linalg.norm(sum(self.res) / self.data_vv.ns1  / self.data_vv.grid.npts)
                 if RMS > 100 * min(self.RMS_res):
                     min_index = self.RMS_res.index(min(self.RMS_res))
                     c_next = np.reshape(self.fr[min_index], c_prev.shape)
@@ -133,8 +135,7 @@ class MDIIS(SolverObject):
                 self.RMS_res.append(RMS)
                 self.RMS_res.pop(0)
 
-
-            self.data_vv.c = c_next
+            self.data_vv.c = c_next / self.data_vv.grid.ri[:, np.newaxis, np.newaxis]
             if self.converged(c_next, c_prev) and verbose == True:
                 self.epilogue(i, lam)
                 break
@@ -144,11 +145,10 @@ class MDIIS(SolverObject):
             i += 1
 
             if i == self.max_iter and verbose == True:
-                print("Max iteration reached!")
                 self.epilogue(i, lam)
-                break
+                raise RuntimeError("max iteration reached")
             elif i == self.max_iter:
-                break
+                raise RuntimeError("max iteration reached")
 
     def solve_uv(self, RISM, Closure, lam, verbose=False):
         i: int = 0
@@ -162,6 +162,7 @@ class MDIIS(SolverObject):
         self.RMS_res.clear()
 
         while i < self.max_iter:
+
             c_prev = self.data_uv.c.copy()
             try:
                 RISM()
@@ -214,6 +215,13 @@ def step_MDIIS_impl(curr, prev, m, res, fr, damp_picard):
     A = np.zeros((m+1, m+1), dtype=np.float64)
     b = np.zeros(m+1, dtype=np.float64)
 
+    fr.append(curr.flatten())
+    res.append((curr - prev).flatten())
+
+    fr.pop(0)
+    res.pop(0)
+
+
     b[m] = -1
 
     for i in range(m+1):
@@ -235,10 +243,5 @@ def step_MDIIS_impl(curr, prev, m, res, fr, damp_picard):
 
     c_new = c_A + damp_picard * min_res
 
-    fr.append(curr.flatten())
-    res.append((curr - prev).flatten())
-
-    fr.pop(0)
-    res.pop(0)
-
+    c_new = np.reshape(c_new, curr.shape)
     return c_new

@@ -21,7 +21,6 @@ class DRISM(object):
     y: float = field(init=False)
     kappa: float = field(init=False)
 
-    """
     def precondition(self):
         r = self.data_vv.grid.ri[:, np.newaxis, np.newaxis]
         k = self.data_vv.grid.ki[:, np.newaxis, np.newaxis]
@@ -38,35 +37,32 @@ class DRISM(object):
         self.data_vv.uk_lr /= k
         self.data_vv.c /= r
         self.data_vv.t /= r
+        self.data_vv.h /= r
         self.chi /= k
         self.wbar /= k
-    """
 
     def compute_vv(self):
 
         ck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
-        #self.precondition()
-        r = self.data_vv.grid.ri
-        k = self.data_vv.grid.ki
+        r = self.data_vv.grid.ri[:, np.newaxis, np.newaxis]
+        k = self.data_vv.grid.ki[:, np.newaxis, np.newaxis]
+        self.precondition()
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
             ck[..., i, j] = self.data_vv.grid.dht(self.data_vv.c[..., i, j])
-            #self.data_vv.uk_lr[..., i, j] *= k
         self.data_vv.h = vv_impl(self.data_vv.ns1,
                                  self.data_vv.ns2,
                                  self.data_vv.npts,
                                  ck,
                                  self.data_vv.B,
                                  self.data_vv.uk_lr,
-                                 self.data_vv.w,
+                                 self.wbar,
                                  self.data_vv.p,
-                                 self.chi)
-
+                                 self.chi,
+                                 self.data_vv.grid.ki)
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
             self.data_vv.t[:, i, j] = self.data_vv.grid.idht(self.data_vv.h[:, i, j] - ck[:, i, j]) \
                 - self.data_vv.B * self.data_vv.ur_lr[:, i, j]
-        #self.unprecondition()
-        #self.data_vv.h /= r[:, np.newaxis, np.newaxis]
-        #self.data_vv.t /= r[:, np.newaxis, np.newaxis]
+        self.unprecondition()
 
         """
         I = np.eye(self.data_vv.ns1, M=self.data_vv.ns2, dtype=np.float64)
@@ -178,17 +174,21 @@ class DRISM(object):
         self.calculate_DRISM_params()
         self.chi = np.zeros((self.data_vv.grid.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
         self.D_matrix()
+        self.wbar = np.zeros_like(self.data_vv.w)
+        for i in range(self.data_vv.grid.npts):
+            self.wbar[i] = (self.data_vv.w[i] + self.data_vv.p @ self.chi[i])
 
 @njit(parallel=True)
-def vv_impl(ns1, ns2, npts, ck, B, uk_lr, w, p, chi):
+def vv_impl(ns1, ns2, npts, ck, B, uk_lr, w, p, chi, k):
 
     I = np.eye(ns1, M=ns2, dtype=np.float64)
     w_bar = np.zeros((npts, ns1, ns2), dtype=np.float64)
     h = np.zeros_like(w_bar)
     ck -= B * uk_lr
     for i in prange(npts):
-        w_bar[i] = (w[i] + p @ chi[i])
-        iwcp = np.linalg.inv(I - w_bar[i] @ ck[i] @ p)
+        #w_bar[i] = (w[i] + p @ chi[i])
+        w_bar[i] = w[i]
+        iwcp = np.linalg.inv((k[i]*I) - w_bar[i] @ ck[i] @ p)
         wcw = w_bar[i] @ ck[i] @ w_bar[i]
         h[i] = (iwcp @ wcw) + chi[i]
 
