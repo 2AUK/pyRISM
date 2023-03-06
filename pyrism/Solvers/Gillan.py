@@ -10,6 +10,11 @@ import matplotlib.pyplot as plt
 @dataclass
 class Gillan(SolverObject):
     nbasis: int = field(default=4)
+    costab: np.ndarray = field(init=False)
+
+    def tabulate_cos(self):
+        costab = np.zeros((npts, ns1, ns2, ns1, ns2), dtype=np.float64)
+        dk = self.data_vv.grid.d_k
 
     def solve(self, RISM, Closure, lam, verbose=False):
         npts = self.data_vv.grid.npts
@@ -19,36 +24,29 @@ class Gillan(SolverObject):
         t = self.data_vv.t
         node = int(npts / self.nbasis / 2)
         node_index = np.arange(0, self.nbasis+1) * node
-        nodes = t[node_index, ...]
-        fine = t.copy()
-        fine[:node_index[-1], ...] = 0
-
-        print(fine)
-        print(nodes.shape)
+        nodes = r[node_index]
 
 
-        P = np.zeros((npts, ns1, ns2, self.nbasis+1), dtype=np.float64)
+        P = np.zeros((npts, self.nbasis+1), dtype=np.float64)
         Q = np.zeros_like(P)
         R = np.zeros((self.nbasis, self.nbasis), dtype=np.float64)
         B = np.zeros_like(R)
-        A = np.zeros((self.nbasis), dtype=np.float64)
+        A = np.zeros((ns1, ns2, self.nbasis), dtype=np.float64)
 
         P[..., 0] = 1
-        for i, m, n in np.ndindex(npts, ns1, ns2):
-            if nodes[0, m, n] <= t[i, m, n] <= nodes[1, m, n]:
-                P[i, m, n, 1] = (nodes[1, m, n] - t[i, m, n]) / (nodes[1, m, n])
+        for idx in range(0, npts):
+            if nodes[0] <= r[idx] <= nodes[1]:
+                P[idx, 1] = (nodes[1] - r[idx]) / nodes[1]
 
         for a in range(2, self.nbasis+1):
-            for i, m, n in np.ndindex(npts, ns1, ns2):
-                if nodes[a-2, m, n] <= t[i, m, n] <= nodes[a, m, n]:
-                    P[i, m, n, a] = (t[i, m, n] - nodes[a-2, m, n])/(nodes[a-1, m, n] - nodes[a-2, m, n])
-                elif nodes[a-1] <= t[i, m, n] <= nodes[a, m, n]:
-                    P[i, m, n, a] = (nodes[a, m, n] - t[i, m, n])/(nodes[a, m, n] - nodes[a-1, m, n])
+            for idx in range(0, npts):
+                if nodes[a-2] <= r[idx] <= nodes[a-1]:
+                    P[idx, a] = (r[idx] - nodes[a-2]) / (nodes[a-1] - nodes[a-2])
+                elif nodes[a-1] <= r[idx] <= nodes[a]:
+                    P[idx, a] = (nodes[a] - r[idx]) / (nodes[a] - nodes[a-1])
 
-        for a in range(0, self.nbasis+1):
-            for m, n in np.ndindex(ns1, ns2):
-                print(P[..., m, n, a])
-                plt.plot(r, P[..., m, n, a])
+        for a in range(1, self.nbasis+1):
+                plt.plot(r, P[..., a])
         plt.show()
 
         P_proper = P[..., 1:].copy()
@@ -72,13 +70,19 @@ class Gillan(SolverObject):
             for b in range(self.nbasis):
                 kron[a,b] = (Q[...,a] * P_skip_zero[...,b]).sum()
 
-        identity = np.identity((self.nbasis, self.nbasis), dtype=np.float64)
-        assert_allclose(kron, nbasis, atol=1e-4, rtol=1e-4)
+        identity = np.identity(self.nbasis, dtype=np.float64)
+        assert_allclose(kron, identity, atol=1e-4, rtol=1e-4)
 
-        for a in range(nbasis):
-            A[a] = (Q[..., a] * t).sum()
+        for a in range(self.nbasis):
+            for m, n in np.ndindex(ns1, ns2):
+                A[m, n, a] = (Q[..., a] * t[:, m, n]).sum()
 
-        coarse = np.zeros_like(t)
+        while i < self.max_iter:
+
+            # N-R loop
+            while True:
+
+                break
 
 
 
