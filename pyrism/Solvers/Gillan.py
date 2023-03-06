@@ -12,9 +12,40 @@ class Gillan(SolverObject):
     nbasis: int = field(default=4)
     costab: np.ndarray = field(init=False)
 
+    def kron_delta(self, i, j):
+        if i == j:
+            return 1.0
+        else:
+            return 0.0
+
     def tabulate_cos(self):
+        npts = self.data_vv.grid.npts
+        ns1 = self.data_vv.ns1
+        ns2 = self.data_vv.ns2
         costab = np.zeros((npts, ns1, ns2, ns1, ns2), dtype=np.float64)
         dk = self.data_vv.grid.d_k
+        w = self.data_vv.w
+        c = self.data_vv.c
+        M1 = np.zeros_like(self.data_vv.w)
+        M2 = np.zeros_like(self.data_vv.w)
+
+        I = np.identity(ns1, dtype=np.float64)
+
+        coskr = np.cos(self.data_vv.grid.ri * self.data_vv.grid.ki)
+
+        for l in range(npts):
+            M1[l] = np.linalg.inv((I - w[l] @ c[l])) @ w[l]
+            M2[l] = np.linalg.inv((I - w[l] @ c[l])) @ w[l]
+
+        for i, j in np.ndindex(ns1, ns2):
+            for k, l in np.ndindex(ns1, ns2):
+                kron1 = self.kron_delta(i, j)
+                kron2 = self.kron_delta(k, l)
+                costab[:, i, j, k, l] = coskr * (M1[:, i, j] * M2[:, k, l] - kron1 * kron2)
+
+        costab = costab.sum(axis=0) * dk
+
+        self.costab = costab
 
     def solve(self, RISM, Closure, lam, verbose=False):
         npts = self.data_vv.grid.npts
@@ -45,9 +76,9 @@ class Gillan(SolverObject):
                 elif nodes[a-1] <= r[idx] <= nodes[a]:
                     P[idx, a] = (nodes[a] - r[idx]) / (nodes[a] - nodes[a-1])
 
-        for a in range(1, self.nbasis+1):
-                plt.plot(r, P[..., a])
-        plt.show()
+        # for a in range(1, self.nbasis+1):
+        #       plt.plot(r, P[..., a])
+        # plt.show()
 
         P_proper = P[..., 1:].copy()
         P_skip_zero = P_proper.copy()
