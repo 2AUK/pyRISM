@@ -22,20 +22,22 @@ class Gillan(SolverObject):
         npts = self.data_vv.grid.npts
         ns1 = self.data_vv.ns1
         ns2 = self.data_vv.ns2
-        costab = np.zeros((npts, ns1, ns2, ns1, ns2), dtype=np.float64)
         dk = self.data_vv.grid.d_k
         w = self.data_vv.w
         c = self.data_vv.c
+
         M1 = np.zeros_like(self.data_vv.w)
         M2 = np.zeros_like(self.data_vv.w)
 
         I = np.identity(ns1, dtype=np.float64)
 
+        costab = np.zeros((npts, ns1, ns2, ns1, ns2), dtype=np.float64)
+
         coskr = np.cos(self.data_vv.grid.ri * self.data_vv.grid.ki)
 
         for l in range(npts):
-            M1[l] = np.linalg.inv((I - w[l] @ c[l])) @ w[l]
-            M2[l] = np.linalg.inv((I - w[l] @ c[l])) @ w[l]
+            M1[l] = np.linalg.inv((I - w[l] @ c[l] @ self.data_vv.p)) @ w[l]
+            M2[l] = np.linalg.inv((I - w[l] @ c[l] @ self.data_vv.p)) @ w[l]
 
         for i, j in np.ndindex(ns1, ns2):
             for k, l in np.ndindex(ns1, ns2):
@@ -63,6 +65,8 @@ class Gillan(SolverObject):
         R = np.zeros((self.nbasis, self.nbasis), dtype=np.float64)
         B = np.zeros_like(R)
         A = np.zeros((ns1, ns2, self.nbasis), dtype=np.float64)
+
+        dydc = np.zeros((npts, ns1, ns2, ns1, ns2), dtype=np.float64)
 
         P[..., 0] = 1
         for idx in range(0, npts):
