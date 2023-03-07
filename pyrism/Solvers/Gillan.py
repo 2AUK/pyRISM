@@ -33,19 +33,25 @@ class Gillan(SolverObject):
 
         costab = np.zeros((npts, ns1, ns2, ns1, ns2), dtype=np.float64)
 
-        coskr = np.cos(self.data_vv.grid.ri * self.data_vv.grid.ki)
+        r_grid = self.data_vv.grid.ri
+        k_grid = self.data_vv.grid.ki
+
+        coskr = np.zeros((npts), dtype=np.float64)
 
         for l in range(npts):
             M1[l] = np.linalg.inv((I - w[l] @ c[l] @ self.data_vv.p)) @ w[l]
             M2[l] = np.linalg.inv((I - w[l] @ c[l] @ self.data_vv.p)) @ w[l]
+            coskr += np.cos(k_grid[l] * r_grid)
 
         for i, j in np.ndindex(ns1, ns2):
             for k, l in np.ndindex(ns1, ns2):
                 kron1 = self.kron_delta(i, j)
                 kron2 = self.kron_delta(k, l)
-                costab[:, i, j, k, l] = coskr * (M1[:, i, j] * M2[:, k, l] - kron1 * kron2)
+                costab[:, i, j, k, l] = coskr[:] * (M1[:, i, j] * M2[:, k, l] - kron1 * kron2)
 
-        costab = costab.sum(axis=0) * dk
+        #costab = costab.sum(axis=0) * dk
+
+        print(costab)
 
         self.costab = costab
 
@@ -111,6 +117,8 @@ class Gillan(SolverObject):
         for a in range(self.nbasis):
             for m, n in np.ndindex(ns1, ns2):
                 A[m, n, a] = (Q[..., a] * t[:, m, n]).sum()
+
+        self.tabulate_cos()
 
         while i < self.max_iter:
 
