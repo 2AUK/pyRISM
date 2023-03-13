@@ -363,7 +363,7 @@ class RismController:
             Temperature"""
         with open(fname+ext, 'w') as ofile:
             if SFE is not None:
-                ofile.write("# density: {p}, temp: {T}, HNC: {HNC}, GF: {GF}, KH: {KH}\n".format(p=p[0][0], T=T, HNC=SFE['HNC'], GF=SFE['GF'], KH=SFE['KH']))
+                ofile.write("# density: {p}, temp: {T}, HNC: {HNC}, GF: {GF}, KH: {KH}, PW: {PW}\n".format(p=p[0][0], T=T, HNC=SFE['HNC'], GF=SFE['GF'], KH=SFE['KH'], PW=SFE['PW']))
             else:
                 ofile.write("# density: {p}, temp: {T}\n".format(p=p[0][0], T=T))
             df.to_csv(ofile, index=False, header=True, mode='a')
@@ -510,14 +510,16 @@ class RismController:
         self.write_csv(dr, self.name + "_SFED", ".duv", p, T, SFE=SFEs)
 
 
-    def SFED_calc(self, dat2):
-        SFED_HNC = Functionals.Functional("HNC").get_functional()(dat2)
-        SFED_KH = Functionals.Functional("KH").get_functional()(dat2)
-        SFED_GF = Functionals.Functional("GF").get_functional()(dat2)
+    def SFED_calc(self, dat2, vv=None):
+        SFED_HNC = Functionals.Functional("HNC").get_functional()(dat2, vv)
+        SFED_KH = Functionals.Functional("KH").get_functional()(dat2, vv)
+        SFED_GF = Functionals.Functional("GF").get_functional()(dat2, vv)
+        SFED_PW = Functionals.Functional("PW").get_functional()(dat2, vv)
 
         SFE_HNC = self.integrate(SFED_HNC, dat2.grid.d_r)
         SFE_KH = self.integrate(SFED_KH, dat2.grid.d_r)
         SFE_GF = self.integrate(SFED_GF, dat2.grid.d_r)
+        SFE_PW = self.integrate(SFED_PW, dat2.grid.d_r)
         # SFE_text = "\n{clos_name}: {SFE_val} kcal/mol"
 
         # print(SFE_text.format(clos_name="KH", SFE_val=SFE_KH))
@@ -525,11 +527,13 @@ class RismController:
         # print(SFE_text.format(clos_name="GF", SFE_val=SFE_GF))
 
         self.SFED = {"HNC": SFED_HNC,
-                 "KH": SFED_KH,
-                 "GF": SFED_GF}
+                     "KH": SFED_KH,
+                     "GF": SFED_GF,
+                     "PW": SFED_PW}
         self.SFE = {"HNC": SFE_HNC,
-                "KH": SFE_KH,
-                "GF": SFE_GF}
+                    "KH": SFE_KH,
+                    "GF": SFE_GF,
+                    "PW": SFE_PW}
 
 
     def epilogue(self, dat1, dat2=None):
@@ -553,7 +557,7 @@ class RismController:
             dat2.t += dat2.B * dat2.ur_lr
             dat2.g = 1.0 + dat2.c + dat2.t
             dat2.h = dat2.t + dat2.c
-            self.SFED_calc(dat2)
+            self.SFED_calc(dat2, vv=dat1)
 
 @jit
 def build_Ur_impl(npts, ns1, ns2, sr_pot, mix, cou, atoms1, atoms2, r, charge_coeff, lam=1):
