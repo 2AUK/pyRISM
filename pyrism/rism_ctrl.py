@@ -164,11 +164,19 @@ class RismController:
                 self.IE = IE(self.vv)
 
         slv = Solvers.Solver(inp["params"]["solver"]).get_solver()
+        slv = Solvers.Solver(inp["params"]["solver"]).get_solver()
         if inp["params"]["solver"] == "MDIIS":
-            self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], m=inp["params"]["depth"])
-            if self.uv_check:
-                slv_uv = Solvers.Solver(inp["params"]["solver"]).get_solver()
-                self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv, m=inp["params"]["depth"])
+            if 'mdiis_damping' in inp['params']:
+                self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], m=inp["params"]["depth"], mdiis_damping=inp['params']['mdiis_damping'])
+                if self.uv_check:
+                    slv_uv = Solvers.Solver(inp["params"]["solver"]).get_solver()
+                    self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv, m=inp["params"]["depth"], mdiis_damping=inp['params']['mdiis_damping'])
+
+            else:
+                self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], m=inp["params"]["depth"], mdiis_damping=inp['params']['picard_damping'])
+                if self.uv_check:
+                    slv_uv = Solvers.Solver(inp["params"]["solver"]).get_solver()
+                    self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv, m=inp["params"]["depth"])
         elif inp["params"]["solver"] == "Gillan":
             self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], nbasis=inp["params"]["nbasis"])
             if self.uv_check:

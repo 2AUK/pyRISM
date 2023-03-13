@@ -19,6 +19,7 @@ np.set_printoptions(edgeitems=30, linewidth=180,
 @dataclass
 class MDIIS(SolverObject):
     m: int = field(default=1) # depth
+    mdiis_damping: float = field(default=0.5)
     fr: list = field(init=False, default_factory=list)
     res: list = field(init=False, default_factory=list)
     RMS_res: list = field(init=False, default_factory=list)
@@ -34,7 +35,7 @@ class MDIIS(SolverObject):
                                self.m,
                                self.res,
                                self.fr,
-                               self.damp_picard)
+                               self.mdiis_damping)
 
     def solve(self, RISM, Closure, lam, verbose=False):
         i: int = 0
