@@ -6,6 +6,7 @@ class Functional(object):
         "GF": Gaussian_Fluctuations,
         "HNC": HyperNetted_Chain,
         "KH": Kovalenko_Hirata,
+        "PW": Partial_Wave,
     }
 
     def __init__(self, SFE):
