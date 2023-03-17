@@ -55,3 +55,6 @@ def Partial_Wave(data, vv=None):
         mu_pw_comp_r[:, i, j] = data.grid.idht(mu_pw_comp_k[:, i, j])
 
     return np.sum(mu_pw_comp_k, axis=(1, 2)) / data.B * data.kU
+
+def Repulsive_Bridge_Correction(data, vv=None):
+    pass
