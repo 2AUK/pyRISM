@@ -522,12 +522,14 @@ class RismController:
         SFED_HNC = Functionals.Functional("HNC").get_functional()(dat2, vv)
         SFED_KH = Functionals.Functional("KH").get_functional()(dat2, vv)
         SFED_GF = Functionals.Functional("GF").get_functional()(dat2, vv)
+        SFED_SC = Functionals.Functional("SC").get_functional()(dat2, vv)
         SFED_PW = Functionals.Functional("PW").get_functional()(dat2, vv)
 
         SFE_HNC = self.integrate(SFED_HNC, dat2.grid.d_r)
         SFE_KH = self.integrate(SFED_KH, dat2.grid.d_r)
         SFE_GF = self.integrate(SFED_GF, dat2.grid.d_r)
-        SFE_PW = self.integrate(SFED_PW, dat2.grid.d_r)
+        SFE_SC = self.integrate(SFED_SC, dat2.grid.d_r)
+        SFE_PW = self.integrate(SFED_PW, dat2.grid.d_k)
         # SFE_text = "\n{clos_name}: {SFE_val} kcal/mol"
 
         # print(SFE_text.format(clos_name="KH", SFE_val=SFE_KH))
@@ -537,10 +539,12 @@ class RismController:
         self.SFED = {"HNC": SFED_HNC,
                      "KH": SFED_KH,
                      "GF": SFED_GF,
+                     "SC": SFED_SC,
                      "PW": SFED_PW}
         self.SFE = {"HNC": SFE_HNC,
                     "KH": SFE_KH,
                     "GF": SFE_GF,
+                    "SC": SFE_SC,
                     "PW": SFE_PW}
 
 

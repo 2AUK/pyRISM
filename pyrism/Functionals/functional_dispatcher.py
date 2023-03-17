@@ -6,6 +6,7 @@ class Functional(object):
         "GF": Gaussian_Fluctuations,
         "HNC": HyperNetted_Chain,
         "KH": Kovalenko_Hirata,
+        "SC": Single_Component,
         "PW": Partial_Wave,
     }
 
