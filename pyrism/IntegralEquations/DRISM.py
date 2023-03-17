@@ -44,6 +44,8 @@ class DRISM(object):
             self.data_vv.t[:, i, j] = self.data_vv.grid.idht(self.data_vv.h[:, i, j] - ck[:, i, j]) \
                 - self.data_vv.B * self.data_vv.ur_lr[:, i, j]
 
+        self.data_vv.h_k = self.data_vv.h
+
     def compute_uv(self):
         if self.data_uv is not None:
 
@@ -67,6 +69,9 @@ class DRISM(object):
             for i, j in np.ndindex(self.data_uv.ns1, self.data_uv.ns2):
                 self.data_uv.t[:, i, j] = self.data_uv.grid.idht(self.data_uv.h[:, i, j] - ck_uv[:, i, j]) \
                     - self.data_uv.B * self.data_uv.ur_lr[:, i, j]
+
+            self.data_uv.h_k = self.data_uv.h
+
         else:
             raise RuntimeError("uv dataclass not defined")
         """
