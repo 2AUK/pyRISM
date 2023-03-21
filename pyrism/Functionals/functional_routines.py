@@ -89,11 +89,8 @@ def Repulsive_Bridge_Correction(data, vv=None):
 
     for s, a, v in np.ndindex(data.ns1, vv.ns1, vv.ns2):
         if a != v:
-            print((w_v_r[:, a, v] * np.exp(v_repulsive[:, s, v])))
             expBr[:, s, a] *= (w_v_r[:, a, v] * np.exp(v_repulsive[:, s, v]))
 
-    
-    print(expBr)
     expBr[expBr < 1e-12] = 1e-12
 
     mu = 4.0 * np.pi * (np.power(data.grid.ri, 2)[:, np.newaxis, np.newaxis] * ((data.h + 1) * (expBr - 1)) @ data.p[np.newaxis, ...])
