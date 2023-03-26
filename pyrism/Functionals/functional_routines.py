@@ -72,26 +72,32 @@ def Repulsive_Bridge_Correction(data, vv=None):
             eps_i, sig_i = iat.params[:-1]
             eps_j, sig_j = jat.params[:-1]
             if iat is jat:
-                u_repulsive[:, i, j] = eps_i * np.power(( 4.0 * sig_i / data.grid.ri ), 12)
+                u_repulsive[:, i, j] = 4.0 * eps_i * np.power(( sig_i / data.grid.ri ), 12)
             else:
                 mixed_eps = np.sqrt(eps_i * eps_j)
                 mixed_sig = 0.5 * (sig_i + sig_j)
-                u_repulsive[:, i, j] = mixed_eps * np.power(( mixed_sig / data.grid.ri ), 12)
+                u_repulsive[:, i, j] = 4.0 * mixed_eps * np.power(( mixed_sig / data.grid.ri ), 12)
     
     v_repulsive = -data.B * u_repulsive
 
     expBr = np.ones_like(u_repulsive)
 
-    w_v_r = np.zeros_like(vv.w)
+    v_k = np.zeros_like(u_repulsive)
 
-    for a, g in np.ndindex(vv.ns1, vv.ns2):
-        w_v_r[:, a, g] = vv.grid.dht(vv.w[:, a, g])
+    for a, g in np.ndindex(data.ns1, data.ns2):
+        v_k[:, a, g] = data.grid.dht(np.exp(v_repulsive[:, a, g]))
 
     for s, a, v in np.ndindex(data.ns1, vv.ns1, vv.ns2):
         if a != v:
-            expBr[:, s, a] *= (w_v_r[:, a, v] * np.exp(v_repulsive[:, s, v]))
+            expBr[:, s, a] *= data.grid.idht(vv.w[:, a, v] * v_k[:, s, v])
 
-    expBr[expBr < 1e-12] = 1e-12
+    #correction for truncation error
+    expBr[expBr < 1e-12] = 1e-12    
+
+    #correction for finite domain (see RISM-MOL implementation)
+    N_end = int(data.grid.npts - (data.grid.npts/4))
+    
+    expBr[N_end:, ...] = 1
 
     mu = 4.0 * np.pi * (np.power(data.grid.ri, 2)[:, np.newaxis, np.newaxis] * ((data.h + 1) * (expBr - 1)) @ data.p[np.newaxis, ...])
 
