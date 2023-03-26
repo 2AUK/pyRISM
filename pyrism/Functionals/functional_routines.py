@@ -29,14 +29,14 @@ def Partial_Wave(data, vv=None):
     h_bar_uv_k = np.zeros_like(h_uv_k)
 
     for i in range(data.grid.npts):
-        h_bar_uv_k[i, ...] = np.linalg.inv(data.w[i, ...]) @ h_uv_k[i, ...] @ np.linalg.inv(vv.w[i, ...])
+        h_bar_uv_k[i, ...] = np.linalg.inv(data.w[i, ...]) @ h_uv_k[i, ...] @ np.linalg.inv(vv.w[i, ...]) @ vv.p
 
     h_bar_uv_r = np.zeros_like(h_bar_uv_k)
 
     for i, j in np.ndindex(data.ns1, data.ns2):
         h_bar_uv_r[:, i, j] = data.grid.idht(h_bar_uv_k[:, i, j])
 
-    mu = -4.0 * np.pi * (np.power(data.grid.ri, 2)[:, np.newaxis, np.newaxis] * (data.c + 0.5 * data.c * data.h - (0.5 * h_bar_uv_r * data.h)) @ data.p[np.newaxis, ...])
+    mu = -4.0 * np.pi * (np.power(data.grid.ri, 2)[:, np.newaxis, np.newaxis] * (data.c + (0.5 * data.c * data.h) - (0.5 * h_bar_uv_r * data.h)) @ data.p[np.newaxis, ...])
 
     return np.sum(mu, axis=(1, 2)) / data.B * data.kU
 
