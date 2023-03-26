@@ -61,11 +61,11 @@ def Repulsive_Bridge_Correction(data, vv=None):
     v_k = np.zeros_like(u_repulsive)
 
     for a, g in np.ndindex(data.ns1, data.ns2):
-        v_k[:, a, g] = data.grid.dht(np.exp(v_repulsive[:, a, g]))
+        v_k[:, a, g] = data.grid.dht(np.exp(v_repulsive[:, a, g])-1)
 
     for s, a, v in np.ndindex(data.ns1, vv.ns1, vv.ns2):
         if a != v:
-            expBr[:, s, a] *= data.grid.idht(vv.w[:, a, v] * v_k[:, s, v])
+            expBr[:, s, a] *= data.grid.idht(vv.w[:, a, v] * v_k[:, s, v])+1
 
     #correction for truncation error
     expBr[expBr < 1e-12] = 1e-12    
