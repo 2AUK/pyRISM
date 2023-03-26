@@ -576,15 +576,12 @@ class RismController:
             self.SFED_calc(dat2, vv=dat1)
 
     def isothermal_compressibility(self, dat):
-        total_dens = 0
-        for isp in dat.species:
-            total_dens += isp.dens
+        total_dens = np.sum(dat.p)
         ck = np.zeros_like(dat.c)
 
-        for i, j in np.ndindex(dat.ns1, dat.ns2):
-            ck[..., i, j] = dat.grid.dht(dat.c[..., i, j])
+        int_cr = self.integrate(4.0 * np.pi * np.power(dat.grid.ri, 2)[:, np.newaxis, np.newaxis] * dat.c @ dat.p @ dat.p, self.uv.grid.d_r)
 
-        pc_0 = np.sum(ck[0, ...] @ dat.p @ dat.p)
+        pc_0 = int_cr
 
         return dat.B / (total_dens - pc_0)
 
@@ -592,11 +589,11 @@ class RismController:
         # Taken from:
         # https://doi.org/10.1021/jp9608786
 
-        int_cr = self.integrate(self.uv.c, self.uv.grid.d_r)
+        int_cr = self.integrate(4.0 * np.pi * np.power(self.uv.grid.ri, 2)[:, np.newaxis, np.newaxis] * self.uv.c @ self.uv.p, self.uv.grid.d_r)
 
         X_t = self.isothermal_compressibility(self.vv)
 
-        return self.vv.kT * self.vv.T * X_t * (1 - (np.sum(self.vv.p) * int_cr))
+        return self.vv.kT * self.vv.T * X_t * (1 - int_cr)
 
         
 
