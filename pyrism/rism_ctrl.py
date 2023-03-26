@@ -575,6 +575,31 @@ class RismController:
             dat2.h = dat2.t + dat2.c
             self.SFED_calc(dat2, vv=dat1)
 
+    def isothermal_compressibility(self, dat):
+        total_dens = 0
+        for isp in dat.species:
+            total_dens += isp.dens
+        ck = np.zeros_like(dat.c)
+
+        for i, j in np.ndindex(dat.ns1, dat.ns2):
+            ck[..., i, j] = dat.grid.dht(dat.c[..., i, j])
+
+        pc_0 = np.sum(ck[0, ...] @ dat.p @ dat.p)
+
+        return dat.B / (total_dens - pc_0)
+
+    def partial_molar_volume(self):
+        # Taken from:
+        # https://doi.org/10.1021/jp9608786
+
+        int_cr = self.integrate(self.uv.c, self.uv.grid.d_r)
+
+        X_t = self.isothermal_compressibility(self.vv)
+
+        return self.vv.kT * self.vv.T * X_t * (1 - (np.sum(self.vv.p) * int_cr))
+
+        
+
 @jit
 def build_Ur_impl(npts, ns1, ns2, sr_pot, mix, cou, atoms1, atoms2, r, charge_coeff, lam=1):
     """Tabulates full short-range and Coulombic potential
