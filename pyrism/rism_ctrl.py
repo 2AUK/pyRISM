@@ -371,7 +371,7 @@ class RismController:
             Temperature"""
         with open(fname+ext, 'w') as ofile:
             if SFE is not None:
-                ofile.write("# density: {p}, temp: {T}, HNC: {HNC}, GF: {GF}, KH: {KH}, HNCB: {RBC}\n".format(p=p[0][0], T=T, HNC=SFE['HNC'], GF=SFE['GF'], KH=SFE['KH'], RBC=SFE['RBC']))
+                ofile.write("# density: {p}, temp: {T}, HNC: {HNC}, GF: {GF}, KH: {KH}, PW: {PW}, HNCB: {RBC}\n".format(p=p[0][0], T=T, HNC=SFE['HNC'], GF=SFE['GF'], KH=SFE['KH'], PW=SFE['PW'], RBC=SFE['RBC']))
             else:
                 ofile.write("# density: {p}, temp: {T}\n".format(p=p[0][0], T=T))
             df.to_csv(ofile, index=False, header=True, mode='a')
@@ -523,12 +523,14 @@ class RismController:
         SFED_KH = Functionals.Functional("KH").get_functional()(dat2, vv)
         SFED_GF = Functionals.Functional("GF").get_functional()(dat2, vv)
         SFED_SC = Functionals.Functional("SC").get_functional()(dat2, vv)
+        SFED_PW = Functionals.Functional("PW").get_functional()(dat2, vv)
         SFED_RBC = Functionals.Functional("RBC").get_functional()(dat2, vv)
 
         SFE_HNC = self.integrate(SFED_HNC, dat2.grid.d_r)
         SFE_KH = self.integrate(SFED_KH, dat2.grid.d_r)
         SFE_GF = self.integrate(SFED_GF, dat2.grid.d_r)
         SFE_SC = self.integrate(SFED_SC, dat2.grid.d_r)
+        SFE_PW = self.integrate(SFED_PW, dat2.grid.d_r)
         SFE_RBC = self.integrate(SFED_RBC, dat2.grid.d_r)
         # SFE_text = "\n{clos_name}: {SFE_val} kcal/mol"
 
@@ -540,11 +542,13 @@ class RismController:
                      "KH": SFED_KH,
                      "GF": SFED_GF,
                      "SC": SFED_SC,
+                     "PW": SFED_PW,
                      "RBC": SFED_HNC + SFED_RBC}
         self.SFE = {"HNC": SFE_HNC,
                     "KH": SFE_KH,
                     "GF": SFE_GF,
                     "SC": SFE_SC,
+                    "PW": SFE_PW,
                     "RBC": SFE_HNC + SFE_RBC}
 
 
