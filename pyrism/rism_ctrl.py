@@ -576,26 +576,60 @@ class RismController:
             self.SFED_calc(dat2, vv=dat1)
 
     def isothermal_compressibility(self, dat):
+        ck0 = 0.0
+        for i in range(dat.grid.npts):
+            ck0r = 0
+            for j, k in np.ndindex(dat.ns1, dat.ns2):
+                if j == k:
+                    msym = 1
+                else:
+                    msym = 2
+                ck0r += msym*np.diag(dat.p)[j]*np.diag(dat.p)[k]*dat.c[i, j, k]
+            ck0 += ck0r * dat.grid.ri[i] ** 2
+        ck0 *= 4.0 * np.pi * dat.grid.d_r
+        return dat.B / (np.sum(dat.p) - ck0)
+
+        """
         total_dens = np.sum(dat.p)
         ck = np.zeros_like(dat.c)
 
-        int_cr = self.integrate(4.0 * np.pi * np.power(dat.grid.ri, 2)[:, np.newaxis, np.newaxis] * dat.c @ dat.p @ dat.p, self.uv.grid.d_r)
+        # Don't think double counting is required here...
+        cnt = np.full(dat.p.shape, 2)
+        np.fill_diagonal(cnt, 1)
+
+        int_cr = self.integrate(4.0 * np.pi * np.power(dat.grid.ri, 2)[:, np.newaxis, np.newaxis] * dat.p[np.newaxis, ...] @ dat.p[np.newaxis, ...] @ dat.c , self.uv.grid.d_r)
+        #int_cr = self.integrate(np.power(total_dens, 2) * 4.0 * np.pi * np.power(dat.grid.ri, 2)[:, np.newaxis, np.newaxis] * dat.c , self.uv.grid.d_r)
 
         pc_0 = int_cr
 
         return dat.B / (total_dens - pc_0)
+        """
 
     def partial_molar_volume(self):
+        
         # Taken from:
         # https://doi.org/10.1021/jp9608786
 
-        int_cr = self.integrate(4.0 * np.pi * np.power(self.uv.grid.ri, 2)[:, np.newaxis, np.newaxis] * self.uv.c @ self.uv.p, self.uv.grid.d_r)
+        int_cr = self.integrate(4.0 * np.pi * np.power(self.uv.grid.ri, 2)[:, np.newaxis, np.newaxis] * self.uv.c @ self.uv.p[np.newaxis, ...], self.uv.grid.d_r)
+        #int_cr = self.integrate(np.power(np.sum(self.vv.p), 2) * 4.0 * np.pi * np.power(self.uv.grid.ri, 2)[:, np.newaxis, np.newaxis] * self.uv.c, self.uv.grid.d_r)
 
         X_t = self.isothermal_compressibility(self.vv)
 
-        return self.vv.kT * self.vv.T * X_t * (1 - int_cr)
+        print(X_t.shape)
 
+        return self.vv.kT * self.vv.T * X_t * (1 - int_cr)
         
+
+    def virial_pressure(self):
+        duvv = np.zeros_like(self.vv.u)
+
+        for i, j in np.ndindex(self.vv.ns1, self.vv.ns2):
+            grad = np.gradient(self.vv.u[:, i, j], self.vv.grid.d_r)
+            duvv[:, i, j] = grad
+
+        pressure = (self.vv.g @ duvv) * np.power(self.uv.grid.ri, 3)[:, np.newaxis, np.newaxis]
+
+        return (self.vv.kT * self.vv.T * np.sum(self.vv.p)) - self.vv.grid.d_r * 2.0 / 3.0 * np.pi * np.power(np.sum(self.vv.p), 2) * np.sum(pressure)
 
 @jit
 def build_Ur_impl(npts, ns1, ns2, sr_pot, mix, cou, atoms1, atoms2, r, charge_coeff, lam=1):
