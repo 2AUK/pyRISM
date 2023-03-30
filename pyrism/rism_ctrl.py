@@ -575,7 +575,8 @@ class RismController:
             dat2.h = dat2.t + dat2.c
             self.SFED_calc(dat2, vv=dat1)
 
-    def isothermal_compressibility(self, dat):
+    def __isothermal_compressibility(self, dat):
+        # WIP
         ck0 = 0.0
         for i in range(dat.grid.npts):
             ck0r = 0
@@ -605,8 +606,8 @@ class RismController:
         return dat.B / (total_dens - pc_0)
         """
 
-    def partial_molar_volume(self):
-        
+    def __partial_molar_volume(self):
+        # WIP
         # Taken from:
         # https://doi.org/10.1021/jp9608786
 
@@ -620,7 +621,8 @@ class RismController:
         return self.vv.kT * self.vv.T * X_t * (1 - int_cr)
         
 
-    def virial_pressure(self):
+    def __virial_pressure(self):
+        # WIP
         duvv = np.zeros_like(self.vv.u)
 
         for i, j in np.ndindex(self.vv.ns1, self.vv.ns2):
