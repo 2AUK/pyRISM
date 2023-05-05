@@ -70,7 +70,7 @@ class MDIIS(SolverObject):
                 RMS = np.sqrt(
                 1 / self.data_vv.ns1 / self.data_vv.grid.npts * np.power((c_A-c_prev).sum(), 2)
                 )
-                if RMS > 100 * min(self.RMS_res):
+                if RMS > 10 * min(self.RMS_res):
                     min_index = self.RMS_res.index(min(self.RMS_res))
                     c_next = np.reshape(self.fr[min_index], c_prev.shape)
                     self.fr.clear()
@@ -128,7 +128,7 @@ class MDIIS(SolverObject):
                 RMS = np.sqrt(
                 1 / self.data_uv.ns1 / self.data_uv.grid.npts * np.power((c_A-c_prev).sum(), 2)
                 )
-                if RMS > 100 * min(self.RMS_res):
+                if RMS > 10 * min(self.RMS_res):
                     min_index = self.RMS_res.index(min(self.RMS_res))
                     c_next = np.reshape(self.fr[min_index], c_prev.shape)
                     self.fr.clear()
@@ -176,7 +176,7 @@ def step_MDIIS_impl(curr, prev, m, res, fr, damp_picard, gr):
     for i in range(m):
         c_A += coef[i] * fr[i]
         min_res += (coef[i] * res[i]) / denom
-        
+
     c_new = c_A + damp_picard * min_res
 
     fr.append(curr.flatten())
