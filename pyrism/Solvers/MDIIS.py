@@ -29,13 +29,14 @@ class MDIIS(SolverObject):
         self.res.append((curr - prev).flatten())
         return prev + self.damp_picard * (curr - prev)
 
-    def step_MDIIS(self, curr, prev):
+    def step_MDIIS(self, curr, prev, gr):
         return step_MDIIS_impl(curr,
                                prev,
                                self.m,
                                self.res,
                                self.fr,
-                               self.mdiis_damping)
+                               self.mdiis_damping,
+                               gr)
 
     def solve(self, RISM, Closure, lam, verbose=False):
         i: int = 0
@@ -64,7 +65,7 @@ class MDIIS(SolverObject):
                 )
                 self.RMS_res.append(RMS)
             else:
-                c_next = self.step_MDIIS(c_A, c_prev)
+                c_next = self.step_MDIIS(c_A, c_prev, self.data_vv.t + c_A)
                 c_next = np.reshape(c_next, c_prev.shape)
                 RMS = np.sqrt(
                 1 / self.data_vv.ns1 / self.data_vv.grid.npts * np.power((c_A-c_prev).sum(), 2)
@@ -122,7 +123,7 @@ class MDIIS(SolverObject):
                 )
                 self.RMS_res.append(RMS)
             else:
-                c_next = self.step_MDIIS(c_A, c_prev)
+                c_next = self.step_MDIIS(c_A, c_prev, self.data_uv.t + c_A)
                 c_next = np.reshape(c_next, c_prev.shape)
                 RMS = np.sqrt(
                 1 / self.data_uv.ns1 / self.data_uv.grid.npts * np.power((c_A-c_prev).sum(), 2)
@@ -143,7 +144,6 @@ class MDIIS(SolverObject):
             elif self.converged(c_next, c_prev):
                 break
 
-
             i += 1
 
             if i == self.max_iter and verbose == True:
@@ -153,7 +153,7 @@ class MDIIS(SolverObject):
                 raise RuntimeError("max iteration reached")
 
 @njit
-def step_MDIIS_impl(curr, prev, m, res, fr, damp_picard):
+def step_MDIIS_impl(curr, prev, m, res, fr, damp_picard, gr):
     A = np.zeros((m+1, m+1), dtype=np.float64)
     b = np.zeros(m+1, dtype=np.float64)
 
@@ -172,10 +172,11 @@ def step_MDIIS_impl(curr, prev, m, res, fr, damp_picard):
 
     c_A = np.zeros_like(fr[0])
     min_res = np.zeros_like(fr[0])
+    denom = np.sqrt(1.0 + np.power(gr.flatten(), 2))
     for i in range(m):
         c_A += coef[i] * fr[i]
-        min_res += coef[i] * res[i]
-
+        min_res += (coef[i] * res[i]) / denom
+        
     c_new = c_A + damp_picard * min_res
 
     fr.append(curr.flatten())
