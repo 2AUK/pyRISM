@@ -11,6 +11,9 @@ class Closure(object):
         "PSE-2": PSE_2,
         "PSE-3": PSE_3,
         "PY": PercusYevick,
+        "rHNC": renormalized_HyperNetted_Chain,
+        "rPY": renormalized_PercusYevick,
+        "rKH": renormalized_KovalenkoHirata,
     }
 
     def __init__(self, clos):

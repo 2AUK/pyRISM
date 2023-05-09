@@ -2,6 +2,19 @@ import numpy as np
 from pyrism.Core import RISM_Obj
 
 
+def renormalized_HyperNetted_Chain(data):
+    return np.exp(-(data.B * data.u_sr) + data.tau + data.Q_r) - 1.0 - data.tau - data.Q_r
+
+def renormalized_PercusYevick(data):
+    return np.exp(-(data.B * data.u_sr + data.Q_r)) * (1.0 + data.tau) - data.tau - 1.0 - data.Q_r
+
+def renormalized_KovalenkoHirata(data):
+        return np.where(
+        (-(data.B * data.u_sr) + data.tau + data.Q_r) <= 0,
+        np.exp(-(data.B * data.u_sr) + data.tau + data.Q_r) - 1.0 - data.tau - data.Q_r,
+        -(data.B * data.u_sr + data.tau + data.Q_r) - data.tau - data.Q_r,
+    )
+
 def HyperNetted_Chain(data):
     return np.exp(-(data.B * data.u_sr) + data.t) - 1.0 - data.t
 
