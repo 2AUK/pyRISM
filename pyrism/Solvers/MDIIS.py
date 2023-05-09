@@ -178,7 +178,7 @@ def step_MDIIS_impl(curr, prev, m, res, fr, damp_picard, damp_mdiis, gr):
         c_A += coef[i] * fr[i]
         min_res += (coef[i] * res[i]) / denom
 
-    c_new = (1 - damp_picard) * curr.flatten() + damp_picard * c_A + damp_mdiis * damp_picard * min_res
+    c_new = c_A + damp_mdiis * min_res
 
     fr.append(curr.flatten())
     res.append((curr - prev).flatten())
