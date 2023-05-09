@@ -156,6 +156,13 @@ class RismController:
                 self.IE = IE(self.vv, inp["params"]["diel"], inp["params"]["adbcor"], self.uv)
             else:
                 self.IE = IE(self.vv, inp["params"]["diel"], inp["params"]["adbcor"])
+        elif inp["params"]["IE"] == "XRISM-DB":
+            IE = IntegralEquations.IntegralEquation(inp["params"]["IE"]).get_IE()
+            if self.uv_check:
+                self.IE = IE(inp["params"]["B"], self.vv, self.uv)
+            else:
+                self.IE = IE(inp["params"]["B"], self.vv)
+            self.closure = Closures.Closure('r' + inp["params"]["closure"])
         else:
             IE = IntegralEquations.IntegralEquation(inp["params"]["IE"]).get_IE()
             if self.uv_check:

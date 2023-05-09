@@ -40,6 +40,9 @@ class RISM_Obj(object):
     grid: Grid = field(init=False)
     species: list = field(init=False, default_factory=list)
     atoms: list = field(init=False, default_factory=list)
+    Q_r: np.ndarray = field(init=False) #XRISM-DB
+    Q_k: np.ndarray = field(init=False) #XRISM-DB
+    tau: np.ndarray = field(init=False) #XRISM-DB
 
     def calculate_beta(self):
         self.B = 1 / self.T / self.kT
@@ -51,6 +54,9 @@ class RISM_Obj(object):
         self.t = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
         self.h = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
         self.h_k = np.zeros_like(self.h)
+        self.Q_k = np.zeros_like(self.h)
+        self.Q_r = np.zeros_like(self.h)
+        self.tau = np.zeros_like(self.h)
         self.u = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
         self.u_sr = np.zeros_like(self.u)
         self.ur_lr = np.zeros_like(self.u)
