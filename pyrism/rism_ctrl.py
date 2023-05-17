@@ -31,6 +31,17 @@ np.seterr(over="raise")
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 @dataclass
+class RISMBuilder:
+    name: str = field(init=False)
+    data_vv: Core.RISM_Obj = field(init=False)
+    data_uv: Core.RISM_Obj = field(init=False)
+    potential: Potentials.Potential = field(init=False)
+    solver_vv: Solvers.Solver = field(init=False)
+    solver_uv: Solvers.Solver = field(init=False)
+    closure: Closures.Closure = field(init=False)
+    int_eq: IntegralEquations.IntegralEquation = field(init=False)
+
+@dataclass
 class RismController:
     """Initialises the parameters for the problem and starts the solver
 
