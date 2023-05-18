@@ -20,6 +20,9 @@ class RISM_Obj(object):
     npts: int
     radius: float
     nlam: int
+    grid: Grid
+    species: list
+    atoms: list
 
     # Set of attributes that are iterated during the RISM calculation
     c: np.ndarray = field(init=False)
@@ -37,9 +40,6 @@ class RISM_Obj(object):
     uk_lr: np.ndarray = field(init=False)
     w: np.ndarray = field(init=False)
     p: np.ndarray = field(init=False)
-    grid: Grid = field(init=False)
-    species: list = field(init=False, default_factory=list)
-    atoms: list = field(init=False, default_factory=list)
     Q_r: np.ndarray = field(init=False) #XRISM-DB
     Q_k: np.ndarray = field(init=False) #XRISM-DB
     tau: np.ndarray = field(init=False) #XRISM-DB

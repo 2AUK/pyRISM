@@ -12,9 +12,12 @@ class Species(object):
 
     def add_site(self, atom_site):
         self.atom_sites.append(atom_site)
+        return self
 
     def set_density(self, density):
         self.dens = density
+        return self
 
     def set_numsites(self, ns):
         self.ns = ns
+        return self
