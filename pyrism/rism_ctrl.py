@@ -6,10 +6,8 @@ Initialises and solves the specified RISM problem.
 """
 import os
 
-os.environ["MKL_CBWR"] = "AUTO"
-#os.environ["MKL_DYNAMIC"] = "FALSE"
-#os.environ["OMP_DYNAMIC"] = "FALSE"
-# os.environ['MKL_VERBOSE'] = '1'
+os.environ["MKL_CBWR"] = "AUTO,STRICT"
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -30,7 +28,6 @@ from dataclasses import dataclass, field
 
 np.seterr(over="raise")
 warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
-
 
 @dataclass
 class DataBuilder:
@@ -94,10 +91,14 @@ class DataBuilder:
         return self
 
     def add_species(self, species):
-        self.species.append(append)
+        self.species.append(species)
         return self
 
     def build(self):
+        for species in self.species:
+            for site in species.atom_sites:
+                self.atoms.append(site)
+        
         return Core.RISM_Obj(
             self.T,
             self.kT,
@@ -112,7 +113,7 @@ class DataBuilder:
             self.nlam,
             Core.Grid(self.npts, self.radius),
             self.species, 
-            None,
+            self.atoms,
         )
 
 @dataclass
@@ -879,6 +880,14 @@ def build_Ur_impl(
 
 
 if __name__ == "__main__":
+
+    water = Core.Species('water')
+    water.set_numsites(3)
+    water.set_density(3.3422858685000001E-002)
+    water.add_site(Core.Site('O_w', [78.15, 3.16572, -0.8476], np.asarray([0, 0, 0])))
+    water.add_site(Core.Site('H1_w', [7.815, 1.16572, 0.4238], np.asarray([1.0, 0.0, 0.0])))
+    water.add_site(Core.Site('H2_w', [7.815, 1.16572, 0.4238], np.asarray([-3.33314000e-01, 9.42816000e-01, 0.00000000e+00])))
+
     data = (
         DataBuilder()
         .temperature(298.15)
@@ -892,6 +901,7 @@ if __name__ == "__main__":
         .num_points(10)
         .rad(10.24)
         .num_lam_cycles(1)
+        .add_species(water)
         .build()
     )
 
