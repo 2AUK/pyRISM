@@ -29,17 +29,31 @@ bibliography: paper.bib
 
 # Summary
 
-Solvation is something something.
-
-The forces on stars, galaxies, and dark matter under external gravitational
-fields lead to the dynamical evolution of structures in the universe. The orbits
-of these bodies are therefore key to understanding the formation, history, and
-future state of galaxies. The field of "galactic dynamics," which aims to model
-the gravitating components of galaxies to study their structure and evolution,
-is now well-established, commonly taught, and frequently used in astronomy.
-Aside from toy problems and demonstrations, the majority of problems require
-efficient numerical tools, many of which require the same base code (e.g., for
-performing numerical orbit integration).
+Solvation---and more generally the liquid state---are important fields of study in chemistry.
+A majority of reactions occur in solution.
+As a result, it is pertinent that liquids and solvation can be modelled with physics and computational models.
+A conceptually straightforward approach to modelling the liquid state is via molecular dynamics (MD). 
+The solvent is represented atomistically and placed in the simulation cell around a solute, and the dynamics are simulated using the equations of motion.
+Thermodynamic properties can be calculated from the resulting output.
+The issue with explicitly modelling the solvent in this manner is the computational expense required to obtain statistically meaningful sampling.
+Simulations are heavily dependent on system size such that computational time can range anywhere from hours to weeks.
+A faster method is to represent the solvent as a continuous medium---an implicit solvent---by statistically averaging over all the degrees of freedom of the solvent.
+The medium is parametrised using the dielectric constant of the solvent.
+This approach reduces the computational expense, but the amount of information obtained from an implicit solvation calculation is limited in comparison to explicit solvation \cite{jensenIntroductionComputationalChemistry2017,cramerEssentialsComputationalChemistry2013}.
+A third purely statistical-mechanical approach is based on density distribution functions that are used to represent solvent density around a solute.
+Still somewhat implicit by nature, the computational expense sits between explicit and continuum models, yet the density distributions yield information about the structure of the liquid \cite{hansen1990theory}.
+The origins of this theory lies in the work of Ornstein et al. \cite{ornstein1914accidental} in which correlations between particles are decomposed into direct and indirect components---$c(r)$ and $\gamma(r)$ respectively.
+In order to extend this approach to molecular liquids, the reference interaction site model (RISM) was developed by Chandler et al. \cite{chandlerOptimizedClusterExpansions1972} (sometimes called the site-site Ornstein-Zernike (SSOZ) equation) as a way to approximate the molecular Ornstein-Zernike (MOZ) equation, turning a 6D equation into a set of 1D equations.
+This significantly simplifies the calculation by averaging over the orientations of a molecule.
+The one dimensional RISM equation (1D-RISM) was modified to better model charged systems, resulting in the extended reference interaction site model (XRISM).
+Further development took place to address the RISM equation not accurately calculating the dielectric constant.
+The dielectric constant is instead used as input into the equation, resulting in the dielectrically consistent reference interaction site model (DRISM).
+1D-RISM and its variations can be used to understand solvent structure in solution, as well as calculating solvation free energies.
+There are a few 1D-RISM implementations available.
+The AMBER implementation \cite{luchkoThreeDimensionalMolecularTheory2010} calculates solvent-solvent interactions, but lacks a solute-solvent implementation.
+RISM-MOL developed by Sergiievsky et al. \cite{sergiievskyiMultigridSolverReference2011} provides a solute-solvent implementation, but only works for aqueous solvents at 298K.
+pyRISM includes both solving for solute-solvent interaction, as well the ability to solve the RISM equations at various temperatures.
+In this paper, we present the pyRISM \cite{ahmad_pyrism_2023} software package and discuss the underlying theory, implementation details, differences with available packages and development principles as well as presenting a few preliminary results to showcase its current capabilities.
 
 # Statement of need
 
@@ -105,7 +119,7 @@ Figure sizes can be customized by adding an optional second parameter:
 
 # Acknowledgements
 
-We acknowledge contributions from Brigitta Sipocz, Syrtis Major, and Semyeong
-Oh, and support from Kathryn Johnston during the genesis of this project.
+Results were obtained using the ARCHIE-WeSt High Performance Computer (www.archie-west.ac.uk) based at the University of Strathclyde.
+D.S.P and A.A thank EPSRC for funding via a PhD studentship for A.A.
 
 # References
