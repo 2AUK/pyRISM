@@ -1,1 +1,1 @@
-from .IE import IntegralEquation
+from .IE import *
