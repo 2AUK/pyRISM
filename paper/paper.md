@@ -39,21 +39,21 @@ The issue with explicitly modelling the solvent in this manner is the computatio
 Simulations are heavily dependent on system size such that computational time can range anywhere from hours to weeks.
 A faster method is to represent the solvent as a continuous medium---an implicit solvent---by statistically averaging over all the degrees of freedom of the solvent.
 The medium is parametrised using the dielectric constant of the solvent.
-This approach reduces the computational expense, but the amount of information obtained from an implicit solvation calculation is limited in comparison to explicit solvation \cite{jensenIntroductionComputationalChemistry2017,cramerEssentialsComputationalChemistry2013}.
+This approach reduces the computational expense, but the amount of information obtained from an implicit solvation calculation is limited in comparison to explicit solvation [@jensenIntroductionComputationalChemistry2017;cramerEssentialsComputationalChemistry2013].
 A third purely statistical-mechanical approach is based on density distribution functions that are used to represent solvent density around a solute.
-Still somewhat implicit by nature, the computational expense sits between explicit and continuum models, yet the density distributions yield information about the structure of the liquid \cite{hansen1990theory}.
-The origins of this theory lies in the work of Ornstein et al. \cite{ornstein1914accidental} in which correlations between particles are decomposed into direct and indirect components---$c(r)$ and $\gamma(r)$ respectively.
-In order to extend this approach to molecular liquids, the reference interaction site model (RISM) was developed by Chandler et al. \cite{chandlerOptimizedClusterExpansions1972} (sometimes called the site-site Ornstein-Zernike (SSOZ) equation) as a way to approximate the molecular Ornstein-Zernike (MOZ) equation, turning a 6D equation into a set of 1D equations.
+Still somewhat implicit by nature, the computational expense sits between explicit and continuum models, yet the density distributions yield information about the structure of the liquid [@hansen1990theory].
+The origins of this theory lies in the work of Ornstein et al. [@ornstein1914accidental] in which correlations between particles are decomposed into direct and indirect components---$c(r)$ and $\gamma(r)$ respectively.
+In order to extend this approach to molecular liquids, the reference interaction site model (RISM) was developed by Chandler et al. [@chandlerOptimizedClusterExpansions1972] (sometimes called the site-site Ornstein-Zernike (SSOZ) equation) as a way to approximate the molecular Ornstein-Zernike (MOZ) equation, turning a 6D equation into a set of 1D equations.
 This significantly simplifies the calculation by averaging over the orientations of a molecule.
 The one dimensional RISM equation (1D-RISM) was modified to better model charged systems, resulting in the extended reference interaction site model (XRISM).
 Further development took place to address the RISM equation not accurately calculating the dielectric constant.
 The dielectric constant is instead used as input into the equation, resulting in the dielectrically consistent reference interaction site model (DRISM).
 1D-RISM and its variations can be used to understand solvent structure in solution, as well as calculating solvation free energies.
 There are a few 1D-RISM implementations available.
-The AMBER implementation \cite{luchkoThreeDimensionalMolecularTheory2010} calculates solvent-solvent interactions, but lacks a solute-solvent implementation.
-RISM-MOL developed by Sergiievsky et al. \cite{sergiievskyiMultigridSolverReference2011} provides a solute-solvent implementation, but only works for aqueous solvents at 298K.
+The AMBER implementation [@luchkoThreeDimensionalMolecularTheory2010] calculates solvent-solvent interactions, but lacks a solute-solvent implementation.
+RISM-MOL developed by Sergiievsky et al. [@sergiievskyiMultigridSolverReference2011] provides a solute-solvent implementation, but only works for aqueous solvents at 298K.
 pyRISM includes both solving for solute-solvent interaction, as well the ability to solve the RISM equations at various temperatures.
-In this paper, we present the pyRISM \cite{ahmad_pyrism_2023} software package and discuss the underlying theory, implementation details, differences with available packages and development principles as well as presenting a few preliminary results to showcase its current capabilities.
+In this paper, we present the pyRISM [@ahmad_pyrism_2023] software package and discuss the underlying theory, implementation details, differences with available packages and development principles as well as presenting a few preliminary results to showcase its current capabilities.
 
 # Statement of need
 
