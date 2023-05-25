@@ -49,33 +49,19 @@ The one dimensional RISM equation (1D-RISM) was modified to better model charged
 Further development took place to address the RISM equation not accurately calculating the dielectric constant.
 The dielectric constant is instead used as input into the equation, resulting in the dielectrically consistent reference interaction site model (DRISM).
 1D-RISM and its variations can be used to understand solvent structure in solution, as well as calculating solvation free energies.
-There are a few 1D-RISM implementations available.
-The AMBER implementation [@luchkoThreeDimensionalMolecularTheory2010] calculates solvent-solvent interactions, but lacks a solute-solvent implementation.
-RISM-MOL developed by Sergiievsky et al. [@sergiievskyiMultigridSolverReference2011] provides a solute-solvent implementation, but only works for aqueous solvents at 298K.
-pyRISM includes both solving for solute-solvent interaction, as well the ability to solve the RISM equations at various temperatures.
-In this paper, we present the pyRISM [@ahmad_pyrism_2023] software package and discuss the underlying theory, implementation details, differences with available packages and development principles as well as presenting a few preliminary results to showcase its current capabilities.
+
+In this paper, we present the `pyRISM`[@ahmad_pyrism_2023] software package and discuss the underlying theory, implementation details, differences with available packages and development principles as well as presenting a few preliminary results to showcase its current capabilities.
 
 # Statement of need
 
-`Gala` is an Astropy-affiliated Python package for galactic dynamics. Python
-enables wrapping low-level languages (e.g., C) for speed without losing
-flexibility or ease-of-use in the user-interface. The API for `Gala` was
-designed to provide a class-based and user-friendly interface to fast (C or
-Cython-optimized) implementations of common operations such as gravitational
-potential and force evaluation, orbit integration, dynamical transformations,
-and chaos indicators for nonlinear dynamics. `Gala` also relies heavily on and
-interfaces well with the implementations of physical units and astronomical
-coordinate systems in the `Astropy` package [@astropy] (`astropy.units` and
-`astropy.coordinates`).
-
-`Gala` was designed to be used by both astronomical researchers and by
-students in courses on gravitational dynamics or astronomy. It has already been
-used in a number of scientific publications [@Pearson:2017] and has also been
-used in graduate courses on Galactic dynamics to, e.g., provide interactive
-visualizations of textbook material [@Binney:2008]. The combination of speed,
-design, and support for Astropy functionality in `Gala` will enable exciting
-scientific explorations of forthcoming data releases from the *Gaia* mission
-[@gaia] by students and experts alike.
+`pyRISM` is a an open-source python package for solving the RISM equation and its variants for a range of different problems. 
+While there do exist a few 1D-RISM implementations, `pyRISM` is unique in its capabilites.
+The `AMBER` implementation [@luchkoThreeDimensionalMolecularTheory2010] calculates solvent-solvent interactions, but lacks a solute-solvent implementation. 
+`RISM-MOL` developed by Sergiievsky et al. [@sergiievskyiMultigridSolverReference2011] provides a solute-solvent implementation, but only works for aqueous solvents at 298K.
+`pyRISM` includes both solving for solute-solvent interaction, as well the ability to solve the RISM equations at various temperatures---as well as being able to work with multi-component solvent systems, ionic systems, organic solvents and more.
+The package uses NumPy[@harrisArrayProgrammingNumPy2020] functions as much as possible and Numba[@lam_numba_2015] to speed up computationally intensive sections of the code.
+Inputs are defined in expressive and readable `TOML` files[@preston-wernerTOMLSpecificationVersion2021], the format of which is described in the [`pyRISM` wiki](https://github.com/2AUK/pyRISM/wiki).
+The wiki also gives usage instructions for the package.
 
 # Mathematics
 
