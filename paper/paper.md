@@ -47,10 +47,14 @@ In order to extend this approach to molecular liquids, the reference interaction
 This significantly simplifies the calculation by averaging over the orientations of a molecule.
 The one dimensional RISM equation (1D-RISM) was modified to better model charged systems, resulting in the extended reference interaction site model (XRISM).
 Further development took place to address the RISM equation not accurately calculating the dielectric constant.
+
+TODO: INCLUDE SECTION ON PROPERTIES CALCULATED EITHER HERE OR BELOW
+
+
 The dielectric constant is instead used as input into the equation, resulting in the dielectrically consistent reference interaction site model (DRISM).
 1D-RISM and its variations can be used to understand solvent structure in solution, as well as calculating solvation free energies.
 
-In this paper, we present the `pyRISM`[@ahmad_pyrism_2023] software package and discuss the underlying theory, implementation details, differences with available packages and development principles as well as presenting a few preliminary results to showcase its current capabilities.
+In this paper, we present the `pyRISM`[@ahmad_pyrism_2023] software package for solving the RISM equation and its variants. 
 
 # Statement of need
 
@@ -63,45 +67,8 @@ The package uses NumPy[@harrisArrayProgrammingNumPy2020] functions as much as po
 Inputs are defined in expressive and readable `TOML` files[@preston-wernerTOMLSpecificationVersion2021], the format of which is described in the [`pyRISM` wiki](https://github.com/2AUK/pyRISM/wiki).
 The wiki also gives usage instructions for the package.
 
-# Mathematics
-
-Single dollars ($) are required for inline mathematics e.g. $f(x) = e^{\pi/x}$
-
-Double dollars make self-standing equations:
-
-$$\Theta(x) = \left\{\begin{array}{l}
-0\textrm{ if } x < 0\cr
-1\textrm{ else}
-\end{array}\right.$$
-
-You can also use plain \LaTeX for equations
-\begin{equation}\label{eq:fourier}
-\hat f(\omega) = \int_{-\infty}^{\infty} f(x) e^{i\omega x} dx
-\end{equation}
-and refer to \autoref{eq:fourier} from text.
-
-# Citations
-
-Citations to entries in paper.bib should be in
-[rMarkdown](http://rmarkdown.rstudio.com/authoring_bibliographies_and_citations.html)
-format.
-
-If you want to cite a software repository URL (e.g. something on GitHub without a preferred
-citation) then you can do it with the example BibTeX entry below for @fidgit.
-
-For a quick reference, the following citation commands can be used:
-- `@author:2001`  ->  "Author et al. (2001)"
-- `[@author:2001]` -> "(Author et al., 2001)"
-- `[@author1:2001; @author2:2001]` -> "(Author1 et al., 2001; Author2 et al., 2002)"
-
-# Figures
-
-Figures can be included like this:
-![Caption for example figure.\label{fig:example}](figure.png)
-and referenced from text using \autoref{fig:example}.
-
-Figure sizes can be customized by adding an optional second parameter:
-![Caption for example figure.](figure.png){ width=20% }
+`pyRISM` has been used for generating descriptors for machine-learning applications.
+[@fowles2023accurately;@fowles2023solvation]
 
 # Acknowledgements
 
