@@ -39,7 +39,7 @@ The issue with explicitly modelling the solvent in this manner is the computatio
 Simulations are heavily dependent on system size such that computational time can range anywhere from hours to weeks.
 A faster method is to represent the solvent as a continuous medium---an implicit solvent---by statistically averaging over all the degrees of freedom of the solvent.
 The medium is parametrised using the dielectric constant of the solvent.
-This approach reduces the computational expense, but the amount of information obtained from an implicit solvation calculation is limited in comparison to explicit solvation [@jensenIntroductionComputationalChemistry2017;cramerEssentialsComputationalChemistry2013].
+This approach reduces the computational expense, but the amount of information obtained from an implicit solvation calculation is limited in comparison to explicit solvation [@jensenIntroductionComputationalChemistry2017;@cramerEssentialsComputationalChemistry2013].
 A third purely statistical-mechanical approach is based on density distribution functions that are used to represent solvent density around a solute.
 Still somewhat implicit by nature, the computational expense sits between explicit and continuum models, yet the density distributions yield information about the structure of the liquid [@hansen1990theory].
 The origins of this theory lies in the work of Ornstein et al. [@ornstein1914accidental] in which correlations between particles are decomposed into direct and indirect components---$c(r)$ and $\gamma(r)$ respectively.
