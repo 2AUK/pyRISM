@@ -47,12 +47,11 @@ In order to extend this approach to molecular liquids, the reference interaction
 This significantly simplifies the calculation by averaging over the orientations of a molecule.
 The one dimensional RISM equation (1D-RISM) was modified to better model charged systems, resulting in the extended reference interaction site model (XRISM).
 Further development took place to address the RISM equation not accurately calculating the dielectric constant.
-
-TODO: INCLUDE SECTION ON PROPERTIES CALCULATED EITHER HERE OR BELOW
-
-
-The dielectric constant is instead used as input into the equation, resulting in the dielectrically consistent reference interaction site model (DRISM).
+It is instead used as an input into a modified equation, the dielectrically consistent reference interaction site model (DRISM).
 1D-RISM and its variations can be used to understand solvent structure in solution, as well as calculating solvation free energies.
+Common structural information calculated by RISM is the radial distribution function and the total, direct and indirect correlation functions.
+Thermodynamic properties include the solvation free energy (SFE), the solvation free energy density (SFED), isothermal compressibility and more (via, for example, the Kirkwood-Buff integrals).
+The solvation free energy density is the solvation free energy sampled over space, showing the effect of the solute on the solvent some distance $r$ from the solute.
 
 In this paper, we present the `pyRISM`[@ahmad_pyrism_2023] software package for solving the RISM equation and its variants. 
 
@@ -65,10 +64,11 @@ The `AMBER` implementation [@luchkoThreeDimensionalMolecularTheory2010] calculat
 `pyRISM` includes both solving for solute-solvent interaction, as well the ability to solve the RISM equations at various temperatures---as well as being able to work with multi-component solvent systems, ionic systems, organic solvents and more.
 The package uses NumPy[@harrisArrayProgrammingNumPy2020] functions as much as possible and Numba[@lam_numba_2015] to speed up computationally intensive sections of the code.
 Inputs are defined in expressive and readable `TOML` files[@preston-wernerTOMLSpecificationVersion2021], the format of which is described in the [`pyRISM` wiki](https://github.com/2AUK/pyRISM/wiki).
-The wiki also gives usage instructions for the package.
+The wiki also gives detailed usage instructions for the package.
 
-`pyRISM` has been used for generating descriptors for machine-learning applications.
-[@fowles2023accurately;@fowles2023solvation]
+`pyRISM` has been used for generating descriptors for machine-learning applications
+[@fowles2023accurately;@fowles2023solvation].
+The solvation free energy densities were used as a dataset to train a convolutional neural network (CNN) to predict accurate solvation free energies, entropies and enthalpies of small organic molecules in various solvents.
 
 # Acknowledgements
 
