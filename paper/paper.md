@@ -64,7 +64,7 @@ The `AMBER` implementation [@luchkoThreeDimensionalMolecularTheory2010] calculat
 `pyRISM` includes both solving for solute-solvent interaction, as well the ability to solve the RISM equations at various temperatures---as well as being able to work with multi-component solvent systems, ionic systems, organic solvents and more.
 The package uses NumPy[@harrisArrayProgrammingNumPy2020] functions as much as possible and Numba[@lam_numba_2015] to speed up computationally intensive sections of the code.
 Inputs are defined in expressive and readable `TOML` files[@preston-wernerTOMLSpecificationVersion2021], the format of which is described in the [`pyRISM` wiki](https://github.com/2AUK/pyRISM/wiki).
-The wiki also gives detailed usage instructions for the package.
+The wiki also gives [detailed usage instructions](https://github.com/2AUK/pyRISM/wiki#using-pyrism) for the package.
 
 `pyRISM` has been used for generating descriptors for machine-learning applications
 [@fowles2023accurately;@fowles2023solvation].
