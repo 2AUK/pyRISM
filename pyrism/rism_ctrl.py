@@ -98,8 +98,8 @@ class DataBuilder:
         for species in self.species:
             for site in species.atom_sites:
                 self.atoms.append(site)
-        
-        return Core.RISM_Obj(
+
+        dat = Core.RISM_Obj(
             self.T,
             self.kT,
             self.kU,
@@ -115,6 +115,10 @@ class DataBuilder:
             self.species, 
             self.atoms,
         )
+
+        dat.calculate_beta()
+        
+        return dat
 
 @dataclass
 class ProblemBuilder:
