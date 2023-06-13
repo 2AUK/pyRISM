@@ -1,6 +1,6 @@
 from pyrism.rism_ctrl import *
 import unittest
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_almost_equal
 import warnings
 from pathlib import Path
  
@@ -31,3 +31,5 @@ class TestRISMBuilder(unittest.TestCase):
             .add_species(self.test_species)
             .build()
         )
+
+        assert_almost_equal(0.01, data.B)
