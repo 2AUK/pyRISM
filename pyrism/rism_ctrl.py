@@ -90,6 +90,7 @@ class RismController:
             self.solve(self.vv, dat2=self.uv, verbose=verbose)
         else:
             self.solve(self.vv, dat2=None, verbose=verbose)
+            print(self.__isothermal_compressibility(self.vv))
 
     def read_input(self):
         """ Reads .toml input file, populates vv and uv dataclasses
