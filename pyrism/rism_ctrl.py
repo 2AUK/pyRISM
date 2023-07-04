@@ -90,7 +90,6 @@ class RismController:
             self.solve(self.vv, dat2=self.uv, verbose=verbose)
         else:
             self.solve(self.vv, dat2=None, verbose=verbose)
-            print(self.__isothermal_compressibility(self.vv))
 
     def read_input(self):
         """ Reads .toml input file, populates vv and uv dataclasses
@@ -583,20 +582,30 @@ class RismController:
             dat2.h = dat2.t + dat2.c
             self.SFED_calc(dat2, vv=dat1)
 
-    def __isothermal_compressibility(self, dat):
+    def isothermal_compressibility(self, dat):
         # WIP
+        ck = np.zeros((dat.npts, dat.ns1, dat.ns2), dtype=np.float64)
+
+        for i, j in np.ndindex(dat.ns1, dat.ns2):
+            ck[..., i, j] = dat.grid.dht(dat.c[..., i, j])
+
         ck0 = 0.0
         for i in range(dat.grid.npts):
-            ck0r = 0
+            ck0r = 0.0
             for j, k in np.ndindex(dat.ns1, dat.ns2):
                 if j == k:
-                    msym = 1
+                    msym = 1.0
                 else:
-                    msym = 2
-                ck0r += msym*np.diag(dat.p)[j]*np.diag(dat.p)[k]*dat.c[i, j, k]
-            ck0 += ck0r * dat.grid.ri[i] ** 2
+                    msym = 2.0
+                ck0r += np.diag(dat.p)[j]*np.diag(dat.p)[k]*ck[0, j, k]
+            ck0 += ck0r * dat.grid.ri[i] ** 2.0
         ck0 *= 4.0 * np.pi * dat.grid.d_r
-        return dat.B / (np.sum(dat.p) - ck0)
+
+        pck = np.sum(dat.p @ ck)
+        p = np.sum(dat.p)
+
+
+        return (dat.B / (np.sum(dat.p) - ck0), dat.B / (p * (1.0 - pck)))
 
         """
         total_dens = np.sum(dat.p)
