@@ -589,23 +589,31 @@ class RismController:
         for i, j in np.ndindex(dat.ns1, dat.ns2):
             ck[..., i, j] = dat.grid.dht(dat.c[..., i, j])
 
+
+        # Amber route to isothermal compressibility
         ck0 = 0.0
         for i in range(dat.grid.npts):
             ck0r = 0.0
-            for j, k in np.ndindex(dat.ns1, dat.ns2):
-                if j == k:
-                    msym = 1.0
-                else:
-                    msym = 2.0
-                ck0r += np.diag(dat.p)[j]*np.diag(dat.p)[k]*ck[0, j, k]
+            for j in range(0, dat.ns1):
+                for k in range(j, dat.ns2):
+                    if j == k:
+                        msym = 1.0
+                    else:
+                        msym = 2.0
+                    ck0r += msym*np.diag(dat.p)[j]*np.diag(dat.p)[k]*dat.c[i, j, k]
             ck0 += ck0r * dat.grid.ri[i] ** 2.0
         ck0 *= 4.0 * np.pi * dat.grid.d_r
 
-        pck = np.sum(dat.p @ ck)
-        p = np.sum(dat.p)
+        # literature route
+        pck = np.sum(ck[0, ...]) * dat.p[0][0]
+        p = dat.p[0][0]
+
+        B = 1.0 / dat.T / 1.380658E-23
 
 
-        return (dat.B / (np.sum(dat.p) - ck0), dat.B / (p * (1.0 - pck)))
+        # return ( 1.0 / ((dat.p[0][0] - ck0)) , 1.0 / (p * (1.0 - pck)))
+        return 1.0 / (p * (1.0 - pck))
+        # return 1.0 / ((dat.p[0][0] - ck0))
 
         """
         total_dens = np.sum(dat.p)
