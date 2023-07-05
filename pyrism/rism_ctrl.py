@@ -658,6 +658,26 @@ class RismController:
 
         return (self.vv.kT * self.vv.T * np.sum(self.vv.p)) - self.vv.grid.d_r * 2.0 / 3.0 * np.pi * np.power(np.sum(self.vv.p), 2) * np.sum(pressure)
 
+
+    def pressure(self):
+        uv = self.vv
+        nu = uv.ns1
+        nv = uv.ns2
+
+        p0 = uv.p[0][0]
+
+        B = 1.0 / uv.T / 1.380658E-23
+
+        ck = np.zeros((uv.npts, uv.ns1, uv.ns2), dtype=np.float64)
+
+        for i, j in np.ndindex(uv.ns1, uv.ns2):
+            ck[..., i, j] = uv.grid.dht(uv.c[..., i, j])
+
+        zk = ((nu - 1) / p0) + ck[0, ...]
+
+        pressure = nu * p0 / B - (np.sum(zk) / B / 2.0)
+
+        return pressure * 1e24
 @jit
 def build_Ur_impl(npts, ns1, ns2, sr_pot, mix, cou, atoms1, atoms2, r, charge_coeff, lam=1):
     """Tabulates full short-range and Coulombic potential
