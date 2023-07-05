@@ -681,9 +681,11 @@ class RismController:
 
         compres = self.isothermal_compressibility(uv)
 
-        ck = 1 - (uv.B * np.power(compres, -1.0))
+        ck_direct = np.sum(uv.p @ uv.p @ ck[0, ...])
 
-        pressure = ((float(nu) + 1.0) / 2.0) * p0 * inv_B - ( inv_B / 2.0 ) * np.power(p0, 2) * ck
+        ck_compres = np.power(p0, 2) * (1.0 - (uv.B * np.power(compres, -1.0)))
+
+        pressure = ((float(nu) + 1.0) / 2.0) * p0 * inv_B - ( inv_B / 2.0 ) * ck_compres
 
         return pressure * 1e24
 @jit
