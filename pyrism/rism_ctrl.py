@@ -649,6 +649,8 @@ class RismController:
         ck0 = self.integrate(self.uv.c * r * r, 4.0 * np.pi * self.uv.grid.d_r)
         rhvv = self.integrate(self.vv.h * r *r, 4.0 * np.pi * self.uv.grid.d_r)
         rhuv = self.integrate(self.uv.h * r *r, 4.0 * np.pi * self.uv.grid.d_r)
+        khvv = np.sum(self.vv.h_k[0,...])
+        khuv = np.sum(self.uv.h_k[0,...])
         pv = self.vv.p[0][0]
 
         inv_B = self.uv.kT * self.uv.T
@@ -662,7 +664,7 @@ class RismController:
 
         _, pmv = self.partial_molar_volume()
 
-        return (self.SFE['KH'], self.SFE['KH'] - (pcplus * pmv))
+        return (self.SFE['HNC'], self.SFE['HNC'] - (pcplus * pmv))
         
 
     def __virial_pressure(self):
