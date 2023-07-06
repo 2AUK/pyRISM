@@ -15,3 +15,5 @@ print("isothermal compressibility:", (mol.isothermal_compressibility(mol.vv)))
 print("pressure:", mol.pressure())
 
 print("PMV:", mol.partial_molar_volume())
+
+print("PC+ - SFE:", mol.pc_plus())

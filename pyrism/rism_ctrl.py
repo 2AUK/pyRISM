@@ -607,8 +607,6 @@ class RismController:
         r = self.vv.grid.ri[:, np.newaxis, np.newaxis]
         ck0 = self.integrate(self.vv.c * r * r, 4.0 * np.pi * self.vv.grid.d_r)
 
-        print(np.sum(ck[0, ...]), ck0)
-
         # literature route
         pck = np.sum(ck[0, ...]) * dat.p[0][0]
         p = dat.p[0][0]
@@ -652,16 +650,22 @@ class RismController:
 
         r = self.uv.grid.ri[:, np.newaxis, np.newaxis]
         ck0 = self.integrate(self.uv.c * r * r, 4.0 * np.pi * self.uv.grid.d_r)
-
+        rhvv = self.integrate(self.vv.h * r *r, 4.0 * np.pi * self.uv.grid.d_r)
+        rhuv = self.integrate(self.uv.h * r *r, 4.0 * np.pi * self.uv.grid.d_r)
         pv = self.vv.p[0][0]
 
         inv_B = self.uv.kT * self.uv.T
 
         ck0_direct = np.sum(ck[0, ...])
-        print(ck0_direct, ck0)
 
-        return inv_B * compres * (1.0 - pv * ck0)
+        return (inv_B * compres * (1.0 - pv * ck0), 1.0/pv + (rhvv - rhuv) / self.uv.ns1)
 
+    def pc_plus(self):
+        pc, pcplus = self.pressure()
+
+        _, pmv = self.partial_molar_volume()
+
+        return (self.SFE['KH'], self.SFE['KH'] - (pcplus * pmv))
         
 
     def __virial_pressure(self):
