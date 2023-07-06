@@ -10,6 +10,6 @@ mol.do_rism(verbose=True)
 #plt.plot(mol.vv.grid.ri, mol.vv.g[:, 0, 0])
 #plt.show()
 
-print((mol.isothermal_compressibility(mol.vv)))
+print("isothermal compressibility:", (mol.isothermal_compressibility(mol.vv)))
 
-print(mol.pressure())
+print("pressure:", mol.pressure())
