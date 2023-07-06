@@ -604,6 +604,11 @@ class RismController:
             ck0 += ck0r * dat.grid.ri[i] ** 2.0
         ck0 *= 4.0 * np.pi * dat.grid.d_r
 
+        r = self.vv.grid.ri[:, np.newaxis, np.newaxis]
+        ck0 = self.integrate(self.vv.c * r * r, 4.0 * np.pi * self.vv.grid.d_r)
+
+        print(np.sum(ck[0, ...]), ck0)
+
         # literature route
         pck = np.sum(ck[0, ...]) * dat.p[0][0]
         p = dat.p[0][0]
@@ -631,19 +636,32 @@ class RismController:
         return dat.B / (total_dens - pc_0)
         """
 
-    def __partial_molar_volume(self):
+    def partial_molar_volume(self):
         # WIP
         # Taken from:
         # https://doi.org/10.1021/jp9608786
 
-        int_cr = self.integrate(4.0 * np.pi * np.power(self.uv.grid.ri, 2)[:, np.newaxis, np.newaxis] * self.uv.c @ self.uv.p[np.newaxis, ...], self.uv.grid.d_r)
-        #int_cr = self.integrate(np.power(np.sum(self.vv.p), 2) * 4.0 * np.pi * np.power(self.uv.grid.ri, 2)[:, np.newaxis, np.newaxis] * self.uv.c, self.uv.grid.d_r)
+        uv = self.uv
 
-        X_t = self.isothermal_compressibility(self.vv)
+        ck = np.zeros((uv.npts, uv.ns1, uv.ns2), dtype=np.float64)
 
-        print(X_t.shape)
+        for i, j in np.ndindex(uv.ns1, uv.ns2):
+            ck[..., i, j] = uv.grid.dht(uv.c[..., i, j])
 
-        return self.vv.kT * self.vv.T * X_t * (1 - int_cr)
+        compres = self.isothermal_compressibility(self.vv)
+
+        r = self.uv.grid.ri[:, np.newaxis, np.newaxis]
+        ck0 = self.integrate(self.uv.c * r * r, 4.0 * np.pi * self.uv.grid.d_r)
+
+        pv = self.vv.p[0][0]
+
+        inv_B = self.uv.kT * self.uv.T
+
+        ck0_direct = np.sum(ck[0, ...])
+        print(ck0_direct, ck0)
+
+        return inv_B * compres * (1.0 - pv * ck0)
+
         
 
     def __virial_pressure(self):
