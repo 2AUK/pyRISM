@@ -635,9 +635,6 @@ class RismController:
         """
 
     def partial_molar_volume(self):
-        # WIP
-        # Taken from:
-        # https://doi.org/10.1021/jp9608786
 
         uv = self.uv
 
@@ -658,7 +655,7 @@ class RismController:
 
         ck0_direct = np.sum(ck[0, ...])
 
-        return (inv_B * compres * (1.0 - pv * ck0), 1.0/pv + (rhvv - rhuv) / self.uv.ns1)
+        return (inv_B * compres * (1.0 - pv * ck0), 1.0 / pv + (rhvv - rhuv) / self.uv.ns1)
 
     def pc_plus(self):
         pc, pcplus = self.pressure()
