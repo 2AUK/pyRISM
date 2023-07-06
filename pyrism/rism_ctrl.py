@@ -679,15 +679,17 @@ class RismController:
 
         compres = self.isothermal_compressibility(uv)
 
-        initial_term = ((nu + 1.0) * uv.p / 2.0) * inv_B
+        initial_term = ((nu + 1.0) / 2.0) * (uv.kU * uv.T) * p0
 
         ck_direct = np.sum(uv.p @ uv.p @ ck[0, ...])
 
         ck_compres = np.power(p0, 2) * (1.0 - (uv.B / compres))
 
-        pressure = np.sum(initial_term) - ( inv_B / 2.0 ) * ck_compres
+        pressure = np.sum(initial_term) - ( (uv.kU * uv.T) / 2.0 ) * ck_direct
 
-        return pressure * 1e24
+        ideal_pressure = p0 * uv.kU * uv.T
+
+        return pressure, pressure - ideal_pressure
 @jit
 def build_Ur_impl(npts, ns1, ns2, sr_pot, mix, cou, atoms1, atoms2, r, charge_coeff, lam=1):
     """Tabulates full short-range and Coulombic potential
