@@ -677,15 +677,15 @@ class RismController:
         for i, j in np.ndindex(uv.ns1, uv.ns2):
             ck[..., i, j] = uv.grid.dht(uv.c[..., i, j])
 
-        zk = ((nu - 1) / p0) + ck[0, ...]
-
         compres = self.isothermal_compressibility(uv)
+
+        initial_term = ((nu + 1.0) * uv.p / 2.0) * inv_B
 
         ck_direct = np.sum(uv.p @ uv.p @ ck[0, ...])
 
-        ck_compres = np.power(p0, 2) * (1.0 - (uv.B * np.power(compres, -1.0)))
+        ck_compres = np.power(p0, 2) * (1.0 - (uv.B / compres))
 
-        pressure = ((float(nu) + 1.0) / 2.0) * p0 * inv_B - ( inv_B / 2.0 ) * ck_compres
+        pressure = np.sum(initial_term) - ( inv_B / 2.0 ) * ck_compres
 
         return pressure * 1e24
 @jit
