@@ -657,7 +657,9 @@ class RismController:
 
         ck0_direct = np.sum(ck[0, ...])
 
-        return 1.0 / pv + (rhvv - rhuv) / self.uv.ns1
+        # return inv_B * compres * (1.0 - pv * ck0_direct)
+
+        return (1.0 / pv) + (khvv - khuv) / self.uv.ns1
 
     def pc_plus(self):
         pc, pcplus = self.pressure()
