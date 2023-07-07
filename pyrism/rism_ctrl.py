@@ -657,14 +657,21 @@ class RismController:
 
         ck0_direct = np.sum(ck[0, ...])
 
-        return (inv_B * compres * (1.0 - pv * ck0), 1.0 / pv + (rhvv - rhuv) / self.uv.ns1)
+        return 1.0 / pv + (rhvv - rhuv) / self.uv.ns1
 
     def pc_plus(self):
         pc, pcplus = self.pressure()
 
-        _, pmv = self.partial_molar_volume()
+        pmv = self.partial_molar_volume()
 
-        return (self.SFE['HNC'], self.SFE['HNC'] - (pcplus * pmv))
+        if self.closure.get_closure().__name__ == "HyperNetted_Chain":
+            keystr = 'HNC'
+        elif self.closure.get_closure().__name__ == "KovalenkoHirata":
+            keystr = 'KH'
+        else:
+            keystr = 'GF'
+
+        return self.SFE[keystr] - (pcplus * pmv)
         
 
     def __virial_pressure(self):

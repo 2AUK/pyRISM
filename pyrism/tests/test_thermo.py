@@ -10,14 +10,18 @@ mol.do_rism(verbose=True)
 #plt.plot(mol.vv.grid.ri, mol.uv.c[:, 0, 0])
 #plt.show()
 
-print("isothermal compressibility:", (mol.isothermal_compressibility(mol.vv)))
+print("isothermal compressibility (1/A^3):", (mol.isothermal_compressibility(mol.vv)))
 
-print("pressure:", mol.pressure())
+pressure, pressure_plus = mol.pressure()
 
-print("PMV:", mol.partial_molar_volume())
+print("pressure (kcal/mol/A^3):", pressure)
 
-_, PMV = mol.partial_molar_volume()
+print("pressure - ideal pressure (kcal/mol/A^3):", pressure_plus)
 
-print("PMV (cm^3 / mol):", PMV / 1e36 * 6.022E23)
+PMV = mol.partial_molar_volume()
 
-print("PC+ - SFE:", mol.pc_plus())
+print("PMV (A^3):", PMV)
+
+print("PMV (cm^3 / mol):", PMV / 1e24 * 6.022E23)
+
+print("PC+ (kcal/mol):", mol.pc_plus())
