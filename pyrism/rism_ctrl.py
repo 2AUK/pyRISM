@@ -657,15 +657,8 @@ class RismController:
 
         inv_B = self.uv.kT * self.uv.T
 
-        print(inv_B)
-        print(inv_B * compres)
 
         ck0_direct = np.sum(ck[0, ...])
-
-        print(ck0_direct, ck0)
-        print(pv)
-        print(pv * ck0_direct)
-        print(1.0 - pv * ck0_direct)
 
         # return inv_B * compres * (1.0 - pv * ck0_direct)
 
