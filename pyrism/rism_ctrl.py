@@ -378,7 +378,7 @@ class RismController:
             Temperature"""
         with open(fname+ext, 'w') as ofile:
             if SFE is not None:
-                ofile.write("# density: {p}, temp: {T}, HNC: {HNC}, GF: {GF}, KH: {KH}, PW: {PW}, HNCB: {RBC}, PC+: {PC_PLUS}\n".format(p=p[0][0], T=T, HNC=SFE['HNC'], GF=SFE['GF'], KH=SFE['KH'], PW=SFE['PW'], RBC=SFE['RBC'], PC_PLUS=['PC+']))
+                ofile.write("# density: {p}, temp: {T}, HNC: {HNC}, GF: {GF}, KH: {KH}, PW: {PW}, HNCB: {RBC}, PC+: {PC_PLUS}\n".format(p=p[0][0], T=T, HNC=SFE['HNC'], GF=SFE['GF'], KH=SFE['KH'], PW=SFE['PW'], RBC=SFE['RBC'], PC_PLUS=SFE['PC+']))
             else:
                 ofile.write("# density: {p}, temp: {T}\n".format(p=p[0][0], T=T))
             df.to_csv(ofile, index=False, header=True, mode='a')
@@ -539,7 +539,7 @@ class RismController:
         SFE_SC = self.integrate(SFED_SC, dat2.grid.d_r)
         SFE_PW = self.integrate(SFED_PW, dat2.grid.d_r)
         SFE_RBC = self.integrate(SFED_RBC, dat2.grid.d_r)
-        SFE_PC_PLUS = self.pc_plus()
+        
         # SFE_text = "\n{clos_name}: {SFE_val} kcal/mol"
 
         # print(SFE_text.format(clos_name="KH", SFE_val=SFE_KH))
@@ -557,9 +557,11 @@ class RismController:
                     "GF": SFE_GF,
                     "SC": SFE_SC,
                     "PW": SFE_PW,
-                    "RBC": SFE_HNC + SFE_RBC,
-                    "PC+": SFE_PC_PLUS}
+                    "RBC": SFE_HNC + SFE_RBC
+                    }
 
+        SFE_PC_PLUS = self.pc_plus()
+        self.SFE['PC+'] = SFE_PC_PLUS
 
     def epilogue(self, dat1, dat2=None):
         """Computes final total, direct and pair correlation functions
@@ -656,7 +658,6 @@ class RismController:
         pv = self.vv.p[0][0]
 
         inv_B = self.uv.kT * self.uv.T
-
 
         ck0_direct = np.sum(ck[0, ...])
 
