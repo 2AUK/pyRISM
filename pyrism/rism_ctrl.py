@@ -378,7 +378,7 @@ class RismController:
             Temperature"""
         with open(fname+ext, 'w') as ofile:
             if SFE is not None:
-                ofile.write("# density: {p}, temp: {T}, HNC: {HNC}, GF: {GF}, KH: {KH}, PW: {PW}, HNCB: {RBC}\n".format(p=p[0][0], T=T, HNC=SFE['HNC'], GF=SFE['GF'], KH=SFE['KH'], PW=SFE['PW'], RBC=SFE['RBC']))
+                ofile.write("# density: {p}, temp: {T}, HNC: {HNC}, GF: {GF}, KH: {KH}, PW: {PW}, HNCB: {RBC}, PC+: {PC_PLUS}\n".format(p=p[0][0], T=T, HNC=SFE['HNC'], GF=SFE['GF'], KH=SFE['KH'], PW=SFE['PW'], RBC=SFE['RBC'], PC_PLUS=['PC+']))
             else:
                 ofile.write("# density: {p}, temp: {T}\n".format(p=p[0][0], T=T))
             df.to_csv(ofile, index=False, header=True, mode='a')
@@ -539,6 +539,7 @@ class RismController:
         SFE_SC = self.integrate(SFED_SC, dat2.grid.d_r)
         SFE_PW = self.integrate(SFED_PW, dat2.grid.d_r)
         SFE_RBC = self.integrate(SFED_RBC, dat2.grid.d_r)
+        SFE_PC_PLUS = self.pc_plus()
         # SFE_text = "\n{clos_name}: {SFE_val} kcal/mol"
 
         # print(SFE_text.format(clos_name="KH", SFE_val=SFE_KH))
@@ -556,7 +557,8 @@ class RismController:
                     "GF": SFE_GF,
                     "SC": SFE_SC,
                     "PW": SFE_PW,
-                    "RBC": SFE_HNC + SFE_RBC}
+                    "RBC": SFE_HNC + SFE_RBC,
+                    "PC+": SFE_PC_PLUS}
 
 
     def epilogue(self, dat1, dat2=None):
@@ -647,8 +649,8 @@ class RismController:
 
         r = self.uv.grid.ri[:, np.newaxis, np.newaxis]
         ck0 = self.integrate(self.uv.c * r * r, 4.0 * np.pi * self.uv.grid.d_r)
-        rhvv = self.integrate(self.vv.h * r *r, 4.0 * np.pi * self.uv.grid.d_r)
-        rhuv = self.integrate(self.uv.h * r *r, 4.0 * np.pi * self.uv.grid.d_r)
+        rhvv = self.integrate(self.vv.h * r * r, 4.0 * np.pi * self.uv.grid.d_r)
+        rhuv = self.integrate(self.uv.h * r * r, 4.0 * np.pi * self.uv.grid.d_r)
         khvv = np.sum(self.vv.h_k[0,...])
         khuv = np.sum(self.uv.h_k[0,...])
         pv = self.vv.p[0][0]
@@ -665,9 +667,9 @@ class RismController:
         print(pv * ck0_direct)
         print(1.0 - pv * ck0_direct)
 
-        return inv_B * compres * (1.0 - pv * ck0_direct)
+        # return inv_B * compres * (1.0 - pv * ck0_direct)
 
-        # return (1.0 / pv) + (khvv - khuv) / self.uv.ns1
+        return (1.0 / pv) + (khvv - khuv) / self.uv.ns1
 
     def pc_plus(self):
         pc, pcplus = self.pressure()
