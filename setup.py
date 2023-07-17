@@ -6,5 +6,6 @@ setup(
         packages=find_packages(),
         entry_points = {
             'console_scripts' : ['pyrism=pyrism.__main__:cli'],
-            }
+            },
+        package_data={"pyrism/cnn_data": ["/*"]},
             )

@@ -24,6 +24,8 @@ from pyrism import Util
 from numba import njit, jit, prange
 import time
 import warnings
+import pkg_resources
+
 
 from dataclasses import dataclass, field
 
@@ -83,7 +85,6 @@ class RismController:
             self.uv.p = self.vv.p
             self.build_wk(self.uv)
 
-
     def do_rism(self, verbose=False):
         """ Solves the vv and uv (if applicable) problems and outputs the results"""
         if self.uv_check:
@@ -91,6 +92,12 @@ class RismController:
         else:
             self.solve(self.vv, dat2=None, verbose=verbose)
 
+        try:
+            from keras.models import load_model
+        except ImportError as e:
+            print("Keras not found. Install pyRISM with the CNN optional dependency to enable pyRISM-CNN calculations.")
+
+        new_model = load_model("")
     def read_input(self):
         """ Reads .toml input file, populates vv and uv dataclasses
         and properly initialises the appropriate potentials, solvers,
