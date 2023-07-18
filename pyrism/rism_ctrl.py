@@ -555,10 +555,8 @@ class RismController:
         SFED_RBC = Functionals.Functional("RBC").get_functional()(dat2, vv)
 
         npt_10A = int(8.0 / dat2.grid.d_r)
-        print(npt_10A)
 
         step = int(npt_10A / 160)
-        print(step)
 
         SFE_HNC = self.integrate(SFED_HNC, dat2.grid.d_r)
         SFE_KH = self.integrate(SFED_KH, dat2.grid.d_r)
@@ -566,9 +564,7 @@ class RismController:
         SFE_SC = self.integrate(SFED_SC, dat2.grid.d_r)
         SFE_PW = self.integrate(SFED_PW, dat2.grid.d_r)
         SFE_RBC = self.integrate(SFED_RBC, dat2.grid.d_r)
-        SFE_CNN = self.CNN_SFE_calc(SFED_KH[np.newaxis, step-1:npt_10A+step-1:step, np.newaxis])
-        print(SFED_KH[np.newaxis, step-1:npt_10A+step-1:step, np.newaxis])
-        
+        SFE_CNN = self.CNN_SFE_calc(SFED_KH[np.newaxis, step-1:npt_10A+step-1:step, np.newaxis])        
         # SFE_text = "\n{clos_name}: {SFE_val} kcal/mol"
 
         # print(SFE_text.format(clos_name="KH", SFE_val=SFE_KH))
