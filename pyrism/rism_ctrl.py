@@ -8,6 +8,7 @@ import os
 os.environ['MKL_CBWR'] = 'AUTO'
 os.environ['MKL_DYNAMIC'] = 'FALSE'
 os.environ['OMP_DYNAMIC'] = 'FALSE'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 #os.environ['MKL_VERBOSE'] = '1'
 import numpy as np
 import pandas as pd
@@ -24,8 +25,10 @@ from pyrism import Util
 from numba import njit, jit, prange
 import time
 import warnings
-import pkg_resources
-
+from importlib import resources
+from pathlib import Path
+from keras import models
+import tensorflow as tf
 
 from dataclasses import dataclass, field
 
@@ -71,8 +74,16 @@ class RismController:
     IE: IntegralEquations.IntegralEquation = field(init=False)
     SFED: dict = field(init=False, default_factory=dict)
     SFE: dict = field(init=False, default_factory=dict)
+    _cnn_models: list = field(init=False, default_factory=list)
 
-
+    def load_cnn_models(self):
+        model_list = []
+        files = resources.files("pyrism.cnn_data")
+        for f in files.joinpath('pretrained_SFE_model/').iterdir():
+            if f.is_dir():
+                model = models.load_model(f.joinpath("saved_model/my_model"))
+                model_list.append(model)
+        return model_list
 
     def initialise_controller(self):
         """ Reads input file `fname` to create `vv` and `uv` and
@@ -84,6 +95,7 @@ class RismController:
         if self.uv_check:
             self.uv.p = self.vv.p
             self.build_wk(self.uv)
+            self._cnn_models = self.load_cnn_models()
 
     def do_rism(self, verbose=False):
         """ Solves the vv and uv (if applicable) problems and outputs the results"""
@@ -92,12 +104,6 @@ class RismController:
         else:
             self.solve(self.vv, dat2=None, verbose=verbose)
 
-        try:
-            from keras.models import load_model
-        except ImportError as e:
-            print("Keras not found. Install pyRISM with the CNN optional dependency to enable pyRISM-CNN calculations.")
-
-        new_model = load_model("")
     def read_input(self):
         """ Reads .toml input file, populates vv and uv dataclasses
         and properly initialises the appropriate potentials, solvers,
@@ -385,7 +391,7 @@ class RismController:
             Temperature"""
         with open(fname+ext, 'w') as ofile:
             if SFE is not None:
-                ofile.write("# density: {p}, temp: {T}, HNC: {HNC}, GF: {GF}, KH: {KH}, PW: {PW}, HNCB: {RBC}, PC+: {PC_PLUS}\n".format(p=p[0][0], T=T, HNC=SFE['HNC'], GF=SFE['GF'], KH=SFE['KH'], PW=SFE['PW'], RBC=SFE['RBC'], PC_PLUS=SFE['PC+']))
+                ofile.write("# density: {p}, temp: {T}, HNC: {HNC}, GF: {GF}, KH: {KH}, PW: {PW}, HNCB: {RBC}, PC+: {PC_PLUS}, CNN: {CNN}\n".format(p=p[0][0], T=T, HNC=SFE['HNC'], GF=SFE['GF'], KH=SFE['KH'], PW=SFE['PW'], RBC=SFE['RBC'], PC_PLUS=SFE['PC+'], CNN=SFE['CNN']))
             else:
                 ofile.write("# density: {p}, temp: {T}\n".format(p=p[0][0], T=T))
             df.to_csv(ofile, index=False, header=True, mode='a')
@@ -531,6 +537,14 @@ class RismController:
             dr[SFED_key] = SFEDs[SFED_key]
         self.write_csv(dr, self.name + "_SFED", ".duv", p, T, SFE=SFEs)
 
+    def CNN_SFE_calc(self, SFED):
+        sfes = []
+        for model in self._cnn_models:
+            sfes.append(model.predict(SFED, verbose=0))
+        num = sum(sfes)[0][0]
+        denom = float(len(sfes))
+        return num / denom
+        
 
     def SFED_calc(self, dat2, vv=None):
         SFED_HNC = Functionals.Functional("HNC").get_functional()(dat2, vv)
@@ -540,12 +554,20 @@ class RismController:
         SFED_PW = Functionals.Functional("PW").get_functional()(dat2, vv)
         SFED_RBC = Functionals.Functional("RBC").get_functional()(dat2, vv)
 
+        npt_10A = int(8.0 / dat2.grid.d_r)
+        print(npt_10A)
+
+        step = int(npt_10A / 160)
+        print(step)
+
         SFE_HNC = self.integrate(SFED_HNC, dat2.grid.d_r)
         SFE_KH = self.integrate(SFED_KH, dat2.grid.d_r)
         SFE_GF = self.integrate(SFED_GF, dat2.grid.d_r)
         SFE_SC = self.integrate(SFED_SC, dat2.grid.d_r)
         SFE_PW = self.integrate(SFED_PW, dat2.grid.d_r)
         SFE_RBC = self.integrate(SFED_RBC, dat2.grid.d_r)
+        SFE_CNN = self.CNN_SFE_calc(SFED_KH[np.newaxis, 0:npt_10A:step, np.newaxis])
+        print(SFED_KH[np.newaxis, step:npt_10A+step:step, np.newaxis])
         
         # SFE_text = "\n{clos_name}: {SFE_val} kcal/mol"
 
@@ -564,7 +586,8 @@ class RismController:
                     "GF": SFE_GF,
                     "SC": SFE_SC,
                     "PW": SFE_PW,
-                    "RBC": SFE_HNC + SFE_RBC
+                    "RBC": SFE_HNC + SFE_RBC,
+                    "CNN": SFE_CNN,
                     }
 
         SFE_PC_PLUS = self.pc_plus()
