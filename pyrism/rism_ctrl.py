@@ -27,7 +27,6 @@ import time
 import warnings
 from importlib import resources
 from pathlib import Path
-from keras import models
 import tensorflow as tf
 
 from dataclasses import dataclass, field
@@ -79,9 +78,10 @@ class RismController:
     def load_cnn_models(self):
         model_list = []
         files = resources.files("pyrism.cnn_data")
+        print(files)
         for f in files.joinpath('pretrained_SFE_model/').iterdir():
             if f.is_dir():
-                model = models.load_model(f.joinpath("saved_model/my_model"))
+                model = tf.keras.models.load_model(f.joinpath("saved_model/my_model"))
                 model_list.append(model)
         return model_list
 
@@ -555,8 +555,13 @@ class RismController:
         SFED_RBC = Functionals.Functional("RBC").get_functional()(dat2, vv)
 
         npt_10A = int(8.0 / dat2.grid.d_r)
-
         step = int(npt_10A / 160)
+
+        preprocessed_data = SFED_KH[np.newaxis, step-1:npt_10A+step-1:step, np.newaxis]
+        mean = preprocessed_data.mean(axis=0)
+        sds = preprocessed_data.std(axis=0)
+        print(mean, sds)
+        inp = (preprocessed_data - mean) / sds
 
         SFE_HNC = self.integrate(SFED_HNC, dat2.grid.d_r)
         SFE_KH = self.integrate(SFED_KH, dat2.grid.d_r)
@@ -564,8 +569,8 @@ class RismController:
         SFE_SC = self.integrate(SFED_SC, dat2.grid.d_r)
         SFE_PW = self.integrate(SFED_PW, dat2.grid.d_r)
         SFE_RBC = self.integrate(SFED_RBC, dat2.grid.d_r)
-        SFE_CNN = self.CNN_SFE_calc(SFED_KH[np.newaxis, step-1:npt_10A+step-1:step, np.newaxis]) 
-        print(SFED_KH[np.newaxis, step-1:npt_10A+step-1:step, np.newaxis])       
+        SFE_CNN = self.CNN_SFE_calc(inp) 
+        print(inp)       
         # SFE_text = "\n{clos_name}: {SFE_val} kcal/mol"
 
         # print(SFE_text.format(clos_name="KH", SFE_val=SFE_KH))
