@@ -558,8 +558,8 @@ class RismController:
         step = int(npt_10A / 160)
 
         preprocessed_data = SFED_KH[np.newaxis, step-1:npt_10A+step-1:step, np.newaxis]
-        mean = preprocessed_data.mean(axis=0)
-        sds = preprocessed_data.std(axis=0)
+        mean = preprocessed_data.mean()
+        sds = preprocessed_data.std()
         print(mean, sds)
         inp = (preprocessed_data - mean) / sds
 
