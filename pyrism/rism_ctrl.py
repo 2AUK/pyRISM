@@ -663,8 +663,10 @@ class RismController:
 
         # return inv_B * compres * (1.0 - pv * ck0_direct)
 
-        return (1.0 / pv) + (khvv - khuv) / self.uv.ns1
+        nsites = self.uv.ns1 - self.uv.ns2
 
+        # return (1.0 / pv) + (khvv - khuv) / self.uv.ns1
+        return -rhuv / self.uv.ns1
     def pc_plus(self):
         pc, pcplus = self.pressure()
 
