@@ -664,6 +664,11 @@ class RismController:
         # return inv_B * compres * (1.0 - pv * ck0_direct)
 
         return (1.0 / pv) + (khvv - khuv) / self.uv.ns1
+    
+    def dimensionless_pmv(self):
+        pmv = self.partial_molar_volume()
+
+        return self.uv.p[0][0] * pmv
 
     def pc_plus(self):
         pc, pcplus = self.pressure()

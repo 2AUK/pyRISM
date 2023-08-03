@@ -1,7 +1,7 @@
 from pyrism.rism_ctrl import *
 import matplotlib.pyplot as plt
 
-mol = RismController("../data/cSPCE_XRISM_methane.toml")
+mol = RismController("../data/cSPCE_XRISM_ethane.toml")
 
 mol.initialise_controller()
 
@@ -23,6 +23,8 @@ PMV = mol.partial_molar_volume()
 print("PMV (A^3):", PMV)
 
 print("PMV (cm^3 / mol):", PMV / 1e24 * 6.022E23)
+
+print("Dimensionless PMV:", mol.dimensionless_pmv())
 
 print("HNC (kcal/mol):", mol.SFE['HNC'])
 
