@@ -1,7 +1,7 @@
 from pyrism.rism_ctrl import *
 import matplotlib.pyplot as plt
 
-mol = RismController("../data/cSPCE_XRISM_methane.toml")
+mol = RismController("../data/cSPCE_XRISM_ethane.toml")
 
 mol.initialise_controller()
 
