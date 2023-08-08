@@ -35,6 +35,13 @@ np.seterr(over="raise")
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 @dataclass
+class CNN_model:
+    inp_mean: float
+    inp_stddev: float
+    pred_mean: float
+    pred_stddev: float
+
+@dataclass
 class RismController:
     """Initialises the parameters for the problem and starts the solver
 
@@ -82,7 +89,11 @@ class RismController:
         for f in files.joinpath('pretrained_SFE_model/').iterdir():
             if f.is_dir():
                 model = tf.keras.models.load_model(f.joinpath("saved_model/my_model"))
-                model_list.append(model)
+                print(type(model))
+                df = pd.read_csv(str(f) + '/' + f.stem + '/' + f.stem + '_train_plot.csv')
+                y = df['y'].to_numpy()
+                y_pred = df['y_pred'].to_numpy()
+                model_list.append(CNN_model(model, y.mean(), y.std(), y_pred.mean(), y_pred.std()))
         return model_list
 
     def initialise_controller(self):
@@ -540,7 +551,7 @@ class RismController:
     def CNN_SFE_calc(self, SFED):
         sfes = []
         for model in self._cnn_models:
-            sfes.append(model.predict(SFED, verbose=0))
+            sfes.append(model.model.predict(SFED, verbose=0))
         num = sum(sfes)[0][0]
         denom = float(len(sfes))
         return num / denom
