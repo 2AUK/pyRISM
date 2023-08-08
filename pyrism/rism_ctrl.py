@@ -656,16 +656,20 @@ class RismController:
         khvv = np.sum(self.vv.h_k[0,...])
         khuv = np.sum(self.uv.h_k[0,...])
         pv = self.vv.p[0][0]
+        pvec = np.diag(self.vv.p)
 
         inv_B = self.uv.kT * self.uv.T
 
         n_sites = self.uv.ns1 + self.uv.ns2
 
-        ck0_direct = np.sum(ck, axis=(1,2))[0]
+        ck0_direct = np.sum(ck[0, ...] @ self.vv.p)
 
-        return inv_B * compres * (1.0 - pv * ck0_direct)
-
+        # return inv_B * compres * (1.0 - pv * ck0_direct)
+        print(compres)
+        return inv_B * compres - khuv / self.uv.ns1
         # return (1.0 / pv) + (khvv - khuv) / self.uv.ns1
+
+        
     
     def dimensionless_pmv(self):
         pmv = self.partial_molar_volume()
