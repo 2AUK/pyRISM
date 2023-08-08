@@ -661,7 +661,7 @@ class RismController:
 
         n_sites = self.uv.ns1 + self.uv.ns2
 
-        ck0_direct = np.sum(ck[0, ...]) / n_sites
+        ck0_direct = np.sum(ck, axis=(1,2))[0]
 
         return inv_B * compres * (1.0 - pv * ck0_direct)
 
