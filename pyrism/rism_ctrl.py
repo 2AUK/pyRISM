@@ -659,11 +659,13 @@ class RismController:
 
         inv_B = self.uv.kT * self.uv.T
 
-        ck0_direct = np.sum(ck[0, ...])
+        n_sites = self.uv.ns1 + self.uv.ns2
 
-        # return inv_B * compres * (1.0 - pv * ck0_direct)
+        ck0_direct = np.sum(ck[0, ...]) / n_sites
 
-        return (1.0 / pv) + (khvv - khuv) / self.uv.ns1
+        return inv_B * compres * (1.0 - pv * ck0_direct)
+
+        # return (1.0 / pv) + (khvv - khuv) / self.uv.ns1
     
     def dimensionless_pmv(self):
         pmv = self.partial_molar_volume()
@@ -672,7 +674,6 @@ class RismController:
 
     def pc_plus(self):
         pc, pcplus = self.pressure()
-
         pmv = self.partial_molar_volume()
 
         if self.closure.get_closure().__name__ == "HyperNetted_Chain":
