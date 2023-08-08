@@ -36,6 +36,7 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 @dataclass
 class CNN_model:
+    model: object
     inp_mean: float
     inp_stddev: float
     pred_mean: float
@@ -85,11 +86,9 @@ class RismController:
     def load_cnn_models(self):
         model_list = []
         files = resources.files("pyrism.cnn_data")
-        print(files)
-        for f in files.joinpath('pretrained_SFE_model/').iterdir():
+        for f in files.joinpath('model/').iterdir():
             if f.is_dir():
-                model = tf.keras.models.load_model(f.joinpath("saved_model/my_model"))
-                print(type(model))
+                model = tf.keras.models.load_model(str(f) + '/' + f.stem + '/saved_model/my_model')
                 df = pd.read_csv(str(f) + '/' + f.stem + '/' + f.stem + '_train_plot.csv')
                 y = df['y'].to_numpy()
                 y_pred = df['y_pred'].to_numpy()
@@ -551,7 +550,7 @@ class RismController:
     def CNN_SFE_calc(self, SFED):
         sfes = []
         for model in self._cnn_models:
-            sfes.append(model.model.predict(SFED, verbose=0))
+            sfes.append((model.model.predict((SFED - model.inp_mean) / model.inp_stddev, verbose=0) - model.pred_mean) / model.pred_stddev)
         num = sum(sfes)[0][0]
         denom = float(len(sfes))
         return num / denom
@@ -568,11 +567,7 @@ class RismController:
         npt_10A = int(8.0 / dat2.grid.d_r)
         step = int(npt_10A / 160)
 
-        preprocessed_data = SFED_KH[np.newaxis, step-1:npt_10A+step-1:step, np.newaxis]
-        mean = preprocessed_data.mean()
-        sds = preprocessed_data.std()
-        print(mean, sds)
-        inp = (preprocessed_data - mean) / sds
+        inp = SFED_KH[np.newaxis, step-1:npt_10A+step-1:step, np.newaxis]
 
         SFE_HNC = self.integrate(SFED_HNC, dat2.grid.d_r)
         SFE_KH = self.integrate(SFED_KH, dat2.grid.d_r)
@@ -580,8 +575,7 @@ class RismController:
         SFE_SC = self.integrate(SFED_SC, dat2.grid.d_r)
         SFE_PW = self.integrate(SFED_PW, dat2.grid.d_r)
         SFE_RBC = self.integrate(SFED_RBC, dat2.grid.d_r)
-        SFE_CNN = self.CNN_SFE_calc(inp) 
-        print(inp)       
+        SFE_CNN = self.CNN_SFE_calc(inp)     
         # SFE_text = "\n{clos_name}: {SFE_val} kcal/mol"
 
         # print(SFE_text.format(clos_name="KH", SFE_val=SFE_KH))
