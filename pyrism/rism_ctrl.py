@@ -555,7 +555,7 @@ class RismController:
         for model in self._cnn_models:
             inp_dat = (SFED - model.x_means) / model.x_stds
             out_pred = model.model.predict(inp_dat[np.newaxis, :, np.newaxis], verbose=0)
-            sfes.append((out_pred - model.y_mean) / model.y_std)
+            sfes.append(out_pred)
         num = sum(sfes)[0][0]
         denom = float(len(sfes))
         return num / denom
