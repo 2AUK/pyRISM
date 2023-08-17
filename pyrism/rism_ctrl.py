@@ -32,7 +32,7 @@ import tensorflow as tf
 from dataclasses import dataclass, field
 
 np.seterr(over="raise")
-warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+warnings.simplefilter(action='ignore')
 
 @dataclass
 class CNN_model:
