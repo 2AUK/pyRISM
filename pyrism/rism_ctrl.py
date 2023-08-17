@@ -37,10 +37,10 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 @dataclass
 class CNN_model:
     model: object
-    inp_mean: float
-    inp_stddev: float
-    pred_mean: float
-    pred_stddev: float
+    x_means: np.ndarray
+    x_stds: np.ndarray
+    y_mean: float
+    y_std: float
 
 @dataclass
 class RismController:
@@ -90,9 +90,12 @@ class RismController:
             if f.is_dir():
                 model = tf.keras.models.load_model(str(f) + '/' + f.stem + '/saved_model/my_model')
                 df = pd.read_csv(str(f) + '/' + f.stem + '/' + f.stem + '_train_plot.csv')
-                y = df['y'].to_numpy()
-                y_pred = df['y_pred'].to_numpy()
-                model_list.append(CNN_model(model, y.mean(), y.std(), y_pred.mean(), y_pred.std()))
+                df_scaling_params = pd.read_csv(str(f) + '/' + f.stem + '/' + f.stem + '_scaling_params.csv')
+                x_means = df_scaling_params.iloc[0].to_numpy()[:-1]
+                x_stds = df_scaling_params.iloc[1].to_numpy()[:-1]
+                y_mean = df_scaling_params.iloc[0].to_numpy()[-1]
+                y_std = df_scaling_params.iloc[1].to_numpy()[-1]
+                model_list.append(CNN_model(model, x_means, x_stds, y_mean, y_std))
         return model_list
 
     def initialise_controller(self):
@@ -550,7 +553,9 @@ class RismController:
     def CNN_SFE_calc(self, SFED):
         sfes = []
         for model in self._cnn_models:
-            sfes.append((model.model.predict((SFED - model.inp_mean) / model.inp_stddev, verbose=0) - model.pred_mean) / model.pred_stddev)
+            inp_dat = (SFED - model.x_means) / model.x_stds
+            out_pred = model.model.predict(inp_dat[np.newaxis, :, np.newaxis], verbose=0)
+            sfes.append((out_pred - model.y_mean) / model.y_std)
         num = sum(sfes)[0][0]
         denom = float(len(sfes))
         return num / denom
@@ -567,7 +572,7 @@ class RismController:
         npt_10A = int(8.0 / dat2.grid.d_r)
         step = int(npt_10A / 160)
 
-        inp = SFED_KH[np.newaxis, step-1:npt_10A+step-1:step, np.newaxis]
+        inp = SFED_KH[step-1:npt_10A+step-1:step]
 
         SFE_HNC = self.integrate(SFED_HNC, dat2.grid.d_r)
         SFE_KH = self.integrate(SFED_KH, dat2.grid.d_r)
