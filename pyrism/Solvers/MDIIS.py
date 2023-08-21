@@ -4,7 +4,7 @@ from pyrism.Core import RISM_Obj
 import numpy as np
 from dataclasses import dataclass, field
 from .Solver_object import *
-from numba import njit
+from numba import njit, prange
 from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
 import warnings
 import sys
@@ -160,7 +160,7 @@ def step_MDIIS_impl(curr, prev, m, res, fr, damp_picard, damp_mdiis, gr):
 
     b[m] = -1
 
-    for i in range(m+1):
+    for i in prange(m+1):
         A[i, m] = -1
         A[m, i] = -1
 
@@ -174,7 +174,7 @@ def step_MDIIS_impl(curr, prev, m, res, fr, damp_picard, damp_mdiis, gr):
     c_A = np.zeros_like(fr[0])
     min_res = np.zeros_like(fr[0])
     denom = np.sqrt(1.0 + np.power(gr.flatten(), 2))
-    for i in range(m):
+    for i in prange(m):
         c_A += coef[i] * fr[i]
         min_res += (coef[i] * res[i]) / denom
 

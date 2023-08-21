@@ -6,11 +6,15 @@ from numpy.testing import assert_allclose
 from scipy.optimize import newton_krylov
 from .Solver_object import *
 import matplotlib.pyplot as plt
+from numba import njit, prange
 
 @dataclass
 class Gillan(SolverObject):
     nbasis: int = field(default=4)
     costab: np.ndarray = field(init=False)
+
+    def check_symmetric(self, a, rtol=1e-05, atol=1e-08):
+        return np.allclose(a, a.T, rtol=rtol, atol=atol)
 
     def kron_delta(self, i, j):
         if i == j:
@@ -18,42 +22,33 @@ class Gillan(SolverObject):
         else:
             return 0.0
 
-    def tabulate_cos(self):
+    def D(self, i):
         npts = self.data_vv.grid.npts
         ns1 = self.data_vv.ns1
         ns2 = self.data_vv.ns2
         dk = self.data_vv.grid.d_k
         w = self.data_vv.w
-        c = self.data_vv.c
-
-        M1 = np.zeros_like(self.data_vv.w)
-        M2 = np.zeros_like(self.data_vv.w)
-
-        I = np.identity(ns1, dtype=np.float64)
-
-        costab = np.zeros((npts, ns1, ns2, ns1, ns2), dtype=np.float64)
-
+        ck = np.zeros_like(self.data_vv.c)
         r_grid = self.data_vv.grid.ri
         k_grid = self.data_vv.grid.ki
 
-        coskr = np.zeros((npts), dtype=np.float64)
-
-        for l in range(npts):
-            M1[l] = np.linalg.inv((I - w[l] @ c[l] @ self.data_vv.p)) @ w[l]
-            M2[l] = np.linalg.inv((I - w[l] @ c[l] @ self.data_vv.p)) @ w[l]
-            coskr += np.cos(k_grid[l] * r_grid)
-
         for i, j in np.ndindex(ns1, ns2):
-            for k, l in np.ndindex(ns1, ns2):
-                kron1 = self.kron_delta(i, j)
-                kron2 = self.kron_delta(k, l)
-                costab[:, i, j, k, l] = coskr[:] * (M1[:, i, j] * M2[:, k, l] - kron1 * kron2)
+            ck[..., i, j] = self.data_vv.grid.dht(self.data_vv.c[..., i, j])
 
-        #costab = costab.sum(axis=0) * dk
+        # for l in range(npts):
+        #     M1[l] = np.linalg.inv((I - w[l] @ ck[l] @ self.data_vv.p)) @ w[l]
+        #     M2[l] = np.linalg.inv((I - w[l] @ ck[l] @ self.data_vv.p)) @ w[l]
+        #     coskr += np.cos(k_grid[l] * r_grid[i])
 
-        print(costab)
+        # for i, j in np.ndindex(ns1, ns2):
+        #     for k, l in np.ndindex(ns1, ns2):
+        #         kron1 = self.kron_delta(i, j)
+        #         kron2 = self.kron_delta(k, l)
+        #         D[:, i, j, k, l] = coskr[:] * (M1[:, i, j] * M2[:, k, l] - kron1 * kron2)
 
-        self.costab = costab
+        D = D_calc(ns1, ns2, npts, w, ck, self.data_vv.p, k_grid, r_grid, i)
+
+        return D.sum(axis=0) * dk
 
     def solve(self, RISM, Closure, lam, verbose=False):
         npts = self.data_vv.grid.npts
@@ -99,6 +94,10 @@ class Gillan(SolverObject):
             for b in range(self.nbasis):
                 R[a,b] = (Pa[..., a] * Pb[..., b]).sum()
 
+        # Checking for positive-definiteness
+        #print(self.check_symmetric(R))
+        #print(np.linalg.eigvalsh(R))
+
         B = np.linalg.inv(R)
 
         for i in range(npts):
@@ -118,7 +117,10 @@ class Gillan(SolverObject):
             for m, n in np.ndindex(ns1, ns2):
                 A[m, n, a] = (Q[..., a] * t[:, m, n]).sum()
 
-        self.tabulate_cos()
+        print("Tabulating D")
+        for i, j in np.ndindex(npts, npts):
+            self.D(i - j) - self.D(i + j)
+        print("Done tabulating D")
 
         while i < self.max_iter:
 
@@ -132,3 +134,34 @@ class Gillan(SolverObject):
 
     def solve_uv(self, RISM, Closure, lam):
         pass
+
+@njit
+def D_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, i):
+
+    D = np.zeros((npts, ns1, ns2, ns1, ns2), dtype=np.float64)
+    coskr = np.zeros((npts), dtype=np.float64)
+    M1 = np.zeros_like(w)
+    M2 = np.zeros_like(w)
+    I = np.identity(ns1, dtype=np.float64)
+
+    for l in prange(npts):
+        M1[l] = np.linalg.inv((I - w[l] @ ck[l] @ p)) @ w[l]
+        M2[l] = np.linalg.inv((I - w[l] @ ck[l] @ p)) @ w[l]
+        coskr[l] = np.cos(k_grid[l] * r_grid[i])
+
+    kron1, kron2 = 0.0, 0.0
+    for i in prange(ns1):
+        for j in prange(ns2):
+            if i == j:
+                kron1 = 1.0
+            else:
+                kron1 = 0.0
+            for k in prange(ns1):
+                for l in prange(ns2):
+                    if k == l:
+                        kron2 = 1.0
+                    else:
+                        kron2 = 0.0
+                    D[:, i, j, k, l] = coskr[:] * (M1[:, i, j] * M2[:, k, l] - kron1 * kron2)
+
+    return D
