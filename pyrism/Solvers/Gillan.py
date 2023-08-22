@@ -117,10 +117,7 @@ class Gillan(SolverObject):
             for m, n in np.ndindex(ns1, ns2):
                 A[m, n, a] = (Q[..., a] * t[:, m, n]).sum()
 
-        print("Tabulating D")
-        for i, j in np.ndindex(npts, npts):
-            self.D(i - j) - self.D(i + j)
-        print("Done tabulating D")
+        
 
         while i < self.max_iter:
 
@@ -136,7 +133,7 @@ class Gillan(SolverObject):
         pass
 
 @njit
-def D_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, i):
+def D_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, i):
 
     D = np.zeros((npts, ns1, ns2, ns1, ns2), dtype=np.float64)
     coskr = np.zeros((npts), dtype=np.float64)
@@ -162,6 +159,8 @@ def D_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, i):
                         kron2 = 1.0
                     else:
                         kron2 = 0.0
+                    #print(i, j, k, l)
                     D[:, i, j, k, l] = coskr[:] * (M1[:, i, j] * M2[:, k, l] - kron1 * kron2)
 
-    return D
+    return D.sum(axis=0) * dk
+
