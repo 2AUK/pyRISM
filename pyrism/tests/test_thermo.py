@@ -7,9 +7,6 @@ mol.initialise_controller()
 
 mol.do_rism(verbose=True)
 
-#plt.plot(mol.vv.grid.ri, mol.uv.h[:, 0, 0])
-#plt.show()
-
 print("isothermal compressibility (1/A^3):", (mol.isothermal_compressibility(mol.vv)))
 
 pressure, pressure_plus = mol.pressure()
