@@ -625,30 +625,36 @@ class RismController:
     def kb_partial_molar_volume(self):
 
         uv = self.uv
+        vv = self.vv
 
         ck = np.zeros((uv.npts, uv.ns1, uv.ns2), dtype=np.float64)
-        #hk = np.zeros((uv.npts, uv.ns1, uv.ns2), dtype=np.float64)
+        hk_vv = np.zeros((vv.npts, vv.ns1, vv.ns2), dtype=np.float64)
+        hk_uv = np.zeros((uv.npts, uv.ns1, uv.ns2), dtype=np.float64)
+
+        for i, j in np.ndindex(vv.ns1, vv.ns2):
+            hk_vv[..., i, j] = vv.grid.dht((vv.t + vv.c)[..., i, j])
 
         for i, j in np.ndindex(uv.ns1, uv.ns2):
-            ck[..., i, j] = uv.grid.dht(uv.c[..., i, j])
-            #hk[..., i, j] = uv.grid.dht((uv.t + uv.c)[..., i, j])
-        hk = self.uv.h_k
+            ck[..., i, j] = uv.grid.dht(uv.c[..., i, j])   
+            hk_uv[..., i, j] = uv.grid.dht((uv.t + uv.c)[..., i, j])
+        #hk_vv = self.vv.h_k
+        #hk_uv = self.uv.h_k
 
         compres = self.isothermal_compressibility(self.vv)
 
         r = self.uv.grid.ri[:, np.newaxis, np.newaxis]
         ck0 = self.integrate(self.uv.c * r * r, 4.0 * np.pi * self.uv.grid.d_r)
-        rhvv = self.integrate(self.vv.h[:, 0, 0] * r * r, 4.0 * np.pi * self.uv.grid.d_r)
-        rhuv = self.integrate(self.uv.h[:, 0, :] * r * r, 4.0 * np.pi * self.uv.grid.d_r)
-        khvv = np.sum(hk[0,0,0])
-        khuv = np.sum(hk[0,:,0])
+        rhvv = self.integrate(self.vv.h * r * r, 4.0 * np.pi * self.uv.grid.d_r)
+        rhuv = self.integrate(self.uv.h * r * r, 4.0 * np.pi * self.uv.grid.d_r)
+        khvv = np.sum(hk_vv[0, ...])
+        khuv = np.sum(hk_uv[0, ...])
         pv = self.vv.p[0][0]
         pvec = np.diag(self.vv.p)
 
         inv_B = self.uv.kT * self.uv.T
         ck0_direct = np.sum(ck[0, ...] @ self.vv.p)
 
-        return (1.0 / pv) + (rhvv - rhuv) / self.uv.ns1
+        return (1.0 / pv) + (khvv - khuv) / self.uv.ns1
 
     def rism_kb_partial_molar_volume(self):
 
