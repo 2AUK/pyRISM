@@ -622,7 +622,35 @@ class RismController:
         return 1.0 / (p * (1.0 - pck))
         # return 1.0 / ((dat.p[0][0] - ck0))
 
-    def partial_molar_volume(self):
+    def kb_partial_molar_volume(self):
+
+        uv = self.uv
+
+        ck = np.zeros((uv.npts, uv.ns1, uv.ns2), dtype=np.float64)
+        #hk = np.zeros((uv.npts, uv.ns1, uv.ns2), dtype=np.float64)
+
+        for i, j in np.ndindex(uv.ns1, uv.ns2):
+            ck[..., i, j] = uv.grid.dht(uv.c[..., i, j])
+            #hk[..., i, j] = uv.grid.dht((uv.t + uv.c)[..., i, j])
+        hk = self.uv.h_k
+
+        compres = self.isothermal_compressibility(self.vv)
+
+        r = self.uv.grid.ri[:, np.newaxis, np.newaxis]
+        ck0 = self.integrate(self.uv.c * r * r, 4.0 * np.pi * self.uv.grid.d_r)
+        rhvv = self.integrate(self.vv.h[:, 0, 0] * r * r, 4.0 * np.pi * self.uv.grid.d_r)
+        rhuv = self.integrate(self.uv.h[:, 0, :] * r * r, 4.0 * np.pi * self.uv.grid.d_r)
+        khvv = np.sum(hk[0,0,0])
+        khuv = np.sum(hk[0,:,0])
+        pv = self.vv.p[0][0]
+        pvec = np.diag(self.vv.p)
+
+        inv_B = self.uv.kT * self.uv.T
+        ck0_direct = np.sum(ck[0, ...] @ self.vv.p)
+
+        return (1.0 / pv) + (rhvv - rhuv) / self.uv.ns1
+
+    def rism_kb_partial_molar_volume(self):
 
         uv = self.uv
 
@@ -631,7 +659,8 @@ class RismController:
 
         for i, j in np.ndindex(uv.ns1, uv.ns2):
             ck[..., i, j] = uv.grid.dht(uv.c[..., i, j])
-            hk[..., i, j] = uv.grid.dht((uv.t + uv.c)[..., i, j])
+            #hk[..., i, j] = uv.grid.dht((uv.t + uv.c)[..., i, j])
+        hk = self.uv.h_k
 
         compres = self.isothermal_compressibility(self.vv)
 
@@ -639,31 +668,28 @@ class RismController:
         ck0 = self.integrate(self.uv.c * r * r, 4.0 * np.pi * self.uv.grid.d_r)
         rhvv = self.integrate(self.vv.h * r * r, 4.0 * np.pi * self.uv.grid.d_r)
         rhuv = self.integrate(self.uv.h * r * r, 4.0 * np.pi * self.uv.grid.d_r)
-        khvv = np.sum(hk[0,...])
-        khuv = np.sum(hk[0,...])
+        khvv = np.sum(hk[0,0,0])
+        khuv = np.sum(hk[0,:,0])
         pv = self.vv.p[0][0]
         pvec = np.diag(self.vv.p)
 
         inv_B = self.uv.kT * self.uv.T
+        ck0_direct = np.sum(ck[0, ...])
 
-        n_sites = self.uv.ns1 + self.uv.ns2
-
-        ck0_direct = np.sum(ck[0, ...] @ self.vv.p)
-        #return inv_B * compres * (1.0 - pv * ck0_direct)
+        return inv_B * compres * (1.0 - pv * ck0_direct)
         
-        #return inv_B * compres - khuv / self.uv.ns1
-        return (1.0 / pv) + (khvv - khuv) / self.uv.ns1
+        #return (1.0 / pv) + khvv - khuv / self.uv.ns1
 
         
     
     def dimensionless_pmv(self):
-        pmv = self.partial_molar_volume()
+        pmv = self.kb_partial_molar_volume()
 
         return self.uv.p[0][0] * pmv
 
     def pc_plus(self):
         pc, pcplus = self.pressure()
-        pmv = self.partial_molar_volume()
+        pmv = self.kb_partial_molar_volume()
 
         if self.closure.get_closure().__name__ == "HyperNetted_Chain":
             keystr = 'HNC'

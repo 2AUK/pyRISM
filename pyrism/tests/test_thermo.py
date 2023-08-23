@@ -7,7 +7,7 @@ mol.initialise_controller()
 
 mol.do_rism(verbose=True)
 
-#plt.plot(mol.vv.grid.ri, mol.uv.c[:, 0, 0])
+#plt.plot(mol.vv.grid.ri, mol.uv.h[:, 0, 0])
 #plt.show()
 
 print("isothermal compressibility (1/A^3):", (mol.isothermal_compressibility(mol.vv)))
@@ -18,11 +18,16 @@ print("pressure (kcal/mol/A^3):", pressure)
 
 print("pressure - ideal pressure (kcal/mol/A^3):", pressure_plus)
 
-PMV = mol.partial_molar_volume()
+KB_PMV = mol.kb_partial_molar_volume()
+RISM_KB_PMV = mol.rism_kb_partial_molar_volume()
 
-print("PMV (A^3):", PMV)
+print("KB PMV (A^3):", KB_PMV)
 
-print("PMV (cm^3 / mol):", PMV / 1e24 * 6.022E23)
+print("KB PMV (cm^3 / mol):", KB_PMV / 1e24 * 6.022E23)
+
+print("RISM-KB PMV (A^3):", RISM_KB_PMV)
+
+print("RISM-KB PMV (cm^3 / mol):", RISM_KB_PMV / 1e24 * 6.022E23)
 
 print("Dimensionless PMV:", mol.dimensionless_pmv())
 
