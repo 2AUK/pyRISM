@@ -1,4 +1,4 @@
-from pyrism.rism_ctrl import *
+from ..rism_ctrl import *
 import matplotlib.pyplot as plt
 
 mol = RismController("../data/cSPCE_XRISM_methane.toml")
