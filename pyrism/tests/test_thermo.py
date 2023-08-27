@@ -1,5 +1,8 @@
-from ..rism_ctrl import *
+from pyrism.rism_ctrl import *
+from pyrism import rust_helpers
 import matplotlib.pyplot as plt
+
+print(rust_helpers.sum_as_string(5, 10))
 
 mol = RismController("../data/cSPCE_XRISM_methane.toml")
 
