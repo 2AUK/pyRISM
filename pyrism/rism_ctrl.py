@@ -531,14 +531,14 @@ class RismController:
         SFED_GF = Functionals.Functional("GF").get_functional()(dat2, vv)
         SFED_SC = Functionals.Functional("SC").get_functional()(dat2, vv)
         SFED_PW = Functionals.Functional("PW").get_functional()(dat2, vv)
-        SFED_RBC = Functionals.Functional("RBC").get_functional()(dat2, vv)
+        #SFED_RBC = Functionals.Functional("RBC").get_functional()(dat2, vv)
 
         SFE_HNC = self.integrate(SFED_HNC, dat2.grid.d_r)
         SFE_KH = self.integrate(SFED_KH, dat2.grid.d_r)
         SFE_GF = self.integrate(SFED_GF, dat2.grid.d_r)
         SFE_SC = self.integrate(SFED_SC, dat2.grid.d_r)
         SFE_PW = self.integrate(SFED_PW, dat2.grid.d_r)
-        SFE_RBC = self.integrate(SFED_RBC, dat2.grid.d_r)
+        #SFE_RBC = self.integrate(SFED_RBC, dat2.grid.d_r)
         
         # SFE_text = "\n{clos_name}: {SFE_val} kcal/mol"
 
@@ -550,14 +550,13 @@ class RismController:
                      "KH": SFED_KH,
                      "GF": SFED_GF,
                      "SC": SFED_SC,
-                     "PW": SFED_PW,
-                     "RBC": SFED_HNC + SFED_RBC}
+                     "PW": SFED_PW
+                     }
         self.SFE = {"HNC": SFE_HNC,
                     "KH": SFE_KH,
                     "GF": SFE_GF,
                     "SC": SFE_SC,
-                    "PW": SFE_PW,
-                    "RBC": SFE_HNC + SFE_RBC
+                    "PW": SFE_PW
                     }
 
         SFE_PC_PLUS = self.pc_plus()
@@ -590,8 +589,7 @@ class RismController:
         # WIP
         ck = np.zeros((dat.npts, dat.ns1, dat.ns2), dtype=np.float64)
 
-        for i, j in np.ndindex(dat.ns1, dat.ns2):
-            ck[..., i, j] = dat.grid.dht(dat.c[..., i, j])
+        ck = dat.grid.dht(dat.c)
 
 
         # Amber route to isothermal compressibility
@@ -631,12 +629,10 @@ class RismController:
         hk_vv = np.zeros((vv.npts, vv.ns1, vv.ns2), dtype=np.float64)
         hk_uv = np.zeros((uv.npts, uv.ns1, uv.ns2), dtype=np.float64)
 
-        for i, j in np.ndindex(vv.ns1, vv.ns2):
-            hk_vv[..., i, j] = vv.grid.dht((vv.t + vv.c)[..., i, j])
+        hk_vv = vv.grid.dht((vv.t + vv.c))
 
-        for i, j in np.ndindex(uv.ns1, uv.ns2):
-            ck[..., i, j] = uv.grid.dht(uv.c[..., i, j])   
-            hk_uv[..., i, j] = uv.grid.dht((uv.t + uv.c)[..., i, j])
+        ck = uv.grid.dht(uv.c)   
+        hk_uv = uv.grid.dht((uv.t + uv.c))
         #hk_vv = self.vv.h_k
         #hk_uv = self.uv.h_k
 
@@ -663,9 +659,7 @@ class RismController:
         ck = np.zeros((uv.npts, uv.ns1, uv.ns2), dtype=np.float64)
         hk = np.zeros((uv.npts, uv.ns1, uv.ns2), dtype=np.float64)
 
-        for i, j in np.ndindex(uv.ns1, uv.ns2):
-            ck[..., i, j] = uv.grid.dht(uv.c[..., i, j])
-            #hk[..., i, j] = uv.grid.dht((uv.t + uv.c)[..., i, j])
+        ck = uv.grid.dht(uv.c)
         hk = self.uv.h_k
 
         compres = self.isothermal_compressibility(self.vv)
@@ -735,8 +729,7 @@ class RismController:
 
         ck = np.zeros((uv.npts, uv.ns1, uv.ns2), dtype=np.float64)
 
-        for i, j in np.ndindex(uv.ns1, uv.ns2):
-            ck[..., i, j] = uv.grid.dht(uv.c[..., i, j])
+        ck = uv.grid.dht(uv.c)
 
         compres = self.isothermal_compressibility(uv)
 

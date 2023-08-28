@@ -28,18 +28,17 @@ def Partial_Wave(data, vv=None):
     h_uv_k = data.h_k
     h_bar_uv_k = np.zeros_like(h_uv_k)
 
-    for i in range(data.grid.npts):
-        h_bar_uv_k[i, ...] = np.linalg.inv(data.w[i, ...]) @ h_uv_k[i, ...] @ np.linalg.inv(vv.w[i, ...]) @ vv.p
+    h_bar_uv_k = np.linalg.inv(data.w) @ h_uv_k @ np.linalg.inv(vv.w) @ vv.p
 
     h_bar_uv_r = np.zeros_like(h_bar_uv_k)
 
-    for i, j in np.ndindex(data.ns1, data.ns2):
-        h_bar_uv_r[:, i, j] = data.grid.idht(h_bar_uv_k[:, i, j])
+    h_bar_uv_r = data.grid.idht(h_bar_uv_k)
 
     mu = -4.0 * np.pi * (np.power(data.grid.ri, 2)[:, np.newaxis, np.newaxis] * (data.c + (0.5 * data.c * data.h) - (0.5 * h_bar_uv_r * data.h)) @ data.p[np.newaxis, ...])
 
     return np.sum(mu, axis=(1, 2)) / data.B * data.kU
 
+"""
 def Repulsive_Bridge_Correction(data, vv=None):
     u_repulsive = np.zeros_like(data.u)
 
@@ -60,12 +59,9 @@ def Repulsive_Bridge_Correction(data, vv=None):
 
     v_k = np.zeros_like(u_repulsive)
 
-    for a, g in np.ndindex(data.ns1, data.ns2):
-        v_k[:, a, g] = data.grid.dht(np.exp(v_repulsive[:, a, g])-1)
+    v_k = data.grid.dht(np.exp(v_repulsive)-1)
 
-    for s, a, v in np.ndindex(data.ns1, vv.ns1, vv.ns2):
-        if a != v:
-            expBr[:, s, a] *= data.grid.idht(vv.w[:, a, v] * v_k[:, s, v])+1
+    expBr *= data.grid.idht(vv.w * v_k)+1
 
     #correction for truncation error
     expBr[expBr < 1e-12] = 1e-12    
@@ -78,3 +74,4 @@ def Repulsive_Bridge_Correction(data, vv=None):
     mu = 4.0 * np.pi * (np.power(data.grid.ri, 2)[:, np.newaxis, np.newaxis] * ((data.h + 1) * (expBr - 1)) @ data.p[np.newaxis, ...])
 
     return np.sum(mu, axis=(1, 2)) / data.B * data.kU
+"""

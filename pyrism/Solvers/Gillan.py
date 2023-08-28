@@ -32,8 +32,7 @@ class Gillan(SolverObject):
         r_grid = self.data_vv.grid.ri
         k_grid = self.data_vv.grid.ki
 
-        for i, j in np.ndindex(ns1, ns2):
-            ck[..., i, j] = self.data_vv.grid.dht(self.data_vv.c[..., i, j])
+        ck = self.data_vv.grid.dht(self.data_vv.c)
 
         # for l in range(npts):
         #     M1[l] = np.linalg.inv((I - w[l] @ ck[l] @ self.data_vv.p)) @ w[l]
