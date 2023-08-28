@@ -8,7 +8,7 @@ class Functional(object):
         "KH": Kovalenko_Hirata,
         "SC": Single_Component,
         "PW": Partial_Wave,
-        "RBC": Repulsive_Bridge_Correction,
+        #"RBC": Repulsive_Bridge_Correction,
     }
 
     def __init__(self, SFE):
