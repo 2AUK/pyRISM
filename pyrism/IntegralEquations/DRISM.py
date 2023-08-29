@@ -27,8 +27,7 @@ class DRISM(object):
 
         r = self.data_vv.grid.ri
         k = self.data_vv.grid.ki
-        for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
-            ck[..., i, j] = self.data_vv.grid.dht(self.data_vv.c[..., i, j])
+        ck = self.data_vv.grid.dht(self.data_vv.c)
 
         self.data_vv.h = vv_impl(self.data_vv.ns1,
                                  self.data_vv.ns2,
@@ -39,10 +38,8 @@ class DRISM(object):
                                  self.data_vv.w,
                                  self.data_vv.p,
                                  self.chi)
-
-        for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
-            self.data_vv.t[:, i, j] = self.data_vv.grid.idht(self.data_vv.h[:, i, j] - ck[:, i, j]) \
-                - self.data_vv.B * self.data_vv.ur_lr[:, i, j]
+        self.data_vv.t = self.data_vv.grid.idht(self.data_vv.h - ck) \
+                - self.data_vv.B * self.data_vv.ur_lr
 
         self.data_vv.h_k = self.data_vv.h
 
@@ -52,8 +49,7 @@ class DRISM(object):
             ck_uv = np.zeros((self.data_uv.npts, self.data_uv.ns1, self.data_uv.ns2), dtype=np.float64)
 
             r = self.data_vv.grid.ri
-            for i, j in np.ndindex(self.data_uv.ns1, self.data_uv.ns2):
-                ck_uv[..., i, j] = self.data_uv.grid.dht(self.data_uv.c[..., i, j])
+            ck_uv = self.data_uv.grid.dht(self.data_uv.c)
 
             self.data_uv.h = uv_impl(self.data_uv.ns1,
                                      self.data_uv.ns2,
@@ -66,9 +62,8 @@ class DRISM(object):
                                      self.data_uv.p,
                                      self.data_vv.h)
 
-            for i, j in np.ndindex(self.data_uv.ns1, self.data_uv.ns2):
-                self.data_uv.t[:, i, j] = self.data_uv.grid.idht(self.data_uv.h[:, i, j] - ck_uv[:, i, j]) \
-                    - self.data_uv.B * self.data_uv.ur_lr[:, i, j]
+            self.data_uv.t = self.data_uv.grid.idht(self.data_uv.h - ck_uv) \
+                    - self.data_uv.B * self.data_uv.ur_lr
 
             self.data_uv.h_k = self.data_uv.h
 
