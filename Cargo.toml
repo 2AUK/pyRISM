@@ -2,7 +2,7 @@
 # `name` here is name of the package.
 name = "pyrism"
 # these are good defaults:
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [lib]
@@ -15,7 +15,10 @@ name = "rust_helpers"
 crate-type = ["cdylib"]
 
 [dependencies]
+ndarray = "0.15.6"
+numpy = "0.19.0"
 pyo3 = { version = "0.19.2", features = ["extension-module"] }
+rustdct = "0.7.1"
 
 [package.metadata.maturin]
 python-source = "pyrism"
