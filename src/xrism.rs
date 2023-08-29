@@ -1,9 +1,10 @@
 use crate::transforms::fourier_bessel_transform;
 use ndarray::{Array, Array1, Array2, Array3, Axis, Zip};
+use ndarray_linalg::Inverse;
 use rustdct::DctPlanner;
 use std::f64::consts::PI;
 
-fn xrism_vv_equation(
+pub fn xrism_vv_equation(
     ns: usize,
     npts: usize,
     r: Array1<f64>,
@@ -16,7 +17,7 @@ fn xrism_vv_equation(
     B: f64,
     uk_lr: Array3<f64>,
     ur_lr: Array3<f64>,
-) -> Array3<f64> {
+) -> (Array3<f64>, Array3<f64>) {
     // Setting up prefactors for Fourier-Bessel transforms
     let rtok = 2.0 * PI * dr;
     let ktor = dk / (4.0 * PI * PI);
@@ -42,9 +43,42 @@ fn xrism_vv_equation(
                 &plan,
             ));
         });
-    
+
     // Adding long-range component back in
     ck = ck - B * uk_lr;
 
-    ck
+    // Perform integral equation calculation in k-space
+    // H = (I - W * C * P)^-1 * (W * C * W)
+    Zip::from(hk.outer_iter_mut())
+        .and(wk.outer_iter())
+        .and(ck.outer_iter())
+        .par_for_each(|mut hk_matrix, wk_matrix, ck_matrix| {
+            let inverted_wcp = (&identity - wk_matrix.dot(&ck_matrix.dot(&p)))
+                .inv()
+                .expect("could not invert matrix");
+            let wcw = wk_matrix.dot(&ck_matrix.dot(&wk_matrix));
+            hk_matrix.assign(&inverted_wcp.dot(&wcw));
+        });
+
+    // Compute t(k) = h(k) - c(k)
+    let tk = &hk - ck;
+
+    // Transform t(k) -> t(r)
+    Zip::from(tk.lanes(Axis(0)))
+        .and(tr.lanes_mut(Axis(0)))
+        .par_for_each(|tk_lane, mut tr_lane| {
+            tr_lane.assign(&fourier_bessel_transform(
+                ktor,
+                &k,
+                &r,
+                &tk_lane.to_owned(),
+                &plan,
+            ));
+        });
+
+    // removing long-range component
+    tr = tr - B * ur_lr;
+
+    // return k-space total correlation and r-space indirect correlation functions
+    (hk, tr)
 }

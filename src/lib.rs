@@ -1,4 +1,6 @@
 use pyo3::prelude::*;
+use crate::xrism::xrism_vv_equation;
+use numpy::{IntoPyArray, PyArray3};
 
 pub mod transforms;
 pub mod xrism;
@@ -15,5 +17,11 @@ fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
 #[pymodule]
 fn rust_helpers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
+
+    #[pyfn(m)]
+    fn xrism() {
+        todo!()
+    }
+
     Ok(())
 }
