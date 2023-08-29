@@ -13,7 +13,8 @@ pub fn fourier_bessel_transform(
 ) -> Array1<f64> {
     let mut buffer = (func * grid1).to_vec();
     plan.process_dst4(&mut buffer);
-    prefac * Array1::from_vec(buffer) / grid2
+    let fac = grid2.mapv(|v| prefac / v);
+    fac * Array1::from_vec(buffer)
 }
 
 #[cfg(test)]

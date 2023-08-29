@@ -31,9 +31,11 @@ class XRISM(object):
     # def compute_vv(self):
 
     #     ck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
+    #     print(self.data_vv.c)
 
     #     ck = self.data_vv.grid.dht(self.data_vv.c)
-
+    #     print(ck)
+        
     #     self.data_vv.h = vv_impl(self.data_vv.ns1,
     #                              self.data_vv.ns2,
     #                              self.data_vv.npts,
