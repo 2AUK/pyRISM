@@ -1,4 +1,4 @@
-use ndarray::Array1;
+use ndarray::{ArrayView1, Array1};
 use rustdct::TransformType4;
 use std::sync::Arc;
 
@@ -6,8 +6,8 @@ type FFTPlan = Arc<dyn TransformType4<f64>>;
 
 pub fn fourier_bessel_transform(
     prefac: f64,
-    grid1: &Array1<f64>,
-    grid2: &Array1<f64>,
+    grid1: &ArrayView1<f64>,
+    grid2: &ArrayView1<f64>,
     func: &Array1<f64>,
     plan: &FFTPlan,
 ) -> Array1<f64> {

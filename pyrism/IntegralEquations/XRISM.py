@@ -3,6 +3,7 @@ from pyrism import Util
 from pyrism.Core import RISM_Obj
 from dataclasses import dataclass, field
 from numba import jit, njit, prange
+from pyrism.rust_helpers import xrism
 
 @dataclass
 class XRISM(object):
@@ -12,24 +13,41 @@ class XRISM(object):
 
     def compute_vv(self):
 
-        ck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
+        self.data_vv.h_k, self.data_vv.t = xrism(
+            self.data_vv.ns1,
+            self.data_vv.npts,
+            self.data_vv.grid.ri,
+            self.data_vv.grid.ki,
+            self.data_vv.grid.d_r,
+            self.data_vv.grid.d_k,
+            self.data_vv.c,
+            self.data_vv.w,
+            self.data_vv.p,
+            self.data_vv.B,
+            self.data_vv.uk_lr,
+            self.data_vv.ur_lr
+        )
 
-        ck = self.data_vv.grid.dht(self.data_vv.c)
+    # def compute_vv(self):
 
-        self.data_vv.h = vv_impl(self.data_vv.ns1,
-                                 self.data_vv.ns2,
-                                 self.data_vv.npts,
-                                 ck,
-                                 self.data_vv.B,
-                                 self.data_vv.uk_lr,
-                                 self.data_vv.w,
-                                 self.data_vv.p)
+    #     ck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
+
+    #     ck = self.data_vv.grid.dht(self.data_vv.c)
+
+    #     self.data_vv.h = vv_impl(self.data_vv.ns1,
+    #                              self.data_vv.ns2,
+    #                              self.data_vv.npts,
+    #                              ck,
+    #                              self.data_vv.B,
+    #                              self.data_vv.uk_lr,
+    #                              self.data_vv.w,
+    #                              self.data_vv.p)
 
         
-        self.data_vv.t = self.data_vv.grid.idht(self.data_vv.h - ck) \
-                - self.data_vv.B * self.data_vv.ur_lr
+    #     self.data_vv.t = self.data_vv.grid.idht(self.data_vv.h - ck) \
+    #             - self.data_vv.B * self.data_vv.ur_lr
 
-        self.data_vv.h_k = self.data_vv.h
+    #     self.data_vv.h_k = self.data_vv.h
 
     def compute_uv(self):
         if self.data_uv is not None:
