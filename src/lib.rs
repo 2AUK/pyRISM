@@ -1,4 +1,5 @@
 use pyo3::prelude::*;
+use pyo3::types::PyTuple;
 use crate::xrism::xrism_vv_equation;
 use numpy::{IntoPyArray, PyArray3};
 
@@ -19,7 +20,7 @@ fn rust_helpers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
 
     #[pyfn(m)]
-    fn xrism() {
+    fn xrism<'py>(py: Python<'py>) -> PyResult<&'py PyTuple> {
         todo!()
     }
 
