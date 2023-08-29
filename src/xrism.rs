@@ -20,7 +20,7 @@ pub fn xrism_vv_equation(
 ) -> (Array3<f64>, Array3<f64>) {
     // Setting up prefactors for Fourier-Bessel transforms
     let rtok = 2.0 * PI * dr;
-    let ktor = dk / (4.0 * PI * PI);
+    let ktor = dk / (PI * PI);
 
     // Starting FFT Plan
     let plan = DctPlanner::new().plan_dst4(npts);
@@ -30,7 +30,7 @@ pub fn xrism_vv_equation(
     let mut ck = Array::zeros(cr.raw_dim());
     let mut hk = Array::zeros(cr.raw_dim());
     let mut tr = Array::zeros(cr.raw_dim());
-
+    println!("{cr}");
     // Transforming c(r) -> c(k)
     Zip::from(cr.lanes(Axis(0)))
         .and(ck.lanes_mut(Axis(0)))
@@ -43,7 +43,7 @@ pub fn xrism_vv_equation(
                 &plan,
             ));
         });
-
+    println!("{ck}");
     // Adding long-range component back in
     ck = ck - B * uk_lr.to_owned();
 
@@ -53,11 +53,12 @@ pub fn xrism_vv_equation(
         .and(wk.outer_iter())
         .and(ck.outer_iter())
         .for_each(|mut hk_matrix, wk_matrix, ck_matrix| {
-            let inverted_wcp = (&identity - wk_matrix.dot(&ck_matrix.dot(&p)))
+            let iwcp = &identity - wk_matrix.dot(&ck_matrix.dot(&p));
+            let inverted_iwcp = (iwcp)
                 .inv()
-                .expect("could not invert matrix");
+                .expect("could not invert matrix: {iwcp}");
             let wcw = wk_matrix.dot(&ck_matrix.dot(&wk_matrix));
-            hk_matrix.assign(&inverted_wcp.dot(&wcw));
+            hk_matrix.assign(&inverted_iwcp.dot(&wcw));
         });
 
     // Compute t(k) = h(k) - c(k)
