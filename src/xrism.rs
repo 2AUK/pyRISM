@@ -1,4 +1,4 @@
-use crate::transforms::fourier_bessel_transform;
+use crate::transforms::{fourier_bessel_transform, fourier_bessel_transform_fftw};
 use ndarray::{Array, Array1, Array2, Array3, Axis, Zip, ArrayView1, ArrayView3, ArrayView2};
 use ndarray_linalg::Inverse;
 use rustdct::DctPlanner;
@@ -20,32 +20,32 @@ pub fn xrism_vv_equation(
 ) -> (Array3<f64>, Array3<f64>) {
     // Setting up prefactors for Fourier-Bessel transforms
     let rtok = 2.0 * PI * dr;
-    let ktor = dk / (PI * PI);
+    let ktor = dk / (4.0 * PI * PI);
 
     // Starting FFT Plan
-    let plan = DctPlanner::new().plan_dst4(npts);
+    // let plan = DctPlanner::new().plan_dst4(npts);
 
     // Setting up arrays used in calculating XRISM equation
     let identity: Array2<f64> = Array::eye(ns);
     let mut ck = Array::zeros(cr.raw_dim());
     let mut hk = Array::zeros(cr.raw_dim());
     let mut tr = Array::zeros(cr.raw_dim());
-    println!("{cr}");
+    println!("c(r): {cr}");
     // Transforming c(r) -> c(k)
     Zip::from(cr.lanes(Axis(0)))
         .and(ck.lanes_mut(Axis(0)))
         .for_each(|cr_lane, mut ck_lane| {
-            ck_lane.assign(&fourier_bessel_transform(
+            ck_lane.assign(&fourier_bessel_transform_fftw(
                 rtok,
                 &r,
                 &k,
                 &cr_lane.to_owned(),
-                &plan,
             ));
         });
-    println!("{ck}");
+    println!("c(k): {ck}");
     // Adding long-range component back in
     ck = ck - B * uk_lr.to_owned();
+    println!("long-range c(k): {}", ck);
 
     // Perform integral equation calculation in k-space
     // H = (I - W * C * P)^-1 * (W * C * W)
@@ -61,6 +61,8 @@ pub fn xrism_vv_equation(
             hk_matrix.assign(&inverted_iwcp.dot(&wcw));
         });
 
+    println!("h(k): {}", hk);
+
     // Compute t(k) = h(k) - c(k)
     let tk = &hk - ck;
 
@@ -68,17 +70,17 @@ pub fn xrism_vv_equation(
     Zip::from(tk.lanes(Axis(0)))
         .and(tr.lanes_mut(Axis(0)))
         .for_each(|tk_lane, mut tr_lane| {
-            tr_lane.assign(&fourier_bessel_transform(
+            tr_lane.assign(&fourier_bessel_transform_fftw(
                 ktor,
                 &k,
                 &r,
                 &tk_lane.to_owned(),
-                &plan,
             ));
         });
 
     // removing long-range component
     tr = tr - B * ur_lr.to_owned();
+    println!("short-range t(r): {}", tr);
 
     // return k-space total correlation and r-space indirect correlation functions
     (hk, tr)
