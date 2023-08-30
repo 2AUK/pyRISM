@@ -11,45 +11,46 @@ class XRISM(object):
     data_vv: RISM_Obj
     data_uv: RISM_Obj = None
 
-    def compute_vv(self):
-
-        self.data_vv.h_k, self.data_vv.t = xrism(
-            self.data_vv.ns1,
-            self.data_vv.npts,
-            self.data_vv.grid.ri,
-            self.data_vv.grid.ki,
-            self.data_vv.grid.d_r,
-            self.data_vv.grid.d_k,
-            self.data_vv.c,
-            self.data_vv.w,
-            self.data_vv.p,
-            self.data_vv.B,
-            self.data_vv.uk_lr,
-            self.data_vv.ur_lr
-        )
-
     # def compute_vv(self):
 
-    #     ck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
-    #     print(self.data_vv.c)
+    #     self.data_vv.h_k, self.data_vv.t = xrism(
+    #         self.data_vv.ns1,
+    #         self.data_vv.npts,
+    #         self.data_vv.grid.ri,
+    #         self.data_vv.grid.ki,
+    #         self.data_vv.grid.d_r,
+    #         self.data_vv.grid.d_k,
+    #         self.data_vv.c,
+    #         self.data_vv.w,
+    #         self.data_vv.p,
+    #         self.data_vv.B,
+    #         self.data_vv.uk_lr,
+    #         self.data_vv.ur_lr
+    #     )
 
-    #     ck = self.data_vv.grid.dht(self.data_vv.c)
-    #     print(ck)
+    def compute_vv(self):
+
+        ck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
+        print("c(r):", self.data_vv.c)
+
+        ck = self.data_vv.grid.dht(self.data_vv.c)
+        print("c(k):", ck)
         
-    #     self.data_vv.h = vv_impl(self.data_vv.ns1,
-    #                              self.data_vv.ns2,
-    #                              self.data_vv.npts,
-    #                              ck,
-    #                              self.data_vv.B,
-    #                              self.data_vv.uk_lr,
-    #                              self.data_vv.w,
-    #                              self.data_vv.p)
+        self.data_vv.h = vv_impl(self.data_vv.ns1,
+                                 self.data_vv.ns2,
+                                 self.data_vv.npts,
+                                 ck,
+                                 self.data_vv.B,
+                                 self.data_vv.uk_lr,
+                                 self.data_vv.w,
+                                 self.data_vv.p)
 
         
-    #     self.data_vv.t = self.data_vv.grid.idht(self.data_vv.h - ck) \
-    #             - self.data_vv.B * self.data_vv.ur_lr
+        self.data_vv.t = self.data_vv.grid.idht(self.data_vv.h - ck) \
+                - self.data_vv.B * self.data_vv.ur_lr
+        print("short-range t(r):", self.data_vv.t)
 
-    #     self.data_vv.h_k = self.data_vv.h
+        self.data_vv.h_k = self.data_vv.h
 
     def compute_uv(self):
         if self.data_uv is not None:
@@ -82,10 +83,12 @@ def vv_impl(ns1, ns2, npts, ck, B, uk_lr, w, p):
     h = np.zeros((npts, ns1, ns2), dtype=np.float64)
 
     ck -= B * uk_lr
+    print("long-range c(k):", ck)
     for i in prange(npts):
         iwcp = np.linalg.inv(I - w[i] @ ck[i] @ p)
         wcw = w[i] @ ck[i] @ w[i]
         h[i] = iwcp @ wcw
+    print("h(r):", h)
 
     return h
 
