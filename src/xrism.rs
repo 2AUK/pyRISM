@@ -30,7 +30,7 @@ pub fn xrism_vv_equation(
     let mut ck = Array::zeros(cr.raw_dim());
     let mut hk = Array::zeros(cr.raw_dim());
     let mut tr = Array::zeros(cr.raw_dim());
-    println!("c(r): {cr}");
+
     // Transforming c(r) -> c(k)
     Zip::from(cr.lanes(Axis(0)))
         .and(ck.lanes_mut(Axis(0)))
@@ -42,10 +42,9 @@ pub fn xrism_vv_equation(
                 &cr_lane.to_owned(),
             ));
         });
-    println!("c(k): {ck}");
+
     // Adding long-range component back in
     ck = ck - B * uk_lr.to_owned();
-    println!("long-range c(k): {}", ck);
 
     // Perform integral equation calculation in k-space
     // H = (I - W * C * P)^-1 * (W * C * W)
@@ -60,8 +59,6 @@ pub fn xrism_vv_equation(
             let wcw = wk_matrix.dot(&ck_matrix.dot(&wk_matrix));
             hk_matrix.assign(&inverted_iwcp.dot(&wcw));
         });
-
-    println!("h(k): {}", hk);
 
     // Compute t(k) = h(k) - c(k)
     let tk = &hk - ck;
@@ -80,7 +77,6 @@ pub fn xrism_vv_equation(
 
     // removing long-range component
     tr = tr - B * ur_lr.to_owned();
-    println!("short-range t(r): {}", tr);
 
     // return k-space total correlation and r-space indirect correlation functions
     (hk, tr)
