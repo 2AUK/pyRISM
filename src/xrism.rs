@@ -1,7 +1,6 @@
-use crate::transforms::{fourier_bessel_transform, fourier_bessel_transform_fftw};
+use crate::transforms::fourier_bessel_transform_fftw;
 use ndarray::{Array, Array1, Array2, Array3, Axis, Zip, ArrayView1, ArrayView3, ArrayView2};
 use ndarray_linalg::Inverse;
-use rustdct::DctPlanner;
 use std::f64::consts::PI;
 
 pub fn xrism_vv_equation(
