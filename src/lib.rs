@@ -1,13 +1,15 @@
-use crate::xrism::xrism_vv_equation;
 use crate::closure::hyper_netted_chain;
-use numpy::{IntoPyArray, PyReadonlyArray1, PyReadonlyArray2, PyReadonlyArray3, ToPyArray, PyArray3};
+use crate::xrism::xrism_vv_equation;
+use numpy::{
+    IntoPyArray, PyArray3, PyReadonlyArray1, PyReadonlyArray2, PyReadonlyArray3, ToPyArray,
+};
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 
-pub mod transforms;
-pub mod xrism;
 pub mod closure;
 pub mod mdiis;
+pub mod transforms;
+pub mod xrism;
 
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
