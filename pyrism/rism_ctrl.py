@@ -31,7 +31,14 @@ np.seterr(over="raise")
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 @dataclass
-class RismController:
+class RISMConfig:
+    integral_equation: str
+    potential: str
+    closure: str
+    solver: str
+
+@dataclass
+class RISMController:
     """Initialises the parameters for the problem and starts the solver
 
     Attributes
@@ -69,6 +76,7 @@ class RismController:
     IE: IntegralEquations.IntegralEquation = field(init=False)
     SFED: dict = field(init=False, default_factory=dict)
     SFE: dict = field(init=False, default_factory=dict)
+    config: RISMConfig = field(init=False)
 
 
 
@@ -140,6 +148,7 @@ class RismController:
        
         self.closure = Closures.Closure(inp["params"]["closure"])
 
+        self.config = RISMConfig(inp["params"]["IE"], inp["params"]["potential"], inp["params"]["closure"], inp["params"]["solver"])
 
         if inp["params"]["IE"] == "DRISM":
             IE = IntegralEquations.IntegralEquation(inp["params"]["IE"]).get_IE()
@@ -194,7 +203,7 @@ class RismController:
             if self.uv_check:
                 slv_uv = Solvers.Solver(inp["params"]["solver"]).get_solver()
                 self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv)
-
+        
 
     def add_species(self, spec_dat, data_object):
         """Parses interaction sites and assigns them to relevant species
