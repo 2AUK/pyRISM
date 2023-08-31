@@ -1,9 +1,9 @@
-use ndarray::{ArrayView1, Array1};
-use rustdct::TransformType4;
-use std::sync::Arc;
 use fftw::array::AlignedVec;
 use fftw::plan::*;
 use fftw::types::*;
+use ndarray::{Array1, ArrayView1};
+use rustdct::TransformType4;
+use std::sync::Arc;
 
 type FFTPlan = Arc<dyn TransformType4<f64>>;
 
@@ -27,23 +27,25 @@ pub fn fourier_bessel_transform_fftw(
     func: &Array1<f64>,
 ) -> Array1<f64> {
     let n = grid1.len();
-    let mut r2r: R2RPlan64 = R2RPlan::aligned(&[n], R2RKind::FFTW_RODFT11, Flag::ESTIMATE).expect("could not execute FFTW plan");
+    let mut r2r: R2RPlan64 = R2RPlan::aligned(&[n], R2RKind::FFTW_RODFT11, Flag::ESTIMATE)
+        .expect("could not execute FFTW plan");
     let mut input = AlignedVec::new(n);
     for i in 0..n {
         input[i] = (func * grid1)[[i]];
     }
-    
+
     let mut output = AlignedVec::new(n);
-    
+
     let mut out_arr = Array1::zeros(func.raw_dim());
-    r2r.r2r(&mut input, &mut output).expect("could not perform DST-IV operation");
+    r2r.r2r(&mut input, &mut output)
+        .expect("could not perform DST-IV operation");
     for i in 0..n {
         out_arr[[i]] = prefac * output[i] / grid2[i];
     }
     out_arr
 }
 
-#[cfg(test)] 
+#[cfg(test)]
 mod test {
     use super::*;
     use ndarray::{Array, Axis};

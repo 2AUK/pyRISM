@@ -1,5 +1,5 @@
 use crate::transforms::fourier_bessel_transform_fftw;
-use ndarray::{Array, Array1, Array2, Array3, Axis, Zip, ArrayView1, ArrayView3, ArrayView2};
+use ndarray::{Array, Array1, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis, Zip};
 use ndarray_linalg::Inverse;
 use std::f64::consts::PI;
 
@@ -52,9 +52,7 @@ pub fn xrism_vv_equation(
         .and(ck.outer_iter())
         .for_each(|mut hk_matrix, wk_matrix, ck_matrix| {
             let iwcp = &identity - wk_matrix.dot(&ck_matrix.dot(&p));
-            let inverted_iwcp = (iwcp)
-                .inv()
-                .expect("could not invert matrix: {iwcp}");
+            let inverted_iwcp = (iwcp).inv().expect("could not invert matrix: {iwcp}");
             let wcw = wk_matrix.dot(&ck_matrix.dot(&wk_matrix));
             hk_matrix.assign(&inverted_iwcp.dot(&wcw));
         });
