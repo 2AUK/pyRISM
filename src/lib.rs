@@ -5,6 +5,7 @@ use numpy::{
 };
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
+use crate::mdiis::MDIIS;
 
 pub mod closure;
 pub mod mdiis;
@@ -60,6 +61,8 @@ fn rust_helpers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     ) -> PyResult<&'py PyArray3<f64>> {
         Ok(hyper_netted_chain(b, u.as_array(), t.as_array()).to_pyarray(py))
     }
+
+    m.add_class::<MDIIS>()?;
 
     Ok(())
 }
