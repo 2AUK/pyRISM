@@ -13,7 +13,7 @@ pub fn xrism_vv_equation(
     cr: ArrayView3<f64>,
     wk: ArrayView3<f64>,
     p: ArrayView2<f64>,
-    B: f64,
+    b: f64,
     uk_lr: ArrayView3<f64>,
     ur_lr: ArrayView3<f64>,
 ) -> (Array3<f64>, Array3<f64>) {
@@ -43,7 +43,7 @@ pub fn xrism_vv_equation(
         });
 
     // Adding long-range component back in
-    ck = ck - B * uk_lr.to_owned();
+    ck = ck - b * uk_lr.to_owned();
 
     // Perform integral equation calculation in k-space
     // H = (I - W * C * P)^-1 * (W * C * W)
@@ -73,7 +73,7 @@ pub fn xrism_vv_equation(
         });
 
     // removing long-range component
-    tr = tr - B * ur_lr.to_owned();
+    tr = tr - b * ur_lr.to_owned();
 
     // return k-space total correlation and r-space indirect correlation functions
     (hk, tr)

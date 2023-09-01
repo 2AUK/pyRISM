@@ -6,7 +6,7 @@ use numpy::PyArray3;
 use pyo3::prelude::*;
 
 #[pyclass]
-struct MDIIS {
+pub struct MDIIS {
     // arrays that map to python ndarray outputs
     #[pyo3(get, set)]
     pub cr: Py<PyArray3<f64>>,
@@ -17,7 +17,7 @@ struct MDIIS {
 
     // input parameters for solver
     #[pyo3(get, set)]
-    pub m: f64,
+    pub m: usize,
     #[pyo3(get, set)]
     pub mdiis_damping: f64,
     #[pyo3(get, set)]
@@ -71,8 +71,8 @@ impl MDIIS {
         npts: usize,
         ns1: usize,
         ns2: usize,
-    ) -> Self {
-        MDIIS {
+    ) -> PyResult<Self> {
+        Ok(MDIIS {
             cr,
             tr,
             hk,
@@ -85,6 +85,6 @@ impl MDIIS {
             fr: Vec::new(),
             res: Vec::new(),
             rms_res: Vec::new(),
-        }
+        })
     }
 }
