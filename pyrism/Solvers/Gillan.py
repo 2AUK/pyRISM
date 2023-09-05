@@ -46,9 +46,37 @@ class Gillan(SolverObject):
         #         kron2 = self.kron_delta(k, l)
         #         D[:, i, j, k, l] = coskr[:] * (M1[:, i, j] * M2[:, k, l] - kron1 * kron2)
 
-        D = D_calc(ns1, ns2, npts, w, ck, self.data_vv.p, k_grid, r_grid, i)
+        D = D_calc(ns1, ns2, npts, w, ck, self.data_vv.p, k_grid, r_grid, dk, i)
 
-        return D.sum(axis=0) * dk
+        return D
+
+    def E(self, i):
+        npts = self.data_vv.grid.npts
+        ns1 = self.data_vv.ns1
+        ns2 = self.data_vv.ns2
+        dk = self.data_vv.grid.d_k
+        w = self.data_vv.w
+        ck = np.zeros_like(self.data_vv.c)
+        r_grid = self.data_vv.grid.ri
+        k_grid = self.data_vv.grid.ki
+
+        for i, j in np.ndindex(ns1, ns2):
+            ck[..., i, j] = self.data_vv.grid.dht(self.data_vv.c[..., i, j])
+
+        # for l in range(npts):
+        #     M1[l] = np.linalg.inv((I - w[l] @ ck[l] @ self.data_vv.p)) @ w[l]
+        #     M2[l] = np.linalg.inv((I - w[l] @ ck[l] @ self.data_vv.p)) @ w[l]
+        #     coskr += np.cos(k_grid[l] * r_grid[i])
+
+        # for i, j in np.ndindex(ns1, ns2):
+        #     for k, l in np.ndindex(ns1, ns2):
+        #         kron1 = self.kron_delta(i, j)
+        #         kron2 = self.kron_delta(k, l)
+        #         D[:, i, j, k, l] = coskr[:] * (M1[:, i, j] * M2[:, k, l] - kron1 * kron2)
+
+        E = E_calc(ns1, ns2, npts, w, ck, self.data_vv.p, k_grid, r_grid, dk, i)
+
+        return E
 
     def solve(self, RISM, Closure, lam, verbose=False):
         npts = self.data_vv.grid.npts
@@ -59,6 +87,10 @@ class Gillan(SolverObject):
         node = int(npts / self.nbasis / 2)
         node_index = np.arange(0, self.nbasis+1) * node
         nodes = r[node_index]
+        dr = self.data_vv.grid.d_r
+        dk = self.data_vv.grid.d_k
+        r_grid = self.data_vv.grid.ri
+        k_grid = self.data_vv.grid.ki
 
 
         P = np.zeros((npts, self.nbasis+1), dtype=np.float64)
@@ -67,7 +99,8 @@ class Gillan(SolverObject):
         B = np.zeros_like(R)
         A = np.zeros((ns1, ns2, self.nbasis), dtype=np.float64)
 
-        dydc = np.zeros((npts, ns1, ns2, ns1, ns2), dtype=np.float64)
+        dydy = np.zeros((npts, npts, ns1, ns2, ns1, ns2), dtype=np.float64)
+        jac = np.zeros((self.nbasis, self.nbasis, ns1, ns2, ns1, ns2))
 
         P[..., 0] = 1
         for idx in range(0, npts):
@@ -110,21 +143,53 @@ class Gillan(SolverObject):
             for b in range(self.nbasis):
                 kron[a,b] = (Q[...,a] * P_skip_zero[...,b]).sum()
 
-        identity = np.identity(self.nbasis, dtype=np.float64)
-        assert_allclose(kron, identity, atol=1e-4, rtol=1e-4)
-
+        # construct new set of coefficients a
         for a in range(self.nbasis):
             for m, n in np.ndindex(ns1, ns2):
                 A[m, n, a] = (Q[..., a] * t[:, m, n]).sum()
 
-        
+        identity = np.identity(self.nbasis, dtype=np.float64)
+        assert_allclose(kron, identity, atol=1e-4, rtol=1e-4)
 
-        while i < self.max_iter:
+        idx = 0
 
-            # N-R loop
+        while idx < self.max_iter:
+
+            idx += 1
+            
+            #N-R loop
             while True:
+                
+                # derivative for HNC closure
+                dydc = np.exp(-self.data_vv.B * self.data_vv.u_sr + self.data_vv.t) - 1.0
 
-                break
+                for i, j in np.ndindex(npts, npts):
+                    if i == 0:
+                        dydy[i, j, ...] = 2 * dr / np.pi  * r_grid[j] * self.E(j) * dydc[j]
+                    else:
+                        dydy[i, j, ...] = dr / np.pi  * r_grid[i] / r_grid[j] * (self.D(i - j) + self.D(i + j)) * dydc[j]
+
+                print(dydy)
+
+                dada = np.zeros((self.nbasis, self.nbasis, ns1, ns2, ns1, ns2))
+
+                for u, v, i, j, k, l in np.ndindex(self.nbasis, self.nbasis, ns1, ns2, ns1, ns2):
+                    dada[u, v, i, j, k, l] =  (Q[:, np.newaxis, u] * dydy[..., i, j, k, l] * P[np.newaxis, :, v]).sum(axis=(0, 1))
+
+                print(dada)
+                
+                for u, v, i, j, k, l in np.ndindex(self.nbasis, self.nbasis, ns1, ns2, ns1, ns2):
+                    kron1 = self.kron_delta(u, v)
+                    kron2 = self.kron_delta(i, j)
+                    kron3 = self.kron_delta(k, l)
+                    jac[u, v, i, j, k, l] = kron1 * kron2 * kron3 - dada[u, v, i, j, k, l]
+
+                print(jac)
+
+
+
+
+                
 
 
 
@@ -133,18 +198,18 @@ class Gillan(SolverObject):
         pass
 
 @njit
-def D_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, i):
+def D_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, l):
 
     D = np.zeros((npts, ns1, ns2, ns1, ns2), dtype=np.float64)
     coskr = np.zeros((npts), dtype=np.float64)
-    M1 = np.zeros_like(w)
-    M2 = np.zeros_like(w)
+    M1 = np.zeros((ns1, ns2))
+    M2 = np.zeros_like(M1)
     I = np.identity(ns1, dtype=np.float64)
 
-    for l in prange(npts):
-        M1[l] = np.linalg.inv((I - w[l] @ ck[l] @ p)) @ w[l]
-        M2[l] = np.linalg.inv((I - w[l] @ ck[l] @ p)) @ w[l]
-        coskr[l] = np.cos(k_grid[l] * r_grid[i])
+    M1 = np.linalg.inv((I - w[l] @ ck[l] @ p)) @ w[l]
+    M2 = np.linalg.inv((I - w[l] @ ck[l] @ p)) @ w[l]
+    for m in prange(npts):
+        coskr[m] = np.cos(k_grid[m] * r_grid[l])
 
     kron1, kron2 = 0.0, 0.0
     for i in prange(ns1):
@@ -159,8 +224,39 @@ def D_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, i):
                         kron2 = 1.0
                     else:
                         kron2 = 0.0
-                    #print(i, j, k, l)
-                    D[:, i, j, k, l] = coskr[:] * (M1[:, i, j] * M2[:, k, l] - kron1 * kron2)
+                    D[:, i, j, k, l] = coskr[:] * (M1[i, j] * M2[k, l] - kron1 * kron2)
 
     return D.sum(axis=0) * dk
+
+@njit
+def E_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, l):
+
+    E = np.zeros((npts, ns1, ns2, ns1, ns2), dtype=np.float64)
+    sinkr = np.zeros((npts), dtype=np.float64)
+    M1 = np.zeros((ns1, ns2))
+    M2 = np.zeros_like(M1)
+    I = np.identity(ns1, dtype=np.float64)
+
+    M1 = np.linalg.inv((I - w[l] @ ck[l] @ p)) @ w[l]
+    M2 = np.linalg.inv((I - w[l] @ ck[l] @ p)) @ w[l]
+    for m in prange(npts):
+        sinkr[m] = k_grid[m] * np.sin(k_grid[m] * r_grid[l])
+
+    kron1, kron2 = 0.0, 0.0
+    for i in prange(ns1):
+        for j in prange(ns2):
+            if i == j:
+                kron1 = 1.0
+            else:
+                kron1 = 0.0
+            for k in prange(ns1):
+                for l in prange(ns2):
+                    if k == l:
+                        kron2 = 1.0
+                    else:
+                        kron2 = 0.0
+                    E[:, i, j, k, l] = sinkr[:] * (M1[i, j] * M2[k, l] - kron1 * kron2)
+
+    return E.sum(axis=0) * dk
+
 
