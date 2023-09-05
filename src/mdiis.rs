@@ -65,7 +65,7 @@ impl MDIIS {
         cr: Py<PyArray3<f64>>,
         tr: Py<PyArray3<f64>>,
         hk: Py<PyArray3<f64>>,
-        m: f64,
+        m: usize,
         mdiis_damping: f64,
         picard_damping: f64,
         npts: usize,
