@@ -97,9 +97,10 @@ class Gillan(SolverObject):
         Q = np.zeros_like(P)
         R = np.zeros((self.nbasis, self.nbasis), dtype=np.float64)
         B = np.zeros_like(R)
-        A_prev = np.zeros((ns1, ns2, self.nbasis), dtype=np.float64)
-        A_curr = np.zeros((ns1, ns2, self.nbasis), dtype=np.float64)
-        A_new = np.zeros((ns1, ns2, self.nbasis), dtype=np.float64)
+        A_prev = np.zeros((self.nbasis, ns1, ns2), dtype=np.float64)
+        A_curr = np.zeros((self.nbasis, ns1, ns2), dtype=np.float64)
+        A_new = np.zeros((self.nbasis, ns1, ns2), dtype=np.float64)
+        A = np.empty((self.nbasis, ns1, ns2), dtype=np.float64)
 
         dydy = np.zeros((npts, npts, ns1, ns2, ns1, ns2), dtype=np.float64)
         jac = np.zeros((self.nbasis, self.nbasis, ns1, ns2, ns1, ns2))
@@ -159,28 +160,23 @@ class Gillan(SolverObject):
             # construct set of coefficients a
             for a in range(self.nbasis):
                 for m, n in np.ndindex(ns1, ns2):
-                    A_prev[m, n, a] = (Q[..., a] * self.data_vv.t[:, m, n]).sum()
+                    A_prev[a, m, n] = (Q[..., a] * self.data_vv.t[:, m, n]).sum()
 
             c_prev = self.data_vv.c
             RISM()
 
-            # construct set of coefficients a``
+            # construct set of coefficients a`
             for a in range(self.nbasis):
                 for m, n in np.ndindex(ns1, ns2):
-                    A_curr[m, n, a] = (Q[..., a] * self.data_vv.t[:, m, n]).sum()
-
-            if i == self.max_iter and verbose == True:
-                print("Max iteration reached!")
-                self.epilogue(i, lam)
-                break
-
-            elif i == self.max_iter:
-                break
+                    A_curr[a, m, n] = (Q[..., a] * self.data_vv.t[:, m, n]).sum()
 
             idx += 1
             
+            print("Performing Newton-Raphson steps")
+            g = 0
             #N-R loop
             while True:
+                print("NR Step {i}".format(i=g))
                 
                 # derivative for HNC closure
                 dydc = np.exp(-self.data_vv.B * self.data_vv.u_sr + self.data_vv.t) - 1.0
@@ -191,14 +187,10 @@ class Gillan(SolverObject):
                     else:
                         dydy[i, j, ...] = dr / np.pi  * r_grid[i] / r_grid[j] * (self.D(i - j) + self.D(i + j)) * dydc[j]
 
-                print(dydy)
-
                 dada = np.zeros((self.nbasis, self.nbasis, ns1, ns2, ns1, ns2))
 
                 for u, v, i, j, k, l in np.ndindex(self.nbasis, self.nbasis, ns1, ns2, ns1, ns2):
                     dada[u, v, i, j, k, l] =  (Q[:, np.newaxis, u] * dydy[..., i, j, k, l] * P[np.newaxis, :, v]).sum(axis=(0, 1))
-
-                print(dada)
                 
                 for u, v, i, j, k, l in np.ndindex(self.nbasis, self.nbasis, ns1, ns2, ns1, ns2):
                     kron1 = self.kron_delta(u, v)
@@ -206,18 +198,30 @@ class Gillan(SolverObject):
                     kron3 = self.kron_delta(k, l)
                     jac[u, v, i, j, k, l] = kron1 * kron2 * kron3 - dada[u, v, i, j, k, l]
 
-                print(jac)
-                inv_jac = np.zeros((ns1, ns2, self.nbasis))
+                inv_jac = np.zeros((self.nbasis, ns1, ns2))
 
                 for v, k, l in np.ndindex(self.nbasis, ns1, ns2):
-                    inv_jac[k, l, v] = 1.0 / jac[:, v, :, :, k, l].sum()
+                    inv_jac[v, k, l] = jac[:, v, :, :, k, l].sum()
 
-                print(inv_jac)
-                
-                for u, v, i, j, k, l in np.ndindex(self.nbasis, self.nbasis, ns1, ns2, ns1, ns2):
-                    A_new[i, j, u] = A_curr[i, j, u] - (inv_jac * (A_curr - A_prev)[np.newaxis, np.newaxis, :, :, :, np.newaxis]).sum(axis=(1,4,5))
-                print(A_new)
+                inv_jac = np.linalg.inv(inv_jac)
 
+                nr_term = np.zeros((self.nbasis, ns1, ns2))
+
+                for u, i, j in np.ndindex((self.nbasis, ns1, ns2)):
+                    nr_term[u, i, j] = inv_jac[u, i, j] * (A_curr - A_prev)[u, i, j]
+
+                A_new = A_curr - nr_term
+
+                print((A_new - A_prev).all() == 0)
+                if (A_new - A_prev).all() == 0:
+                    A = A_new
+                    break
+                else:
+                    A_prev = A_curr
+                    A_curr = A_new
+                g+=1
+
+            print("Running elementary cycle for next t(r)")
             c_A = Closure(self.data_vv)
 
             c_next = self.step_Picard(c_A, c_prev)
