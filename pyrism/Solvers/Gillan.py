@@ -97,7 +97,9 @@ class Gillan(SolverObject):
         Q = np.zeros_like(P)
         R = np.zeros((self.nbasis, self.nbasis), dtype=np.float64)
         B = np.zeros_like(R)
-        A = np.zeros((ns1, ns2, self.nbasis), dtype=np.float64)
+        A_prev = np.zeros((ns1, ns2, self.nbasis), dtype=np.float64)
+        A_curr = np.zeros((ns1, ns2, self.nbasis), dtype=np.float64)
+        A_new = np.zeros((ns1, ns2, self.nbasis), dtype=np.float64)
 
         dydy = np.zeros((npts, npts, ns1, ns2, ns1, ns2), dtype=np.float64)
         jac = np.zeros((self.nbasis, self.nbasis, ns1, ns2, ns1, ns2))
@@ -143,17 +145,37 @@ class Gillan(SolverObject):
             for b in range(self.nbasis):
                 kron[a,b] = (Q[...,a] * P_skip_zero[...,b]).sum()
 
-        # construct new set of coefficients a
-        for a in range(self.nbasis):
-            for m, n in np.ndindex(ns1, ns2):
-                A[m, n, a] = (Q[..., a] * t[:, m, n]).sum()
+        
 
         identity = np.identity(self.nbasis, dtype=np.float64)
         assert_allclose(kron, identity, atol=1e-4, rtol=1e-4)
 
         idx = 0
+        if verbose == True:
+            print("\nSolving solvent-solvent RISM equation...\n")
 
         while idx < self.max_iter:
+
+            # construct set of coefficients a
+            for a in range(self.nbasis):
+                for m, n in np.ndindex(ns1, ns2):
+                    A_prev[m, n, a] = (Q[..., a] * self.data_vv.t[:, m, n]).sum()
+
+            c_prev = self.data_vv.c
+            RISM()
+
+            # construct set of coefficients a``
+            for a in range(self.nbasis):
+                for m, n in np.ndindex(ns1, ns2):
+                    A_curr[m, n, a] = (Q[..., a] * self.data_vv.t[:, m, n]).sum()
+
+            if i == self.max_iter and verbose == True:
+                print("Max iteration reached!")
+                self.epilogue(i, lam)
+                break
+
+            elif i == self.max_iter:
+                break
 
             idx += 1
             
@@ -185,14 +207,22 @@ class Gillan(SolverObject):
                     jac[u, v, i, j, k, l] = kron1 * kron2 * kron3 - dada[u, v, i, j, k, l]
 
                 print(jac)
+                inv_jac = np.zeros((ns1, ns2, self.nbasis))
 
+                for v, k, l in np.ndindex(self.nbasis, ns1, ns2):
+                    inv_jac[k, l, v] = 1.0 / jac[:, v, :, :, k, l].sum()
 
-
-
+                print(inv_jac)
                 
+                for u, v, i, j, k, l in np.ndindex(self.nbasis, self.nbasis, ns1, ns2, ns1, ns2):
+                    A_new[i, j, u] = A_curr[i, j, u] - (inv_jac * (A_curr - A_prev)[np.newaxis, np.newaxis, :, :, :, np.newaxis]).sum(axis=(1,4,5))
+                print(A_new)
 
+            c_A = Closure(self.data_vv)
 
+            c_next = self.step_Picard(c_A, c_prev)
 
+            self.data_vv.c = c_next
 
     def solve_uv(self, RISM, Closure, lam):
         pass
