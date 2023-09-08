@@ -94,7 +94,7 @@ class Gillan(SolverObject):
 
 
         P = np.zeros((npts, self.nbasis+1), dtype=np.float64)
-        Q = np.zeros_like(P)
+        Q = np.zeros((npts, self.nbasis))
         R = np.zeros((self.nbasis, self.nbasis), dtype=np.float64)
         B = np.zeros_like(R)
         A_prev = np.zeros((self.nbasis, ns1, ns2), dtype=np.float64)
@@ -208,7 +208,11 @@ class Gillan(SolverObject):
                 dada = np.zeros((self.nbasis, self.nbasis, ns1, ns2, ns1, ns2))
 
                 for u, v, i, j, k, l in np.ndindex(self.nbasis, self.nbasis, ns1, ns2, ns1, ns2):
-                    dada[u, v, i, j, k, l] =  (Q[np.newaxis, :, u] * dydy[:, :, i, j, k, l] * P[:, np.newaxis, v]).sum(axis=(0, 1))
+                    #sum_term = 0 
+                    #for m, n in np.ndindex(npts, npts):
+                    #    sum_term += Q[m, u] * dydy[m, n, i, j, k, l] * P[n, v]
+                    dada[u, v, i, j, k, l] =  (Q[np.newaxis, :, u] * dydy[:, :, i, j, k, l] * P_skip_zero[:, np.newaxis, v]).sum(axis=(0, 1))
+                    #dada[u, v, i, j, k, l] = sum_term
                 
                 for u, v, i, j, k, l in np.ndindex(self.nbasis, self.nbasis, ns1, ns2, ns1, ns2):
                     kron1 = self.kron_delta(u, v)
@@ -230,10 +234,10 @@ class Gillan(SolverObject):
 
                 A_new = A_curr - nr_term
 
-                # A_new = self.step_NR(Q, P, A_curr, A_prev)
+                # A_new = self.step_NR(Q, P_skip_zero, A_curr, A_prev)
 
                 print("----Diff: {diff}".format(diff=np.absolute((A_prev - A_new)).max()))
-                if not np.absolute((A_prev - A_new)).max() < 1e-5:
+                if np.absolute((A_prev - A_new)).max() < 1e-5:
                     A = A_new
                     break
                 else:
@@ -370,7 +374,8 @@ def step_NR(nbasis, ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, dr, B, u, t, Q
                                 for idx2 in prange(npts):
                                     sum_term += Q[idx1, u] * dydy[idx1, idx2, i, j, k, l] * P[idx2, v]
                             dada[u, v, i, j, k, l] = sum_term
-
+                            
+    kron1, kron2, kron3 = 0, 0, 0
     for u in prange(nbasis):
         for v in prange(nbasis):
             if u == v:
