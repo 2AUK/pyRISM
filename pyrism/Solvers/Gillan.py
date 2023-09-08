@@ -233,7 +233,7 @@ class Gillan(SolverObject):
                 # A_new = self.step_NR(Q, P, A_curr, A_prev)
 
                 print("----Diff: {diff}".format(diff=np.absolute((A_prev - A_new)).max()))
-                if not (A_prev - A_new).all():
+                if not np.absolute((A_prev - A_new)).max() < 1e-5:
                     A = A_new
                     break
                 else:
