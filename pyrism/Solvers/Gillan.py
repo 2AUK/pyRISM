@@ -159,13 +159,14 @@ class Gillan(SolverObject):
         coarse_t = np.zeros_like(self.data_vv.t)
         coarse_t[:node_index[-1], ...] = self.data_vv.t[:node_index[-1], ...]
 
+         # construct initial set of coefficients a
+        for a in range(self.nbasis):
+            for m, n in np.ndindex(ns1, ns2):
+                A[a, m, n] = (Q[..., a] * self.data_vv.t[:, m, n]).sum()
+
 
         while idx < self.max_iter:
             print("Iteration: {idx}".format(idx=idx))
-            # construct set of coefficients a
-            for a in range(self.nbasis):
-                for m, n in np.ndindex(ns1, ns2):
-                    A[a, m, n] = (Q[..., a] * self.data_vv.t[:, m, n]).sum()
 
             A_prev = A
 
@@ -174,6 +175,7 @@ class Gillan(SolverObject):
             P_swapped = np.swapaxes(P_skip_zero, 0, 1)
             
             # new t(r) from a and delta t(r)
+            # for first iteration, this shouldn't make any changes
             for i, j, k in np.ndindex(npts, ns1, ns2):
                 self.data_vv.t[i, j, k] = (A[:, j, k] * P_swapped[:, i]).sum(axis=0) + coarse_t[i, j, k]
 
@@ -230,7 +232,7 @@ class Gillan(SolverObject):
 
                 # A_new = self.step_NR(Q, P, A_curr, A_prev)
 
-                print(np.absolute((A_prev - A_new)).max())
+                print("----Diff: {diff}".format(diff=np.absolute((A_prev - A_new)).max()))
                 if not (A_prev - A_new).all():
                     A = A_new
                     break
@@ -239,7 +241,7 @@ class Gillan(SolverObject):
                     A_curr = A_new
                 g+=1
 
-            print("Running elementary cycle for next coarse t(r)")
+            print("\nRunning elementary cycle for next coarse t(r)")
 
             intermediate_coarse_t = np.zeros_like(self.data_vv.t)
             intermediate_coarse_t[:node_index[-1], ...] = self.data_vv.t[node_index[-1], ...]
@@ -251,7 +253,7 @@ class Gillan(SolverObject):
                 print("Diff: {diff}".format(diff=np.absolute((previous_coarse_t - new_coarse_t)).max()))
                 break
             else:
-                print("Diff: {diff} (not below tolerance)".format(diff=np.absolute((previous_coarse_t - new_coarse_t)).max()))
+                print("Diff: {diff} (not below tolerance)\n".format(diff=np.absolute((previous_coarse_t - new_coarse_t)).max()))
                 coarse_t = new_coarse_t
 
 
