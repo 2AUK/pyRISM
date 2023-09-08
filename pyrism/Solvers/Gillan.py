@@ -100,6 +100,7 @@ class Gillan(SolverObject):
         A_prev = np.zeros((self.nbasis, ns1, ns2), dtype=np.float64)
         A_curr = np.zeros((self.nbasis, ns1, ns2), dtype=np.float64)
         A_new = np.zeros((self.nbasis, ns1, ns2), dtype=np.float64)
+        A_initial = np.zeros((self.nbasis, ns1, ns2), dtype=np.float64)
         A = np.empty((self.nbasis, ns1, ns2), dtype=np.float64)
 
         dydy = np.zeros((npts, npts, ns1, ns2, ns1, ns2), dtype=np.float64)
@@ -154,15 +155,30 @@ class Gillan(SolverObject):
         idx = 0
         if verbose == True:
             print("\nSolving solvent-solvent RISM equation...\n")
+        
+        coarse_t = np.zeros_like(self.data_vv.t)
+        coarse_t[:node_index[-1], ...] = self.data_vv.t[:node_index[-1], ...]
+
 
         while idx < self.max_iter:
-
+            print("Iteration: {idx}".format(idx=idx))
             # construct set of coefficients a
             for a in range(self.nbasis):
                 for m, n in np.ndindex(ns1, ns2):
-                    A_prev[a, m, n] = (Q[..., a] * self.data_vv.t[:, m, n]).sum()
+                    A[a, m, n] = (Q[..., a] * self.data_vv.t[:, m, n]).sum()
 
-            c_prev = self.data_vv.c
+            A_prev = A
+
+            sum_term = 0
+
+            P_swapped = np.swapaxes(P_skip_zero, 0, 1)
+            
+            # new t(r) from a and delta t(r)
+            for i, j, k in np.ndindex(npts, ns1, ns2):
+                self.data_vv.t[i, j, k] = (A[:, j, k] * P_swapped[:, i]).sum(axis=0) + coarse_t[i, j, k]
+
+            self.data_vv.c = Closure(self.data_vv)
+            previous_coarse_t = coarse_t
             RISM()
 
             # construct set of coefficients a`
@@ -176,7 +192,7 @@ class Gillan(SolverObject):
             g = 0
             #N-R loop
             while True:
-                print("NR Step {i}".format(i=g))
+                print("--NR Step {i}".format(i=g))
                 
                 # derivative for HNC closure
                 dydc = np.exp(-self.data_vv.B * self.data_vv.u_sr + self.data_vv.t) - 1.0
@@ -190,7 +206,7 @@ class Gillan(SolverObject):
                 dada = np.zeros((self.nbasis, self.nbasis, ns1, ns2, ns1, ns2))
 
                 for u, v, i, j, k, l in np.ndindex(self.nbasis, self.nbasis, ns1, ns2, ns1, ns2):
-                    dada[u, v, i, j, k, l] =  (Q[:, np.newaxis, u] * dydy[..., i, j, k, l] * P[np.newaxis, :, v]).sum(axis=(0, 1))
+                    dada[u, v, i, j, k, l] =  (Q[np.newaxis, :, u] * dydy[:, :, i, j, k, l] * P[:, np.newaxis, v]).sum(axis=(0, 1))
                 
                 for u, v, i, j, k, l in np.ndindex(self.nbasis, self.nbasis, ns1, ns2, ns1, ns2):
                     kron1 = self.kron_delta(u, v)
@@ -212,8 +228,10 @@ class Gillan(SolverObject):
 
                 A_new = A_curr - nr_term
 
-                print((A_new - A_prev).all() == 0)
-                if (A_new - A_prev).all() == 0:
+                # A_new = self.step_NR(Q, P, A_curr, A_prev)
+
+                print(np.absolute((A_prev - A_new)).max())
+                if not (A_prev - A_new).all():
                     A = A_new
                     break
                 else:
@@ -221,15 +239,44 @@ class Gillan(SolverObject):
                     A_curr = A_new
                 g+=1
 
-            print("Running elementary cycle for next t(r)")
-            c_A = Closure(self.data_vv)
+            print("Running elementary cycle for next coarse t(r)")
 
-            c_next = self.step_Picard(c_A, c_prev)
+            intermediate_coarse_t = np.zeros_like(self.data_vv.t)
+            intermediate_coarse_t[:node_index[-1], ...] = self.data_vv.t[node_index[-1], ...]
+            new_coarse_t = self.step_Picard(intermediate_coarse_t, previous_coarse_t)
 
-            self.data_vv.c = c_next
+            
+            if np.absolute((previous_coarse_t - new_coarse_t)).max() < 1e-5:
+                print("Iteration complete")
+                print("Diff: {diff}".format(diff=np.absolute((previous_coarse_t - new_coarse_t)).max()))
+                break
+            else:
+                print("Diff: {diff} (not below tolerance)".format(diff=np.absolute((previous_coarse_t - new_coarse_t)).max()))
+                coarse_t = new_coarse_t
+
+
+            
 
     def solve_uv(self, RISM, Closure, lam):
         pass
+
+    def step_NR(self, Q, P, A_curr, A_prev):
+        ck = np.zeros_like(self.data_vv.c)
+
+        for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
+            ck[..., i, j] = self.data_vv.grid.dht(self.data_vv.c[..., i, j])
+
+        return step_NR(self.nbasis, 
+                        self.data_vv.ns1, 
+                        self.data_vv.ns2, 
+                        self.data_vv.grid.npts, 
+                        self.data_vv.w, ck, 
+                        self.data_vv.p, 
+                        self.data_vv.grid.ki, self.data_vv.grid.ri,
+                        self.data_vv.grid.d_k, 
+                        self.data_vv.grid.d_r, 
+                        self.data_vv.B, self.data_vv.u_sr, self.data_vv.t, Q, P, A_curr, A_prev)
+
 
 @njit
 def D_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, l):
@@ -293,4 +340,74 @@ def E_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, l):
 
     return E.sum(axis=0) * dk
 
+@njit
+def step_NR(nbasis, ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, dr, B, u, t, Q, P, A_curr, A_prev):
+    dydy = np.zeros((npts, npts, ns1, ns2, ns1, ns2), dtype=np.float64)
+    jac = np.zeros((nbasis, nbasis, ns1, ns2, ns1, ns2))
+
+    # derivative for HNC closure
+    dydc = np.exp(-B * u + t) - 1.0
+
+    for i in prange(npts):
+        for j in prange(npts):
+            if i == 0:
+                dydy[i, j, ...] = 2 * dr / np.pi  * r_grid[j] * E_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, j) * dydc[j]
+            else:
+                dydy[i, j, ...] = dr / np.pi  * r_grid[i] / r_grid[j] * (D_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, i - j) + D_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, i + j)) * dydc[j]
+
+    dada = np.zeros((nbasis, nbasis, ns1, ns2, ns1, ns2))
+
+    for u in prange(nbasis):
+        for v in prange(nbasis):
+            for i in prange(ns1):
+                for j in prange(ns2):
+                    for k in prange(ns1):
+                        for l in prange(ns2):
+                            sum_term = 0
+                            for idx1 in prange(npts):
+                                for idx2 in prange(npts):
+                                    sum_term += Q[idx1, u] * dydy[idx1, idx2, i, j, k, l] * P[idx2, v]
+                            dada[u, v, i, j, k, l] = sum_term
+
+    for u in prange(nbasis):
+        for v in prange(nbasis):
+            if u == v:
+                kron1 = 1.0
+            else:
+                kron1 = 0.0
+            for i in prange(ns1):
+                for j in prange(ns2):
+                    if i == j:
+                        kron2 = 1.0
+                    else:
+                        kron2 = 0.0
+                    for k in prange(ns1):
+                        for l in prange(ns2):
+                            if k == l:
+                                kron3 = 1.0
+                            else:
+                                kron3 = 0.0
+                            jac[u, v, i, j, k, l] = kron1 * kron2 * kron3 - dada[u, v, i, j, k, l]
+
+    inv_jac = np.zeros((nbasis, ns1, ns2))
+    work_jac = np.zeros((nbasis, ns1, ns2))
+
+    for v in prange(nbasis):
+        for k in prange(ns1):
+            for l in prange(ns2):
+                work_jac[v, k, l] = jac[:, v, :, :, k, l].sum()
+
+    for u in prange(nbasis):
+        inv_jac[u, ...] = np.linalg.inv(work_jac[u, ...])
+
+    nr_term = np.zeros((nbasis, ns1, ns2))
+
+    for u in prange(nbasis):
+        for i in prange(ns1):
+            for j in prange(ns2):
+                nr_term[u, i, j] = inv_jac[u, i, j] * (A_curr - A_prev)[u, i, j]
+
+    A_new = A_curr - nr_term
+
+    return A_new
 
