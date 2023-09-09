@@ -289,15 +289,13 @@ def D_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, l):
 
     D = np.zeros((npts, ns1, ns2, ns1, ns2), dtype=np.float64)
     coskr = np.zeros((npts), dtype=np.float64)
-    M1 = np.zeros((ns1, ns2))
+    M1 = np.zeros((ns1, ns2), dtype=np.float64)
     M2 = np.zeros_like(M1)
     I = np.identity(ns1, dtype=np.float64)
-
     M1 = np.linalg.inv((I - w[l] @ ck[l] @ p)) @ w[l]
     M2 = np.linalg.inv((I - w[l] @ ck[l] @ p)) @ w[l]
     for m in prange(npts):
         coskr[m] = np.cos(k_grid[m] * r_grid[l])
-
     kron1, kron2 = 0.0, 0.0
     for i in prange(ns1):
         for j in prange(ns2):
@@ -320,7 +318,7 @@ def E_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, l):
 
     E = np.zeros((npts, ns1, ns2, ns1, ns2), dtype=np.float64)
     sinkr = np.zeros((npts), dtype=np.float64)
-    M1 = np.zeros((ns1, ns2))
+    M1 = np.zeros((ns1, ns2), dtype=np.float64)
     M2 = np.zeros_like(M1)
     I = np.identity(ns1, dtype=np.float64)
 
@@ -349,7 +347,7 @@ def E_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, l):
 @njit
 def step_NR(nbasis, ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, dr, B, u, t, Q, P, A_curr, A_prev):
     dydy = np.zeros((npts, npts, ns1, ns2, ns1, ns2), dtype=np.float64)
-    jac = np.zeros((nbasis, nbasis, ns1, ns2, ns1, ns2))
+    jac = np.zeros((nbasis, nbasis, ns1, ns2, ns1, ns2),  dtype=np.float64)
 
     # derivative for HNC closure
     dydc = np.exp(-B * u + t) - 1.0
@@ -361,7 +359,7 @@ def step_NR(nbasis, ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, dr, B, u, t, Q
             else:
                 dydy[i, j, ...] = dr / np.pi  * r_grid[i] / r_grid[j] * (D_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, i - j) + D_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, i + j)) * dydc[j]
 
-    dada = np.zeros((nbasis, nbasis, ns1, ns2, ns1, ns2))
+    dada = np.zeros((nbasis, nbasis, ns1, ns2, ns1, ns2),  dtype=np.float64)
 
     for u in prange(nbasis):
         for v in prange(nbasis):
@@ -396,25 +394,27 @@ def step_NR(nbasis, ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, dr, B, u, t, Q
                                 kron3 = 0.0
                             jac[u, v, i, j, k, l] = kron1 * kron2 * kron3 - dada[u, v, i, j, k, l]
 
-    inv_jac = np.zeros((nbasis, ns1, ns2))
-    work_jac = np.zeros((nbasis, ns1, ns2))
+    # inv_jac = np.zeros((nbasis, ns1, ns2))
+    # work_jac = np.zeros((nbasis, ns1, ns2))
 
-    for v in prange(nbasis):
-        for k in prange(ns1):
-            for l in prange(ns2):
-                work_jac[v, k, l] = jac[:, v, :, :, k, l].sum()
+    # for v in prange(nbasis):
+    #     for k in prange(ns1):
+    #         for l in prange(ns2):
+    #             work_jac[v, k, l] = jac[:, v, :, :, k, l].sum()
 
-    for u in prange(nbasis):
-        inv_jac[u, ...] = np.linalg.inv(work_jac[u, ...])
+    # for u in prange(nbasis):
+    #     inv_jac[u, ...] = np.linalg.inv(work_jac[u, ...])
 
-    nr_term = np.zeros((nbasis, ns1, ns2))
-
+    A_new = np.zeros((nbasis, ns1, ns2), dtype=np.float64)
     for u in prange(nbasis):
         for i in prange(ns1):
             for j in prange(ns2):
-                nr_term[u, i, j] = inv_jac[u, i, j] * (A_curr - A_prev)[u, i, j]
-
-    A_new = A_curr - nr_term
+                sum_term = 0
+                for v in prange(nbasis):
+                    for k in prange(ns1):
+                        for l in prange(ns2):
+                            sum_term += 1 / jac[u, v, i, j, k, l] * (A_curr - A_prev)[v, k, l]
+                A_new[u, i, j] = A_curr[u, i, j] - sum_term
 
     return A_new
 
