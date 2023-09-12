@@ -66,3 +66,32 @@ class RISM_Obj(object):
         self.g = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
         self.p = np.zeros((self.ns1, self.ns2), dtype=np.float64)
         self.grid = Grid(self.npts, self.radius)
+
+    def __iter__(self):
+        return iter((
+            T, 
+            kT,
+            kU,
+            amph,
+            ns1,
+            ns2,
+            nsp1,
+            nsp2,
+            npts,
+            radius,
+            nlam,
+            c,
+            t,
+            h,
+            h_k,
+            g,
+            B,
+            u,
+            u_sr,
+            ur_lr,
+            uk_lr,
+            w,
+            p,
+            grid.ri,
+            grid.ki,
+        ))

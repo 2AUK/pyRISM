@@ -1,17 +1,18 @@
 use crate::closure::hyper_netted_chain;
+use crate::mdiis::MDIIS;
+use crate::data::Data;
 use crate::xrism::xrism_vv_equation;
 use numpy::{
     IntoPyArray, PyArray3, PyReadonlyArray1, PyReadonlyArray2, PyReadonlyArray3, ToPyArray,
 };
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use crate::mdiis::MDIIS;
 
 pub mod closure;
+pub mod data;
 pub mod mdiis;
 pub mod transforms;
 pub mod xrism;
-
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
@@ -63,6 +64,7 @@ fn rust_helpers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     }
 
     m.add_class::<MDIIS>()?;
+    m.add_class::<Data>()?;
 
     Ok(())
 }
