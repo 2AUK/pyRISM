@@ -7,6 +7,7 @@ from scipy.optimize import newton_krylov
 from .Solver_object import *
 import matplotlib.pyplot as plt
 from numba import njit, prange
+import matplotlib.pyplot as plt
 
 @dataclass
 class Gillan(SolverObject):
@@ -255,9 +256,13 @@ class Gillan(SolverObject):
             if np.absolute((previous_coarse_t - new_coarse_t)).max() < 1e-5:
                 print("Iteration complete")
                 print("Diff: {diff}".format(diff=np.absolute((previous_coarse_t - new_coarse_t)).max()))
+                plt.plot(r_grid, self.data_vv.t[:, 0, 0])
+                plt.savefig("tr_iteration_{i}.png".format(i=idx), format="png")
                 break
             else:
                 print("Diff: {diff} (not below tolerance)\n".format(diff=np.absolute((previous_coarse_t - new_coarse_t)).max()))
+                plt.plot(r_grid, self.data_vv.t[:, 0, 0])
+                plt.savefig("tr_iteration_{i}.png".format(i=idx), format="png")
                 coarse_t = new_coarse_t
 
 
