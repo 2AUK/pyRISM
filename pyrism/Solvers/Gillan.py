@@ -179,6 +179,8 @@ class Gillan(SolverObject):
             # for first iteration, this shouldn't make any changes
             for i, j, k in np.ndindex(npts, ns1, ns2):
                 self.data_vv.t[i, j, k] = (A[:, j, k] * P_swapped[:, i]).sum(axis=0) + coarse_t[i, j, k]
+            plt.plot(r_grid, self.data_vv.t[:, 0, 0])
+            plt.savefig("tr_iteration_{i}.png".format(i=idx), format="png")
 
             self.data_vv.c = Closure(self.data_vv)
             previous_coarse_t = coarse_t
@@ -256,13 +258,9 @@ class Gillan(SolverObject):
             if np.absolute((previous_coarse_t - new_coarse_t)).max() < 1e-5:
                 print("Iteration complete")
                 print("Diff: {diff}".format(diff=np.absolute((previous_coarse_t - new_coarse_t)).max()))
-                plt.plot(r_grid, self.data_vv.t[:, 0, 0])
-                plt.savefig("tr_iteration_{i}.png".format(i=idx), format="png")
                 break
             else:
                 print("Diff: {diff} (not below tolerance)\n".format(diff=np.absolute((previous_coarse_t - new_coarse_t)).max()))
-                plt.plot(r_grid, self.data_vv.t[:, 0, 0])
-                plt.savefig("tr_iteration_{i}.png".format(i=idx), format="png")
                 coarse_t = new_coarse_t
 
 
