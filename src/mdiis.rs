@@ -4,16 +4,12 @@ use numpy::ndarray::{
 };
 use numpy::PyArray3;
 use pyo3::prelude::*;
+use crate::data::Data;
 
 #[pyclass]
 pub struct MDIIS {
-    // arrays that map to python ndarray outputs
     #[pyo3(get, set)]
-    pub cr: Py<PyArray3<f64>>,
-    #[pyo3(get, set)]
-    pub tr: Py<PyArray3<f64>>,
-    #[pyo3(get, set)]
-    pub hk: Py<PyArray3<f64>>,
+    pub data: Py<Data>,
 
     // input parameters for solver
     #[pyo3(get, set)]
@@ -100,15 +96,17 @@ impl MDIIS {
             .into_shape((self.npts, self.ns1, self.ns2))
             .expect("could not reshape array into original shape")
     }
+
+    pub fn solve(&self) {
+        todo!()
+    }
 }
 
 #[pymethods]
 impl MDIIS {
     #[new]
     fn new(
-        cr: Py<PyArray3<f64>>,
-        tr: Py<PyArray3<f64>>,
-        hk: Py<PyArray3<f64>>,
+        data: Py<Data>,
         m: usize,
         mdiis_damping: f64,
         picard_damping: f64,
@@ -117,9 +115,7 @@ impl MDIIS {
         ns2: usize,
     ) -> PyResult<Self> {
         Ok(MDIIS {
-            cr,
-            tr,
-            hk,
+            data,
             m,
             mdiis_damping,
             picard_damping,
