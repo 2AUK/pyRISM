@@ -2,6 +2,7 @@ use numpy::{PyArray1, PyArray2, PyArray3};
 use pyo3::prelude::*;
 
 #[pyclass]
+#[derive(Clone)]
 pub struct Data {
     #[pyo3(get, set)]
     temp: f64,
