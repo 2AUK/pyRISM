@@ -1,9 +1,27 @@
 use crate::transforms::fourier_bessel_transform_fftw;
+use crate::DataRs;
 use ndarray::{Array, Array1, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis, Zip};
 use ndarray_linalg::Inverse;
 use std::f64::consts::PI;
 
-pub fn xrism_vv_equation(
+pub fn xrism_vv(data: &mut DataRs) {
+    (data.hk, data.tr) = xrism_vv_equation_impl(
+        data.ns1,
+        data.grid.npts,
+        data.grid.rgrid.view(),
+        data.grid.kgrid.view(),
+        data.grid.dr,
+        data.grid.dk,
+        data.cr.view(),
+        data.wk.view(),
+        data.density.view(),
+        data.beta,
+        data.uk_lr.view(),
+        data.ur_lr.view(),
+    )
+}
+
+fn xrism_vv_equation_impl(
     ns: usize,
     npts: usize,
     r: ArrayView1<f64>,
@@ -33,7 +51,7 @@ pub fn xrism_vv_equation(
     // Transforming c(r) -> c(k)
     Zip::from(cr.lanes(Axis(0)))
         .and(ck.lanes_mut(Axis(0)))
-        .for_each(|cr_lane, mut ck_lane| {
+        .par_for_each(|cr_lane, mut ck_lane| {
             ck_lane.assign(&fourier_bessel_transform_fftw(
                 rtok,
                 &r,
@@ -50,7 +68,7 @@ pub fn xrism_vv_equation(
     Zip::from(hk.outer_iter_mut())
         .and(wk.outer_iter())
         .and(ck.outer_iter())
-        .for_each(|mut hk_matrix, wk_matrix, ck_matrix| {
+        .par_for_each(|mut hk_matrix, wk_matrix, ck_matrix| {
             let iwcp = &identity - wk_matrix.dot(&ck_matrix.dot(&p));
             let inverted_iwcp = (iwcp).inv().expect("could not invert matrix: {iwcp}");
             let wcw = wk_matrix.dot(&ck_matrix.dot(&wk_matrix));
@@ -63,7 +81,7 @@ pub fn xrism_vv_equation(
     // Transform t(k) -> t(r)
     Zip::from(tk.lanes(Axis(0)))
         .and(tr.lanes_mut(Axis(0)))
-        .for_each(|tk_lane, mut tr_lane| {
+        .par_for_each(|tk_lane, mut tr_lane| {
             tr_lane.assign(&fourier_bessel_transform_fftw(
                 ktor,
                 &k,
