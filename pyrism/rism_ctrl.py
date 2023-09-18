@@ -491,7 +491,7 @@ class RismController:
             self.build_renorm(dat1, dat1, 1.0, lam)
             dat1.u_sr = dat1.u - dat1.ur_lr
             solver_rust = MDIIS(Data(*dat1), self.solver.m, self.solver.mdiis_damping, self.solver.damp_picard, dat1.npts, dat1.ns1, dat1.ns2)
-            print(solver_rust, solver_rust.data)
+            print(solver_rust, solver_rust.data, solver_rust.fr)
             self.solve_vv(lam, verbose)
             if self.uv_check:
                 self.build_Ur(dat2, dat1, lam)

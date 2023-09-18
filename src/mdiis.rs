@@ -1,15 +1,15 @@
+use crate::data::DataPy;
 use ndarray_linalg::Solve;
 use numpy::ndarray::{
     Array, Array1, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis, Zip,
 };
 use numpy::PyArray3;
 use pyo3::prelude::*;
-use crate::data::Data;
 
 #[pyclass]
 pub struct MDIIS {
     #[pyo3(get, set)]
-    pub data: Py<Data>,
+    pub data: Py<DataPy>,
 
     // input parameters for solver
     #[pyo3(get, set)]
@@ -106,7 +106,7 @@ impl MDIIS {
 impl MDIIS {
     #[new]
     fn new(
-        data: Py<Data>,
+        data: Py<DataPy>,
         m: usize,
         mdiis_damping: f64,
         picard_damping: f64,

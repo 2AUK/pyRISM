@@ -1,6 +1,6 @@
 use crate::closure::hyper_netted_chain;
+use crate::data::DataPy;
 use crate::mdiis::MDIIS;
-use crate::data::Data;
 use crate::xrism::xrism_vv_equation;
 use numpy::{
     IntoPyArray, PyArray3, PyReadonlyArray1, PyReadonlyArray2, PyReadonlyArray3, ToPyArray,
@@ -64,7 +64,7 @@ fn rust_helpers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     }
 
     m.add_class::<MDIIS>()?;
-    m.add_class::<Data>()?;
+    m.add_class::<DataPy>()?;
 
     Ok(())
 }
