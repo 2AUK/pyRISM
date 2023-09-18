@@ -7,6 +7,8 @@ use numpy::ndarray::{
 };
 use numpy::{IntoPyArray, PyArray3};
 use pyo3::prelude::*;
+use fftw::plan::*;
+use fftw::types::*;
 
 #[pyclass]
 #[derive(Clone)]
@@ -137,10 +139,11 @@ impl MDIIS {
         self.fr.clear();
         self.res.clear();
         self.rms_res.clear();
+        let mut r2r: R2RPlan64 = R2RPlan::aligned(&[self.data.grid.npts], R2RKind::FFTW_RODFT11, Flag::ESTIMATE).expect("could not execute FFTW plan");
         let mut i = 0;
         while i < self.max_iter {
             let c_prev = self.data.cr.clone();
-            xrism_vv(&mut self.data);
+            xrism_vv(&mut self.data, &mut r2r);
             let c_a = hyper_netted_chain(&self.data);
             let mut c_next;
 
@@ -170,13 +173,13 @@ impl MDIIS {
                 self.rms_res.push(rmse);
                 self.rms_res.pop();
             }
-            println!("{:E}", c_next);
+            //println!("{:E}", c_next);
             self.data.cr = c_next.clone();
-            let rmse = compute_rmse(self.data.ns1, self.data.ns2, self.data.grid.npts, &c_next, &c_prev);
-            println!("Iteration: {}\nRMSE: {}", i, rmse);
+            let rmse = conv_rmse(self.data.ns1, self.data.ns2, self.data.grid.npts, self.data.grid.dr, &c_next, &c_prev);
+            println!("Iteration: {}\nRMSE: {:E}", i, rmse);
 
             if rmse < self.tolerance {
-                println!("Converged at:\n\tIteration: {}\n\tRMSE: {}", i, rmse);
+                println!("Converged at:\n\tIteration: {}\n\tRMSE: {:E}", i, rmse);
                 break;
             }
 
@@ -184,7 +187,7 @@ impl MDIIS {
 
             if i == self.max_iter {
                 println!(
-                    "Max iteration reached at:\n\tIteration: {}\n\tRMSE: {}",
+                    "Max iteration reached at:\n\tIteration: {}\n\tRMSE: {:E}",
                     i, rmse
                 );
                 break;
@@ -212,4 +215,9 @@ impl MDIIS {
 
 fn compute_rmse(ns1: usize, ns2: usize, npts: usize, curr: &Array3<f64>, prev: &Array3<f64>) -> f64 {
     (1.0 / ns1 as f64 / npts as f64 * (curr - prev).sum().powf(2.0)).sqrt()
+}
+
+fn conv_rmse(ns1: usize, ns2: usize, npts: usize, dr: f64, curr: &Array3<f64>, prev: &Array3<f64>) -> f64 {
+    let denom = 1.0 / ns1 as f64 / ns2 as f64 / npts as f64;
+    (dr * (curr - prev).mapv(|x| x.powf(2.0)).sum() * denom).sqrt()
 }

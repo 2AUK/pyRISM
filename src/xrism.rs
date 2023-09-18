@@ -3,8 +3,10 @@ use crate::DataRs;
 use ndarray::{Array, Array1, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis, Zip};
 use ndarray_linalg::Inverse;
 use std::f64::consts::PI;
+use fftw::plan::*;
 
-pub fn xrism_vv(data: &mut DataRs) {
+
+pub fn xrism_vv(data: &mut DataRs, plan: &mut R2RPlan64) {
     (data.hk, data.tr) = xrism_vv_equation_impl(
         data.ns1,
         data.grid.npts,
@@ -18,6 +20,7 @@ pub fn xrism_vv(data: &mut DataRs) {
         data.beta,
         data.uk_lr.view(),
         data.ur_lr.view(),
+        plan,
     )
 }
 
@@ -34,6 +37,7 @@ fn xrism_vv_equation_impl(
     b: f64,
     uk_lr: ArrayView3<f64>,
     ur_lr: ArrayView3<f64>,
+    plan: &mut R2RPlan64,
 ) -> (Array3<f64>, Array3<f64>) {
     // Setting up prefactors for Fourier-Bessel transforms
     let rtok = 2.0 * PI * dr;
@@ -51,12 +55,13 @@ fn xrism_vv_equation_impl(
     // Transforming c(r) -> c(k)
     Zip::from(cr.lanes(Axis(0)))
         .and(ck.lanes_mut(Axis(0)))
-        .par_for_each(|cr_lane, mut ck_lane| {
+        .for_each(|cr_lane, mut ck_lane| {
             ck_lane.assign(&fourier_bessel_transform_fftw(
                 rtok,
                 &r,
                 &k,
                 &cr_lane.to_owned(),
+                plan,
             ));
         });
 
@@ -81,12 +86,13 @@ fn xrism_vv_equation_impl(
     // Transform t(k) -> t(r)
     Zip::from(tk.lanes(Axis(0)))
         .and(tr.lanes_mut(Axis(0)))
-        .par_for_each(|tk_lane, mut tr_lane| {
+        .for_each(|tk_lane, mut tr_lane| {
             tr_lane.assign(&fourier_bessel_transform_fftw(
                 ktor,
                 &k,
                 &r,
                 &tk_lane.to_owned(),
+                plan
             ));
         });
 

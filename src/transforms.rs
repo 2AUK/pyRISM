@@ -25,10 +25,10 @@ pub fn fourier_bessel_transform_fftw(
     grid1: &ArrayView1<f64>,
     grid2: &ArrayView1<f64>,
     func: &Array1<f64>,
+    r2r: &mut R2RPlan64,
 ) -> Array1<f64> {
     let n = grid1.len();
-    let mut r2r: R2RPlan64 = R2RPlan::aligned(&[n], R2RKind::FFTW_RODFT11, Flag::ESTIMATE)
-        .expect("could not execute FFTW plan");
+
     let mut input = AlignedVec::new(n);
     for i in 0..n {
         input[i] = (func * grid1)[[i]];
