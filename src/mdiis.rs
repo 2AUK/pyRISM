@@ -134,7 +134,7 @@ impl MDIIS {
         })
     }
 
-    pub fn solve(&mut self) {
+    pub fn solve(&mut self) -> PyResult<()> {
         println! {"Solving solvent-solvent RISM equation"};
         self.fr.clear();
         self.res.clear();
@@ -193,6 +193,7 @@ impl MDIIS {
                 break;
             }
         }
+        Ok(())
     }
 
     pub fn extract<'py>(
