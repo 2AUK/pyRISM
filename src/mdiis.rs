@@ -1,4 +1,4 @@
-use crate::data::DataPy;
+use crate::data::DataRs;
 use ndarray_linalg::Solve;
 use numpy::ndarray::{
     Array, Array1, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis, Zip,
@@ -8,23 +8,16 @@ use pyo3::prelude::*;
 
 #[pyclass]
 pub struct MDIIS {
-    #[pyo3(get, set)]
-    pub data: Py<DataPy>,
+    pub data: DataRs,
 
     // input parameters for solver
-    #[pyo3(get, set)]
     pub m: usize,
-    #[pyo3(get, set)]
     pub mdiis_damping: f64,
-    #[pyo3(get, set)]
     pub picard_damping: f64,
 
     // store original shape of array
-    #[pyo3(get, set)]
     pub npts: usize,
-    #[pyo3(get, set)]
     pub ns1: usize,
-    #[pyo3(get, set)]
     pub ns2: usize,
 
     // arrays for MDIIS methods - to only be used in Rust code
@@ -106,7 +99,7 @@ impl MDIIS {
 impl MDIIS {
     #[new]
     fn new(
-        data: Py<DataPy>,
+        data: DataRs,
         m: usize,
         mdiis_damping: f64,
         picard_damping: f64,
@@ -115,7 +108,7 @@ impl MDIIS {
         ns2: usize,
     ) -> PyResult<Self> {
         Ok(MDIIS {
-            data,
+            data: data,
             m,
             mdiis_damping,
             picard_damping,
