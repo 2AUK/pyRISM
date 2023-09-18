@@ -24,7 +24,7 @@ from pyrism import Util
 from numba import njit, jit, prange
 import time
 import warnings
-from pyrism.rust_helpers import MDIIS, Data
+from pyrism.rust_helpers import MDIIS, DataPy, DataRs
 from dataclasses import dataclass, field
 
 np.seterr(over="raise")
@@ -490,8 +490,8 @@ class RismController:
             self.build_Ur(dat1, dat1, lam)
             self.build_renorm(dat1, dat1, 1.0, lam)
             dat1.u_sr = dat1.u - dat1.ur_lr
-            solver_rust = MDIIS(Data(*dat1), self.solver.m, self.solver.mdiis_damping, self.solver.damp_picard, dat1.npts, dat1.ns1, dat1.ns2)
-            print(solver_rust, solver_rust.data, solver_rust.fr)
+            data = DataRs(dat1.T, dat1.kT, dat1.amph, dat1.ns1, dat1.ns2, dat1.npts, dat1.radius, dat1.nlam, dat1.grid.ri, dat1.grid.ki, dat1.u, dat1.u_sr, dat1.ur_lr, dat1.uk_lr, dat1.w, dat1.p)
+            solver_rust = MDIIS(data, self.solver.m, self.solver.mdiis_damping, self.solver.damp_picard, dat1.npts, dat1.ns1, dat1.ns2)
             self.solve_vv(lam, verbose)
             if self.uv_check:
                 self.build_Ur(dat2, dat1, lam)

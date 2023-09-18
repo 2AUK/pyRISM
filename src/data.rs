@@ -1,9 +1,9 @@
 use ndarray::{Array1, Array2, Array3};
-use numpy::{PyArray1, PyArray2, PyArray3, PyReadonlyArray2, PyReadonlyArray3};
+use numpy::{PyArray1, PyArray2, PyArray3, PyReadonlyArray1, PyReadonlyArray2, PyReadonlyArray3};
 use pyo3::prelude::*;
 
 #[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DataRs {
     pub temp: f64,
     pub kt: f64,
@@ -45,6 +45,8 @@ impl DataRs {
         npts: usize,
         radius: f64,
         nlam: usize,
+        rgrid: PyReadonlyArray1<f64>,
+        kgrid: PyReadonlyArray1<f64>,
         ur: PyReadonlyArray3<f64>,
         u_sr: PyReadonlyArray3<f64>,
         ur_lr: PyReadonlyArray3<f64>,
@@ -67,8 +69,8 @@ impl DataRs {
             hr: Array3::zeros(shape),
             hk: Array3::zeros(shape),
             gr: Array3::zeros(shape),
-            rgrid: Array1::zeros(npts),
-            kgrid: Array1::zeros(npts),
+            rgrid: rgrid.as_array().to_owned(),
+            kgrid: kgrid.as_array().to_owned(),
             beta: 1.0 / temp / kt,
             ur: ur.as_array().to_owned(),
             u_sr: u_sr.as_array().to_owned(),
