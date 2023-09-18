@@ -1,6 +1,32 @@
 use ndarray::{Array1, Array2, Array3};
 use numpy::{PyArray1, PyArray2, PyArray3, PyReadonlyArray1, PyReadonlyArray2, PyReadonlyArray3};
 use pyo3::prelude::*;
+use std::f64::consts::PI;
+
+#[derive(Clone, Debug)]
+pub struct Grid {
+    pub npts: usize,
+    pub radius: f64,
+    pub dr: f64,
+    pub dk: f64,
+    pub rgrid: Array1<f64>,
+    pub kgrid: Array1<f64>,
+}
+
+impl Grid {
+    fn new(npts: usize, radius: f64) -> Self {
+        let dr = radius / npts as f64;
+        let dk = 2.0 * PI / (2.0 * npts as f64 * dr);
+        Grid {
+            npts,
+            radius,
+            dr,
+            dk,
+            rgrid: Array1::range(0.5, npts as f64, 1.0) * dr,
+            kgrid: Array1::range(0.5, npts as f64, 1.0) * dk,
+        }
+    }
+}
 
 #[pyclass]
 #[derive(Clone, Debug)]
@@ -10,17 +36,14 @@ pub struct DataRs {
     pub amph: f64,
     pub ns1: usize,
     pub ns2: usize,
-    pub npts: usize,
-    pub radius: f64,
     pub nlam: usize,
+
+    pub grid: Grid,
 
     pub cr: Array3<f64>,
     pub tr: Array3<f64>,
     pub hr: Array3<f64>,
     pub hk: Array3<f64>,
-    pub gr: Array3<f64>,
-    pub rgrid: Array1<f64>,
-    pub kgrid: Array1<f64>,
 
     pub beta: f64,
 
@@ -45,8 +68,6 @@ impl DataRs {
         npts: usize,
         radius: f64,
         nlam: usize,
-        rgrid: PyReadonlyArray1<f64>,
-        kgrid: PyReadonlyArray1<f64>,
         ur: PyReadonlyArray3<f64>,
         u_sr: PyReadonlyArray3<f64>,
         ur_lr: PyReadonlyArray3<f64>,
@@ -55,22 +76,19 @@ impl DataRs {
         density: PyReadonlyArray2<f64>,
     ) -> Self {
         let shape = (npts, ns1, ns2);
+        let grid = Grid::new(npts, radius);
         DataRs {
             temp,
             kt,
             amph,
             ns1,
             ns2,
-            npts,
-            radius,
+            grid,
             nlam,
             cr: Array3::zeros(shape),
             tr: Array3::zeros(shape),
             hr: Array3::zeros(shape),
             hk: Array3::zeros(shape),
-            gr: Array3::zeros(shape),
-            rgrid: rgrid.as_array().to_owned(),
-            kgrid: kgrid.as_array().to_owned(),
             beta: 1.0 / temp / kt,
             ur: ur.as_array().to_owned(),
             u_sr: u_sr.as_array().to_owned(),
