@@ -15,7 +15,7 @@ name = "rust_helpers"
 crate-type = ["cdylib"]
 
 [dependencies]
-fftw = { version = "0.8.0", features = ["source"] }
+fftw = { version = "0.8.0", features = ["system"] }
 ndarray = { version = "0.15.6", features = ["rayon", "blas"] }
 blas-src = { version = "0.8", features = ["openblas"] }
 openblas-src = { version = "0.10", features = ["cblas", "system"] }
@@ -24,6 +24,8 @@ ndarray-rand = "0.14.0"
 numpy = "0.19.0"
 pyo3 = { version = "0.19.2", features = ["extension-module"] }
 rustdct = "0.7.1"
+log = "0.4.20"
+env_logger = "0.10.0"
 
 [package.metadata.maturin]
 python-source = "pyrism"

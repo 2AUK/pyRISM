@@ -5,6 +5,7 @@ use fftw::plan::*;
 use fftw::types::*;
 use ndarray_linalg::Solve;
 use numpy::ndarray::{Array, Array1, Array2, Array3};
+use log::info;
 
 #[derive(Clone, Debug)]
 pub struct MDIIS {
@@ -123,7 +124,8 @@ impl MDIIS {
     }
 
     pub fn solve(&mut self, data: &mut DataRs) {
-        println! {"Solving solvent-solvent RISM equation"};
+        env_logger::init();
+        info! {"Solving solvent-solvent RISM equation"};
         self.fr.clear();
         self.res.clear();
         self.rms_res.clear();
@@ -189,18 +191,18 @@ impl MDIIS {
                 &c_prev,
             );
             if i % 10 == 0 {
-                println!("Iteration: {}\nRMSE: {:E}", i, rmse);
+                info!("Iteration: {}\nRMSE: {:E}", i, rmse);
             }
 
             if rmse < self.tolerance {
-                println!("Converged at:\n\tIteration: {}\n\tRMSE: {:E}", i, rmse);
+                info!("Converged at:\n\tIteration: {}\n\tRMSE: {:E}", i, rmse);
                 break;
             }
 
             i += 1;
 
             if i == self.max_iter {
-                println!(
+                info!(
                     "Max iteration reached at:\n\tIteration: {}\n\tRMSE: {:E}",
                     i, rmse
                 );
