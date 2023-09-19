@@ -13,7 +13,7 @@ pub struct RISMController {
 #[pymethods]
 impl RISMController {
     #[new]
-    fn new(
+    fn new<'py>(
         temp: f64,
         kt: f64,
         amph: f64,
@@ -22,12 +22,12 @@ impl RISMController {
         npts: usize,
         radius: f64,
         nlam: usize,
-        ur: PyReadonlyArray3<f64>,
-        u_sr: PyReadonlyArray3<f64>,
-        ur_lr: PyReadonlyArray3<f64>,
-        uk_lr: PyReadonlyArray3<f64>,
-        wk: PyReadonlyArray3<f64>,
-        density: PyReadonlyArray2<f64>,
+        ur: PyReadonlyArray3<'py, f64>,
+        u_sr: PyReadonlyArray3<'py, f64>,
+        ur_lr: PyReadonlyArray3<'py, f64>,
+        uk_lr: PyReadonlyArray3<'py, f64>,
+        wk: PyReadonlyArray3<'py, f64>,
+        density: PyReadonlyArray2<'py, f64>,
         m: usize,
         mdiis_damping: f64,
         picard_damping: f64,

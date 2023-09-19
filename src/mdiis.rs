@@ -188,7 +188,9 @@ impl MDIIS {
                 &c_next,
                 &c_prev,
             );
-            println!("Iteration: {}\nRMSE: {:E}", i, rmse);
+            if i % 10 == 0 {
+                println!("Iteration: {}\nRMSE: {:E}", i, rmse);
+            }
 
             if rmse < self.tolerance {
                 println!("Converged at:\n\tIteration: {}\n\tRMSE: {:E}", i, rmse);
