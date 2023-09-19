@@ -1,5 +1,5 @@
 use ndarray::{Array1, Array2, Array3};
-use numpy::{PyArray1, PyArray2, PyArray3, PyReadonlyArray1, PyReadonlyArray2, PyReadonlyArray3};
+use numpy::{PyArray1, PyArray2, PyArray3};
 use pyo3::prelude::*;
 use std::f64::consts::PI;
 
@@ -28,7 +28,6 @@ impl Grid {
     }
 }
 
-#[pyclass]
 #[derive(Clone, Debug)]
 pub struct DataRs {
     pub temp: f64,
@@ -56,10 +55,8 @@ pub struct DataRs {
     pub density: Array2<f64>,
 }
 
-#[pymethods]
 impl DataRs {
-    #[new]
-    fn new(
+    pub fn new(
         temp: f64,
         kt: f64,
         amph: f64,
@@ -68,12 +65,12 @@ impl DataRs {
         npts: usize,
         radius: f64,
         nlam: usize,
-        ur: PyReadonlyArray3<f64>,
-        u_sr: PyReadonlyArray3<f64>,
-        ur_lr: PyReadonlyArray3<f64>,
-        uk_lr: PyReadonlyArray3<f64>,
-        wk: PyReadonlyArray3<f64>,
-        density: PyReadonlyArray2<f64>,
+        ur: Array3<f64>,
+        u_sr: Array3<f64>,
+        ur_lr: Array3<f64>,
+        uk_lr: Array3<f64>,
+        wk: Array3<f64>,
+        density: Array2<f64>,
     ) -> Self {
         let shape = (npts, ns1, ns2);
         let grid = Grid::new(npts, radius);
@@ -90,12 +87,12 @@ impl DataRs {
             hr: Array3::zeros(shape),
             hk: Array3::zeros(shape),
             beta: 1.0 / temp / kt,
-            ur: ur.as_array().to_owned(),
-            u_sr: u_sr.as_array().to_owned(),
-            ur_lr: ur_lr.as_array().to_owned(),
-            uk_lr: uk_lr.as_array().to_owned(),
-            wk: wk.as_array().to_owned(),
-            density: density.as_array().to_owned(),
+            ur,
+            u_sr,
+            ur_lr,
+            uk_lr,
+            wk,
+            density,
         }
     }
 }

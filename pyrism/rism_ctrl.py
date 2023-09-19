@@ -24,7 +24,7 @@ from pyrism import Util
 from numba import njit, jit, prange
 import time
 import warnings
-from pyrism.rust_helpers import MDIIS, DataPy, DataRs, extract_mdiis
+from pyrism.rust_helpers import RISMController
 from dataclasses import dataclass, field
 
 np.seterr(over="raise")
@@ -490,11 +490,8 @@ class RismController:
             self.build_Ur(dat1, dat1, lam)
             self.build_renorm(dat1, dat1, 1.0, lam)
             dat1.u_sr = dat1.u - dat1.ur_lr
-            data = DataRs(dat1.T, dat1.kT, dat1.amph, dat1.ns1, dat1.ns2, dat1.npts, dat1.radius, dat1.nlam, dat1.u, dat1.u_sr, dat1.ur_lr, dat1.uk_lr, dat1.w, dat1.p)
-            solver_rust = MDIIS(data, self.solver.m, self.solver.mdiis_damping, self.solver.damp_picard, self.solver.max_iter, self.solver.tol, dat1.npts, dat1.ns1, dat1.ns2)
-            solver_rust.solve()
-            #self.solve_vv(lam, verbose)
-            dat1.c, dat1.t, dat1.h, dat1.h_k = solver_rust.extract()
+            rustrism = RISMController(dat1.T, dat1.kT, dat1.amph, dat1.ns1, dat1.ns2, dat1.npts, dat1.radius, dat1.nlam, dat1.u, dat1.u_sr, dat1.ur_lr, dat1.uk_lr, dat1.w, dat1.p, self.solver.m, self.solver.mdiis_damping, self.solver.damp_picard, self.solver.max_iter, self.solver.tol)
+            rustrism.do_rism()
             if self.uv_check:
                 self.build_Ur(dat2, dat1, lam)
                 self.build_renorm(dat2, dat1, 1.0, lam)

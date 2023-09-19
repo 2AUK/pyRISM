@@ -1,6 +1,5 @@
 use fftw::array::AlignedVec;
 use fftw::plan::*;
-use fftw::types::*;
 use ndarray::{Array1, ArrayView1};
 use rustdct::TransformType4;
 use std::sync::Arc;
@@ -43,22 +42,4 @@ pub fn fourier_bessel_transform_fftw(
         out_arr[[i]] = prefac * output[i] / grid2[i];
     }
     out_arr
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use ndarray::{Array, Axis};
-    use ndarray_rand::rand_distr::Uniform;
-    use ndarray_rand::RandomExt;
-
-    #[test]
-    fn random_test() {
-        let array = Array::random((16, 2, 2), Uniform::new(0., 10.));
-        println!("{array}");
-        array.lanes(Axis(0)).into_iter().for_each(|a| {
-            println!("{a}");
-            println!("{}", a.len());
-        });
-    }
 }
