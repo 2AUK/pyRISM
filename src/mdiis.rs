@@ -1,20 +1,13 @@
 use crate::closure::hyper_netted_chain;
 use crate::data::DataRs;
-use crate::xrism::{self, xrism_vv};
-use ndarray_linalg::Solve;
-use numpy::ndarray::{
-    Array, Array1, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis, Zip,
-};
-use numpy::{IntoPyArray, PyArray3};
-use pyo3::prelude::*;
+use crate::xrism::xrism_vv;
 use fftw::plan::*;
 use fftw::types::*;
+use ndarray_linalg::Solve;
+use numpy::ndarray::{Array, Array1, Array2, Array3};
 
-#[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MDIIS {
-    pub data: DataRs,
-
     // input parameters for solver
     pub m: usize,
     pub mdiis_damping: f64,
@@ -85,7 +78,6 @@ impl MDIIS {
             min_res += &modified_res;
         }
 
-
         // calculate difference between current and previous solutions from RISM equation
         let diff = curr.clone() - prev.clone();
 
@@ -104,11 +96,8 @@ impl MDIIS {
     }
 }
 
-#[pymethods]
 impl MDIIS {
-    #[new]
-    fn new(
-        data: DataRs,
+    pub fn new(
         m: usize,
         mdiis_damping: f64,
         picard_damping: f64,
@@ -117,9 +106,8 @@ impl MDIIS {
         npts: usize,
         ns1: usize,
         ns2: usize,
-    ) -> PyResult<Self> {
-        Ok(MDIIS {
-            data: data,
+    ) -> Self {
+        MDIIS {
             m,
             mdiis_damping,
             picard_damping,
@@ -131,30 +119,47 @@ impl MDIIS {
             fr: Vec::new(),
             res: Vec::new(),
             rms_res: Vec::new(),
-        })
+        }
     }
 
-    pub fn solve(&mut self) -> PyResult<()> {
+    pub fn solve(&mut self, data: &mut DataRs) {
         println! {"Solving solvent-solvent RISM equation"};
         self.fr.clear();
         self.res.clear();
         self.rms_res.clear();
-        let mut r2r: R2RPlan64 = R2RPlan::aligned(&[self.data.grid.npts], R2RKind::FFTW_RODFT11, Flag::ESTIMATE).expect("could not execute FFTW plan");
+        let mut r2r: R2RPlan64 = R2RPlan::aligned(
+            &[data.grid.npts],
+            R2RKind::FFTW_RODFT11,
+            Flag::ESTIMATE,
+        )
+        .expect("could not execute FFTW plan");
         let mut i = 0;
         while i < self.max_iter {
-            let c_prev = self.data.cr.clone();
-            xrism_vv(&mut self.data, &mut r2r);
-            let c_a = hyper_netted_chain(&self.data);
+            let c_prev = data.cr.clone();
+            xrism_vv(data, &mut r2r);
+            let c_a = hyper_netted_chain(&data);
             let mut c_next;
 
             if self.fr.len() < self.m {
                 c_next = self.step_picard(&c_a, &c_prev);
-                let rmse = compute_rmse(self.data.ns1, self.data.ns2, self.data.grid.npts, &c_next, &c_prev);
+                let rmse = compute_rmse(
+                    data.ns1,
+                    data.ns2,
+                    data.grid.npts,
+                    &c_next,
+                    &c_prev,
+                );
                 self.rms_res.push(rmse)
             } else {
-                let gr = &self.data.tr + &c_a;
+                let gr = &data.tr + &c_a;
                 c_next = self.step_mdiis(&c_a, &c_prev, &gr);
-                let rmse = compute_rmse(self.data.ns1, self.data.ns2, self.data.grid.npts, &c_next, &c_prev);
+                let rmse = compute_rmse(
+                    data.ns1,
+                    data.ns2,
+                    data.grid.npts,
+                    &c_next,
+                    &c_prev,
+                );
                 let rmse_min = self.rms_res.iter().fold(f64::INFINITY, |a, &b| a.min(b));
                 let min_index = self
                     .rms_res
@@ -174,8 +179,15 @@ impl MDIIS {
                 self.rms_res.pop();
             }
             //println!("{:E}", c_next);
-            self.data.cr = c_next.clone();
-            let rmse = conv_rmse(self.data.ns1, self.data.ns2, self.data.grid.npts, self.data.grid.dr, &c_next, &c_prev);
+            data.cr = c_next.clone();
+            let rmse = conv_rmse(
+                data.ns1,
+                data.ns2,
+                data.grid.npts,
+                data.grid.dr,
+                &c_next,
+                &c_prev,
+            );
             println!("Iteration: {}\nRMSE: {:E}", i, rmse);
 
             if rmse < self.tolerance {
@@ -193,32 +205,27 @@ impl MDIIS {
                 break;
             }
         }
-        Ok(())
-    }
-
-    pub fn extract<'py>(
-        &'py self,
-        py: Python<'py>,
-    ) -> PyResult<(
-        &PyArray3<f64>,
-        &PyArray3<f64>,
-        &PyArray3<f64>,
-        &PyArray3<f64>,
-    )> {
-        Ok((
-            self.data.cr.clone().into_pyarray(py),
-            self.data.tr.clone().into_pyarray(py),
-            self.data.hr.clone().into_pyarray(py),
-            self.data.hk.clone().into_pyarray(py),
-        ))
     }
 }
 
-fn compute_rmse(ns1: usize, ns2: usize, npts: usize, curr: &Array3<f64>, prev: &Array3<f64>) -> f64 {
+fn compute_rmse(
+    ns1: usize,
+    ns2: usize,
+    npts: usize,
+    curr: &Array3<f64>,
+    prev: &Array3<f64>,
+) -> f64 {
     (1.0 / ns1 as f64 / npts as f64 * (curr - prev).sum().powf(2.0)).sqrt()
 }
 
-fn conv_rmse(ns1: usize, ns2: usize, npts: usize, dr: f64, curr: &Array3<f64>, prev: &Array3<f64>) -> f64 {
+fn conv_rmse(
+    ns1: usize,
+    ns2: usize,
+    npts: usize,
+    dr: f64,
+    curr: &Array3<f64>,
+    prev: &Array3<f64>,
+) -> f64 {
     let denom = 1.0 / ns1 as f64 / ns2 as f64 / npts as f64;
     (dr * (curr - prev).mapv(|x| x.powf(2.0)).sum() * denom).sqrt()
 }

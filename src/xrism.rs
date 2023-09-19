@@ -1,10 +1,9 @@
 use crate::transforms::fourier_bessel_transform_fftw;
-use crate::DataRs;
+use crate::data::DataRs;
+use fftw::plan::*;
 use ndarray::{Array, Array1, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis, Zip};
 use ndarray_linalg::Inverse;
 use std::f64::consts::PI;
-use fftw::plan::*;
-
 
 pub fn xrism_vv(data: &mut DataRs, plan: &mut R2RPlan64) {
     (data.hk, data.tr) = xrism_vv_equation_impl(
@@ -92,7 +91,7 @@ fn xrism_vv_equation_impl(
                 &k,
                 &r,
                 &tk_lane.to_owned(),
-                plan
+                plan,
             ));
         });
 
