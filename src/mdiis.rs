@@ -124,8 +124,7 @@ impl MDIIS {
     }
 
     pub fn solve(&mut self, data: &mut DataRs) {
-        env_logger::init();
-        println! {"Solving solvent-solvent RISM equation"};
+        println!{"Solving solvent-solvent RISM equation"};
         self.fr.clear();
         self.res.clear();
         self.rms_res.clear();
@@ -151,6 +150,7 @@ impl MDIIS {
                     &c_next,
                     &c_prev,
                 );
+                println!("MDIIS RMSE: {}", rmse);
                 self.rms_res.push(rmse)
             } else {
                 let gr = &data.tr + &c_a;
@@ -162,6 +162,7 @@ impl MDIIS {
                     &c_next,
                     &c_prev,
                 );
+                println!("MDIIS RMSE: {}", rmse);
                 let rmse_min = self.rms_res.iter().fold(f64::INFINITY, |a, &b| a.min(b));
                 let min_index = self
                     .rms_res
@@ -169,6 +170,7 @@ impl MDIIS {
                     .position(|x| *x == rmse_min)
                     .expect("could not find index of minimum in rms_res");
                 if rmse > 10.0 * rmse_min {
+                    println!("MDIIS restarting...");
                     c_next = self.fr[min_index]
                         .clone()
                         .into_shape((self.npts, self.ns1, self.ns2))
@@ -180,7 +182,6 @@ impl MDIIS {
                 self.rms_res.push(rmse);
                 self.rms_res.pop();
             }
-            //println!("{:E}", c_next);
             data.cr = c_next.clone();
             let rmse = conv_rmse(
                 data.ns1,
@@ -190,17 +191,17 @@ impl MDIIS {
                 &c_next,
                 &c_prev,
             );
-            println!("Iteration: {}\nRMSE: {:E}", i, rmse);
+            println!("Iteration: {}\tRMSE: {:E}", i, rmse);
 
             if rmse < self.tolerance {
-                info!("Converged at:\n\tIteration: {}\n\tRMSE: {:E}", i, rmse);
+                println!("Converged at:\n\tIteration: {}\n\tRMSE: {:E}", i, rmse);
                 break;
             }
 
             i += 1;
 
             if i == self.max_iter {
-                info!(
+                println!(
                     "Max iteration reached at:\n\tIteration: {}\n\tRMSE: {:E}",
                     i, rmse
                 );
