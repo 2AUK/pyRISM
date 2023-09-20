@@ -27,20 +27,10 @@ pub fn fourier_bessel_transform_fftw(
     func: &Array1<f64>,
     r2r: &mut R2RPlan64,
 ) -> Array1<f64> {
-    let n = grid1.len();
-
-    let mut input = AlignedVec::new(n);
-    for i in 0..n {
-        input[i] = (func * grid1)[[i]];
-    }
-
-    let mut output = AlignedVec::new(n);
-
-    let mut out_arr = Array1::zeros(func.raw_dim());
-    r2r.r2r(&mut input, &mut output)
+    let arr = func * grid1;
+    let mut input = arr.as_standard_layout();
+    let mut output = Array1::zeros(input.raw_dim());
+    r2r.r2r(input.as_slice_mut().unwrap() , output.as_slice_mut().unwrap())
         .expect("could not perform DST-IV operation");
-    for i in 0..n {
-        out_arr[[i]] = prefac * output[i] / grid2[i];
-    }
-    out_arr
+    prefac * output / grid2
 }

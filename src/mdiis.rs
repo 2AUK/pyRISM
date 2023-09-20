@@ -125,7 +125,7 @@ impl MDIIS {
 
     pub fn solve(&mut self, data: &mut DataRs) {
         env_logger::init();
-        info! {"Solving solvent-solvent RISM equation"};
+        println! {"Solving solvent-solvent RISM equation"};
         self.fr.clear();
         self.res.clear();
         self.rms_res.clear();
@@ -190,9 +190,7 @@ impl MDIIS {
                 &c_next,
                 &c_prev,
             );
-            if i % 10 == 0 {
-                info!("Iteration: {}\nRMSE: {:E}", i, rmse);
-            }
+            println!("Iteration: {}\nRMSE: {:E}", i, rmse);
 
             if rmse < self.tolerance {
                 info!("Converged at:\n\tIteration: {}\n\tRMSE: {:E}", i, rmse);
