@@ -5,7 +5,7 @@ use fftw::plan::*;
 use fftw::types::*;
 use ndarray_linalg::Solve;
 use numpy::ndarray::{Array, Array1, Array2, Array3};
-use log::info;
+use std::collections::VecDeque;
 
 #[derive(Clone, Debug)]
 pub struct MDIIS {
@@ -22,9 +22,9 @@ pub struct MDIIS {
     pub ns2: usize,
 
     // arrays for MDIIS methods - to only be used in Rust code
-    fr: Vec<Array1<f64>>,
-    res: Vec<Array1<f64>>,
-    rms_res: Vec<f64>,
+    fr: VecDeque<Array1<f64>>,
+    res: VecDeque<Array1<f64>>,
+    rms_res: VecDeque<f64>,
 }
 
 impl MDIIS {
@@ -33,10 +33,10 @@ impl MDIIS {
         let diff = curr.clone() - prev.clone();
 
         // push current flattened solution into MDIIS array
-        self.fr.push(Array::from_iter(curr.clone().into_iter()));
+        self.fr.push_back(Array::from_iter(curr.clone().into_iter()));
 
         // push flattened difference into residual array
-        self.res.push(Array::from_iter(diff.clone().into_iter()));
+        self.res.push_back(Array::from_iter(diff.clone().into_iter()));
 
         // return Picard iteration step
         prev + self.picard_damping * diff
@@ -53,13 +53,14 @@ impl MDIIS {
 
         let gr = Array::from_iter(gr.clone().into_iter());
 
-        a[[self.m, self.m]] = 0.0;
         b[[self.m]] = -1.0;
 
         for i in 0..self.m + 1 {
             a[[i, self.m]] = -1.0;
             a[[self.m, i]] = -1.0;
         }
+
+        a[[self.m, self.m]] = 0.0;
 
         for i in 0..self.m {
             for j in 0..self.m {
@@ -83,13 +84,13 @@ impl MDIIS {
         let diff = curr.clone() - prev.clone();
 
         // push current flattened solution into MDIIS array
-        self.fr.push(Array::from_iter(curr.clone().into_iter()));
+        self.fr.push_back(Array::from_iter(curr.clone().into_iter()));
 
         // push flattened difference into residual array
-        self.res.push(Array::from_iter(diff.clone().into_iter()));
+        self.res.push_back(Array::from_iter(diff.clone().into_iter()));
 
-        self.fr.pop();
-        self.res.pop();
+        self.fr.pop_front();
+        self.res.pop_front();
 
         (c_a + self.mdiis_damping * min_res)
             .into_shape((self.npts, self.ns1, self.ns2))
@@ -117,9 +118,9 @@ impl MDIIS {
             npts,
             ns1,
             ns2,
-            fr: Vec::new(),
-            res: Vec::new(),
-            rms_res: Vec::new(),
+            fr: VecDeque::new(),
+            res: VecDeque::new(),
+            rms_res: VecDeque::new(),
         }
     }
 
@@ -136,33 +137,36 @@ impl MDIIS {
         .expect("could not execute FFTW plan");
         let mut i = 0;
         while i < self.max_iter {
+            println!("Iteration: {}", i);
             let c_prev = data.cr.clone();
             xrism_vv(data, &mut r2r);
             let c_a = hyper_netted_chain(&data);
             let mut c_next;
 
             if self.fr.len() < self.m {
+                println!("Picard Step");
                 c_next = self.step_picard(&c_a, &c_prev);
                 let rmse = compute_rmse(
                     data.ns1,
                     data.ns2,
                     data.grid.npts,
-                    &c_next,
+                    &c_a,
                     &c_prev,
                 );
-                println!("MDIIS RMSE: {}", rmse);
-                self.rms_res.push(rmse)
+                println!("\tMDIIS RMSE: {}", rmse);
+                self.rms_res.push_back(rmse)
             } else {
+                println!("MDIIS Step");
                 let gr = &data.tr + &c_a;
                 c_next = self.step_mdiis(&c_a, &c_prev, &gr);
                 let rmse = compute_rmse(
                     data.ns1,
                     data.ns2,
                     data.grid.npts,
-                    &c_next,
+                    &c_a,
                     &c_prev,
                 );
-                println!("MDIIS RMSE: {}", rmse);
+                println!("\tMDIIS RMSE: {}", rmse);
                 let rmse_min = self.rms_res.iter().fold(f64::INFINITY, |a, &b| a.min(b));
                 let min_index = self
                     .rms_res
@@ -170,7 +174,7 @@ impl MDIIS {
                     .position(|x| *x == rmse_min)
                     .expect("could not find index of minimum in rms_res");
                 if rmse > 10.0 * rmse_min {
-                    println!("MDIIS restarting...");
+                    println!("\t!!MDIIS restarting!!");
                     c_next = self.fr[min_index]
                         .clone()
                         .into_shape((self.npts, self.ns1, self.ns2))
@@ -179,8 +183,8 @@ impl MDIIS {
                     self.res.clear();
                     self.rms_res.clear();
                 }
-                self.rms_res.push(rmse);
-                self.rms_res.pop();
+                self.rms_res.push_back(rmse);
+                self.rms_res.pop_front();
             }
             data.cr = c_next.clone();
             let rmse = conv_rmse(
@@ -191,7 +195,7 @@ impl MDIIS {
                 &c_next,
                 &c_prev,
             );
-            println!("Iteration: {}\tRMSE: {:E}", i, rmse);
+            println!("\tConvergence RMSE: {:E}", rmse);
 
             if rmse < self.tolerance {
                 println!("Converged at:\n\tIteration: {}\n\tRMSE: {:E}", i, rmse);
