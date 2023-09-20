@@ -492,6 +492,8 @@ class RismController:
             dat1.u_sr = dat1.u - dat1.ur_lr
             rustrism = RISMController(dat1.T, dat1.kT, dat1.amph, dat1.ns1, dat1.ns2, dat1.npts, dat1.radius, dat1.nlam, dat1.u, dat1.u_sr, dat1.ur_lr, dat1.uk_lr, dat1.w, dat1.p, self.solver.m, self.solver.mdiis_damping, self.solver.damp_picard, self.solver.max_iter, self.solver.tol)
             rustrism.do_rism()
+            #self.solve_vv(lam, verbose)
+            dat1.c, dat1.t, dat1.h, dat1.h_k = rustrism.extract()
             if self.uv_check:
                 self.build_Ur(dat2, dat1, lam)
                 self.build_renorm(dat2, dat1, 1.0, lam)

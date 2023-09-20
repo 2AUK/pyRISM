@@ -60,6 +60,7 @@ class MDIIS(SolverObject):
                 print("diff: {diff}".format(diff=(c_A-c_prev).min()))
                 raise e
             if len(self.fr) < self.m:
+                print("Picard Step")
                 c_next = self.step_Picard(c_A, c_prev)
                 RMS = np.sqrt(
                 1 / self.data_vv.ns1 / self.data_vv.grid.npts * np.power((c_A-c_prev).sum(), 2)
@@ -67,6 +68,7 @@ class MDIIS(SolverObject):
                 print("Iteration: {i}\nRMS: {RMS}\nDiff: {diff}".format(i=i, RMS=RMS, diff=(c_A-c_prev).min()))
                 self.RMS_res.append(RMS)
             else:
+                print("MDIIS Step")
                 c_next = self.step_MDIIS(c_A, c_prev, self.data_vv.t + c_A)
                 c_next = np.reshape(c_next, c_prev.shape)
                 RMS = np.sqrt(
@@ -74,6 +76,7 @@ class MDIIS(SolverObject):
                 )
                 print("Iteration: {i}\nRMS: {RMS}\nDiff: {diff}".format(i=i, RMS=RMS, diff=(c_A-c_prev).min()))
                 if RMS > 10 * min(self.RMS_res):
+                    print("Restarting MDIIS")
                     min_index = self.RMS_res.index(min(self.RMS_res))
                     c_next = np.reshape(self.fr[min_index], c_prev.shape)
                     self.fr.clear()

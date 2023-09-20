@@ -1,6 +1,6 @@
 use crate::data::DataRs;
 use crate::mdiis::MDIIS;
-use numpy::{PyReadonlyArray2, PyReadonlyArray3};
+use numpy::{IntoPyArray, PyReadonlyArray2, PyReadonlyArray3, PyArray3};
 use pyo3::prelude::*;
 
 #[pyclass]
@@ -60,4 +60,22 @@ impl RISMController {
     pub fn do_rism(&mut self) {
         self.solver.solve(&mut self.data);
     }
+
+    pub fn extract<'py>(
+        &'py self,
+        py: Python<'py>,
+    ) -> PyResult<(
+        &PyArray3<f64>,
+        &PyArray3<f64>,
+        &PyArray3<f64>,
+        &PyArray3<f64>,
+    )> {
+        Ok((
+            self.data.cr.clone().into_pyarray(py),
+            self.data.tr.clone().into_pyarray(py),
+            self.data.hr.clone().into_pyarray(py),
+            self.data.hk.clone().into_pyarray(py),
+        ))
+    }
 }
+
