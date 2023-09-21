@@ -137,14 +137,14 @@ impl MDIIS {
         .expect("could not execute FFTW plan");
         let mut i = 0;
         while i < self.max_iter {
-            println!("Iteration: {}", i);
+            //println!("Iteration: {}", i);
             let c_prev = data.cr.clone();
             xrism_vv(data, &mut r2r);
             let c_a = hyper_netted_chain(&data);
             let mut c_next;
 
             if self.fr.len() < self.m {
-                println!("Picard Step");
+                //println!("Picard Step");
                 c_next = self.step_picard(&c_a, &c_prev);
                 let rmse = compute_rmse(
                     data.ns1,
@@ -153,10 +153,10 @@ impl MDIIS {
                     &c_a,
                     &c_prev,
                 );
-                println!("\tMDIIS RMSE: {}", rmse);
+                //println!("\tMDIIS RMSE: {}", rmse);
                 self.rms_res.push_back(rmse)
             } else {
-                println!("MDIIS Step");
+                //println!("MDIIS Step");
                 let gr = &data.tr + &c_a;
                 c_next = self.step_mdiis(&c_a, &c_prev, &gr);
                 let rmse = compute_rmse(
@@ -166,7 +166,7 @@ impl MDIIS {
                     &c_a,
                     &c_prev,
                 );
-                println!("\tMDIIS RMSE: {}", rmse);
+                //println!("\tMDIIS RMSE: {}", rmse);
                 let rmse_min = self.rms_res.iter().fold(f64::INFINITY, |a, &b| a.min(b));
                 let min_index = self
                     .rms_res
@@ -174,7 +174,7 @@ impl MDIIS {
                     .position(|x| *x == rmse_min)
                     .expect("could not find index of minimum in rms_res");
                 if rmse > 10.0 * rmse_min {
-                    println!("\t!!MDIIS restarting!!");
+                    //println!("\t!!MDIIS restarting!!");
                     c_next = self.fr[min_index]
                         .clone()
                         .into_shape((self.npts, self.ns1, self.ns2))
@@ -195,8 +195,8 @@ impl MDIIS {
                 &c_next,
                 &c_prev,
             );
-            println!("\tConvergence RMSE: {:E}", rmse);
-
+            if i % 10 == 0 { println!("Iteration: {}\tConvergence RMSE: {:E}", i, rmse); }
+        
             if rmse < self.tolerance {
                 println!("Converged at:\n\tIteration: {}\n\tRMSE: {:E}", i, rmse);
                 break;
