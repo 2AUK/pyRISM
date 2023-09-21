@@ -1,3 +1,4 @@
+extern crate blas_src;
 use crate::controller::RISMController;
 use pyo3::prelude::*;
 
