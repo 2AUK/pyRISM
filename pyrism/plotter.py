@@ -6,7 +6,7 @@ import numpy as np
 
 
 def plot():
-    plt.rcParams['text.usetex'] = True
+    plt.rcParams['text.usetex'] = False
     plt.rcParams['font.size'] = 14
     df = pd.read_csv(sys.argv[1], sep=',', skiprows=[0])
 
