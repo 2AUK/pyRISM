@@ -32,10 +32,34 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 @dataclass
 class RISMConfig:
-    integral_equation: str
+    operator: OperatorConfig
     potential: str
-    closure: str
+    solver: SolverConfig
+    data: DataConfig
+
+@dataclass
+class SolverConfig:
     solver: str
+    params: dict = field(default_factory=dict)
+
+@dataclass
+class DataConfig:
+    T: float
+    kT: float
+    kU: float
+    amph: float
+    ns1: int
+    ns2: int
+    nsp1: int
+    nsp2: int
+    npts: int
+    radius: float
+    nlam: int
+
+@dataclass
+class OperatorConfig:
+    integral_equation: str
+    closure: str
 
 @dataclass
 class RismController:
@@ -77,8 +101,6 @@ class RismController:
     SFED: dict = field(init=False, default_factory=dict)
     SFE: dict = field(init=False, default_factory=dict)
     config: RISMConfig = field(init=False)
-
-
 
     def initialise_controller(self):
         """ Reads input file `fname` to create `vv` and `uv` and
