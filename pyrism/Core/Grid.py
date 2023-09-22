@@ -12,7 +12,6 @@ from .Transforms import discrete_hankel_transform, inverse_discrete_hankel_trans
 
 @dataclass(init=True)
 class Grid:
-
     npts: int
     radius: float
     ri: np.ndarray = field(init=False)

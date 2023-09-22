@@ -4,9 +4,9 @@ from .Solver_object import *
 from dataclasses import dataclass, field
 import pdb
 
+
 @dataclass
 class NgSolver(SolverObject):
-
     fr: list = field(init=False, default_factory=list)
     gr: list = field(init=False, default_factory=list)
 
@@ -43,7 +43,7 @@ class NgSolver(SolverObject):
         if verbose == True:
             print("\nSolving solvent-solvent RISM equation...\n")
         while i < self.max_iter:
-            #self.epilogue(i, lam)
+            # self.epilogue(i, lam)
             c_prev = self.data_vv.c
             RISM()
             c_A = Closure(self.data_vv)

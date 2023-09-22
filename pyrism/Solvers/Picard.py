@@ -9,19 +9,19 @@ from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWa
 import warnings
 import sys
 
-np.set_printoptions(edgeitems=30, linewidth=180,
-    formatter=dict(float=lambda x: "%.5g" % x))
+np.set_printoptions(
+    edgeitems=30, linewidth=180, formatter=dict(float=lambda x: "%.5g" % x)
+)
+
 
 @dataclass
 class Picard(SolverObject):
-
     def solve(self, RISM, Closure, lam, verbose=False):
         i: int = 0
-        
+
         if verbose == True:
             print("\nSolving solvent-solvent RISM equation...\n")
         while i < self.max_iter:
-
             c_prev = self.data_vv.c
             try:
                 RISM()
@@ -30,7 +30,7 @@ class Picard(SolverObject):
                 print(e)
                 print("Possible divergence")
                 print("iteration: {i}".format(i=i))
-                print("diff: {diff}".format(diff=(c_A-c_prev).sum()))
+                print("diff: {diff}".format(diff=(c_A - c_prev).sum()))
 
             c_next = self.step_Picard(c_A, c_prev)
 
@@ -56,7 +56,6 @@ class Picard(SolverObject):
         if verbose == True:
             print("\nSolving solute-solvent RISM equation...\n")
         while i < self.max_iter:
-
             c_prev = self.data_uv.c
             try:
                 RISM()
@@ -65,7 +64,7 @@ class Picard(SolverObject):
                 print(e)
                 print("Possible divergence")
                 print("iteration: {i}".format(i=i))
-                print("diff: {diff}".format(diff=(c_A-c_prev).sum()))
+                print("diff: {diff}".format(diff=(c_A - c_prev).sum()))
 
             c_next = self.step_Picard(c_A, c_prev)
 

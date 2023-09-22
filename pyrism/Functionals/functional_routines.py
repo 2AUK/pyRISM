@@ -4,25 +4,61 @@ from pyrism.Core import RISM_Obj
 
 
 def Gaussian_Fluctuations(data, vv=None):
-    mu = -4.0 * np.pi * (np.power(data.grid.ri, 2)[:, np.newaxis, np.newaxis] *
-                                               ((0.5 * data.c * data.h) + data.c) @ data.p[np.newaxis, ...])
+    mu = (
+        -4.0
+        * np.pi
+        * (
+            np.power(data.grid.ri, 2)[:, np.newaxis, np.newaxis]
+            * ((0.5 * data.c * data.h) + data.c)
+            @ data.p[np.newaxis, ...]
+        )
+    )
     return np.sum(mu, axis=(1, 2)) / data.B * data.kU
+
 
 def HyperNetted_Chain(data, vv=None):
-    mu = 4.0 * np.pi * (np.power(data.grid.ri, 2)[:, np.newaxis, np.newaxis] *
-                                              ((0.5 * data.t * data.h) - data.c) @ data.p[np.newaxis, ...])
+    mu = (
+        4.0
+        * np.pi
+        * (
+            np.power(data.grid.ri, 2)[:, np.newaxis, np.newaxis]
+            * ((0.5 * data.t * data.h) - data.c)
+            @ data.p[np.newaxis, ...]
+        )
+    )
     return np.sum(mu, axis=(1, 2)) / data.B * data.kU
+
 
 def Kovalenko_Hirata(data, vv=None):
-    mu = 4.0 * np.pi * (np.power(data.grid.ri, 2)[:, np.newaxis, np.newaxis] *
-                                              (0.5 * np.power(data.h, 2) * np.heaviside(-data.h, 1) -
-                                               (0.5 * data.h * data.c) - data.c) @ data.p[np.newaxis, ...])
+    mu = (
+        4.0
+        * np.pi
+        * (
+            np.power(data.grid.ri, 2)[:, np.newaxis, np.newaxis]
+            * (
+                0.5 * np.power(data.h, 2) * np.heaviside(-data.h, 1)
+                - (0.5 * data.h * data.c)
+                - data.c
+            )
+            @ data.p[np.newaxis, ...]
+        )
+    )
     return np.sum(mu, axis=(1, 2)) / data.B * data.kU
+
 
 def Single_Component(data, vv=None):
-    mu = 4.0 * np.pi * (np.power(data.grid.ri, 2)[:, np.newaxis, np.newaxis] * data.c @ data.p[np.newaxis, ...])
+    mu = (
+        4.0
+        * np.pi
+        * (
+            np.power(data.grid.ri, 2)[:, np.newaxis, np.newaxis]
+            * data.c
+            @ data.p[np.newaxis, ...]
+        )
+    )
 
     return np.sum(mu, axis=(1, 2)) / data.B * data.kU
+
 
 def Partial_Wave(data, vv=None):
     h_uv_k = data.h_k
@@ -34,9 +70,18 @@ def Partial_Wave(data, vv=None):
 
     h_bar_uv_r = data.grid.idht(h_bar_uv_k)
 
-    mu = -4.0 * np.pi * (np.power(data.grid.ri, 2)[:, np.newaxis, np.newaxis] * (data.c + (0.5 * data.c * data.h) - (0.5 * h_bar_uv_r * data.h)) @ data.p[np.newaxis, ...])
+    mu = (
+        -4.0
+        * np.pi
+        * (
+            np.power(data.grid.ri, 2)[:, np.newaxis, np.newaxis]
+            * (data.c + (0.5 * data.c * data.h) - (0.5 * h_bar_uv_r * data.h))
+            @ data.p[np.newaxis, ...]
+        )
+    )
 
     return np.sum(mu, axis=(1, 2)) / data.B * data.kU
+
 
 """
 def Repulsive_Bridge_Correction(data, vv=None):

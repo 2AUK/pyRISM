@@ -5,10 +5,11 @@ A pedagogical implementation of the RISM equations
 Initialises and solves the specified RISM problem.
 """
 import os
-os.environ['MKL_CBWR'] = 'AUTO'
-os.environ['MKL_DYNAMIC'] = 'FALSE'
-os.environ['OMP_DYNAMIC'] = 'FALSE'
-#os.environ['MKL_VERBOSE'] = '1'
+
+os.environ["MKL_CBWR"] = "AUTO"
+os.environ["MKL_DYNAMIC"] = "FALSE"
+os.environ["OMP_DYNAMIC"] = "FALSE"
+# os.environ['MKL_VERBOSE'] = '1'
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -28,19 +29,14 @@ from pyrism.rust_helpers import RISMController
 from dataclasses import dataclass, field
 
 np.seterr(over="raise")
-warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
-@dataclass
-class RISMConfig:
-    operator: OperatorConfig
-    potential: str
-    solver: SolverConfig
-    data: DataConfig
 
 @dataclass
 class SolverConfig:
     solver: str
     params: dict = field(default_factory=dict)
+
 
 @dataclass
 class DataConfig:
@@ -48,18 +44,37 @@ class DataConfig:
     kT: float
     kU: float
     amph: float
-    ns1: int
-    ns2: int
-    nsp1: int
-    nsp2: int
+    nsv: int
+    nsu: int
+    nspv: int
+    nspu: int
     npts: int
     radius: float
     nlam: int
+    solvent_species: list = field(default_factory=list)
+    solute_species: list = field(default_factory=list)
+
 
 @dataclass
 class OperatorConfig:
     integral_equation: str
     closure: str
+
+
+@dataclass
+class PotentialConfig:
+    nonbonded: str
+    coulomb: str
+    renormalisation: str
+
+
+@dataclass
+class RISMConfig:
+    operator: OperatorConfig
+    potential: PotentialConfig
+    solver: SolverConfig
+    data: DataConfig
+
 
 @dataclass
 class RismController:
@@ -88,6 +103,7 @@ class RismController:
     IE_UV : IntegralEquations.IntegralEquation
     Dispatcher object to initialise solute-solvent integral equation
     """
+
     fname: str
     name: str = field(init=False)
     uv_check: bool = field(init=False, default=False)
@@ -103,29 +119,59 @@ class RismController:
     config: RISMConfig = field(init=False)
 
     def initialise_controller(self):
-        """ Reads input file `fname` to create `vv` and `uv` and
+        """Reads input file `fname` to create `vv` and `uv` and
         builds the intra"""
         self.read_input()
         self.build_wk(self.vv)
         self.build_rho(self.vv)
-         # Assuming infinite dilution, uv doesn't need p. Giving it vv's p makes later calculations easier
+        # Assuming infinite dilution, uv doesn't need p. Giving it vv's p makes later calculations easier
         if self.uv_check:
             self.uv.p = self.vv.p
             self.build_wk(self.uv)
 
-
     def do_rism(self, verbose=False):
-        """ Solves the vv and uv (if applicable) problems and outputs the results"""
+        """Solves the vv and uv (if applicable) problems and outputs the results"""
         if self.uv_check:
             self.solve(self.vv, dat2=self.uv, verbose=verbose)
         else:
             self.solve(self.vv, dat2=None, verbose=verbose)
 
     def read_input(self):
-        """ Reads .toml input file, populates vv and uv dataclasses
+        """Reads .toml input file, populates vv and uv dataclasses
         and properly initialises the appropriate potentials, solvers,
         closures, and integral equations"""
         inp = toml.load(self.fname)
+        name = os.path.basename(self.fname).split(sep=".")[0]
+        if "solvent" not in inp:
+            raise ("no solvent data in input .toml file")
+
+        temp = inp["system"]["temp"]
+        kt = inp["system"]["kT"]
+        ku = inp["system"]["kU"]
+        amph = inp["system"]["charge_coeff"]
+        nsv = inp["solvent"]["nsv"]
+        nsu = None
+        nspv = inp["solvent"]["nspv"]
+        nspu = None
+        npts = inp["system"]["npts"]
+        radius = inp["system"]["radius"]
+        lam = inp["system"]["lam"]
+        solv_species = list(
+            {
+                k: inp["solvent"][k] for k in inp["solvent"].keys() - {"nsv", "nspv"}
+            }.items()
+        )
+        solu_species = None
+        print(solv_species)
+        if solute in inp:
+            nsu = inp["solute"]["nsu"]
+            nspu = inp["solute"]["nspu"]
+            solu_species = list(
+                {
+                    k: inp["solute"][k] for k in inp["solute"].keys() - {"nsu", "nspu"}
+                }.items()
+            )
+
         self.name = os.path.basename(self.fname).split(sep=".")[0]
         if "solvent" not in inp:
             raise ("No solvent data found!")
@@ -143,7 +189,7 @@ class RismController:
                 inp["system"]["radius"],
                 inp["system"]["lam"],
             )
-            solv_species = list(inp["solvent"].items())[2:self.vv.nsp1 + 2]
+            solv_species = list(inp["solvent"].items())[2 : self.vv.nsp1 + 2]
             for i in solv_species:
                 self.add_species(i, self.vv)
 
@@ -165,12 +211,17 @@ class RismController:
             solu_species = list(inp["solute"].items())[2 : self.uv.nsp1 + 2]
             for i in solu_species:
                 self.add_species(i, self.uv)
-                
+
         self.pot = Potentials.Potential(inp["params"]["potential"])
-       
+
         self.closure = Closures.Closure(inp["params"]["closure"])
 
-        self.config = RISMConfig(inp["params"]["IE"], inp["params"]["potential"], inp["params"]["closure"], inp["params"]["solver"])
+        self.config = RISMConfig(
+            inp["params"]["IE"],
+            inp["params"]["potential"],
+            inp["params"]["closure"],
+            inp["params"]["solver"],
+        )
 
         if inp["params"]["IE"] == "DRISM":
             IE = IntegralEquations.IntegralEquation(inp["params"]["IE"]).get_IE()
@@ -184,7 +235,9 @@ class RismController:
                 else:
                     print("No dipole moment, skipping alignment step...")
             if self.uv_check:
-                self.IE = IE(self.vv, inp["params"]["diel"], inp["params"]["adbcor"], self.uv)
+                self.IE = IE(
+                    self.vv, inp["params"]["diel"], inp["params"]["adbcor"], self.uv
+                )
             else:
                 self.IE = IE(self.vv, inp["params"]["diel"], inp["params"]["adbcor"])
         elif inp["params"]["IE"] == "XRISM-DB":
@@ -193,7 +246,7 @@ class RismController:
                 self.IE = IE(inp["params"]["B"], self.vv, self.uv)
             else:
                 self.IE = IE(inp["params"]["B"], self.vv)
-            self.closure = Closures.Closure('r' + inp["params"]["closure"])
+            self.closure = Closures.Closure("r" + inp["params"]["closure"])
         else:
             IE = IntegralEquations.IntegralEquation(inp["params"]["IE"]).get_IE()
             if self.uv_check:
@@ -204,28 +257,105 @@ class RismController:
         slv = Solvers.Solver(inp["params"]["solver"]).get_solver()
         slv = Solvers.Solver(inp["params"]["solver"]).get_solver()
         if inp["params"]["solver"] == "MDIIS":
-            if 'mdiis_damping' in inp['params']:
-                self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], m=inp["params"]["depth"], mdiis_damping=inp['params']['mdiis_damping'])
+            if "mdiis_damping" in inp["params"]:
+                self.solver = slv(
+                    self.vv,
+                    inp["params"]["tol"],
+                    inp["params"]["itermax"],
+                    inp["params"]["picard_damping"],
+                    m=inp["params"]["depth"],
+                    mdiis_damping=inp["params"]["mdiis_damping"],
+                )
                 if self.uv_check:
                     slv_uv = Solvers.Solver(inp["params"]["solver"]).get_solver()
-                    self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv, m=inp["params"]["depth"], mdiis_damping=inp['params']['mdiis_damping'])
+                    self.solver_UV = slv_uv(
+                        self.vv,
+                        inp["params"]["tol"],
+                        inp["params"]["itermax"],
+                        inp["params"]["picard_damping"],
+                        data_uv=self.uv,
+                        m=inp["params"]["depth"],
+                        mdiis_damping=inp["params"]["mdiis_damping"],
+                    )
 
             else:
-                self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], m=inp["params"]["depth"], mdiis_damping=inp['params']['picard_damping'])
+                self.solver = slv(
+                    self.vv,
+                    inp["params"]["tol"],
+                    inp["params"]["itermax"],
+                    inp["params"]["picard_damping"],
+                    m=inp["params"]["depth"],
+                    mdiis_damping=inp["params"]["picard_damping"],
+                )
                 if self.uv_check:
                     slv_uv = Solvers.Solver(inp["params"]["solver"]).get_solver()
-                    self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv, m=inp["params"]["depth"])
+                    self.solver_UV = slv_uv(
+                        self.vv,
+                        inp["params"]["tol"],
+                        inp["params"]["itermax"],
+                        inp["params"]["picard_damping"],
+                        data_uv=self.uv,
+                        m=inp["params"]["depth"],
+                    )
         elif inp["params"]["solver"] == "Gillan":
-            self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], nbasis=inp["params"]["nbasis"])
+            self.solver = slv(
+                self.vv,
+                inp["params"]["tol"],
+                inp["params"]["itermax"],
+                inp["params"]["picard_damping"],
+                nbasis=inp["params"]["nbasis"],
+            )
             if self.uv_check:
                 slv_uv = Solvers.Solver(inp["params"]["solver"]).get_solver()
-                self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv, nbasis=inp["params"]["nbasis"])
+                self.solver_UV = slv_uv(
+                    self.vv,
+                    inp["params"]["tol"],
+                    inp["params"]["itermax"],
+                    inp["params"]["picard_damping"],
+                    data_uv=self.uv,
+                    nbasis=inp["params"]["nbasis"],
+                )
         else:
-            self.solver = slv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"])
+            self.solver = slv(
+                self.vv,
+                inp["params"]["tol"],
+                inp["params"]["itermax"],
+                inp["params"]["picard_damping"],
+            )
             if self.uv_check:
                 slv_uv = Solvers.Solver(inp["params"]["solver"]).get_solver()
-                self.solver_UV = slv_uv(self.vv, inp["params"]["tol"], inp["params"]["itermax"], inp["params"]["picard_damping"], data_uv=self.uv)
-        
+                self.solver_UV = slv_uv(
+                    self.vv,
+                    inp["params"]["tol"],
+                    inp["params"]["itermax"],
+                    inp["params"]["picard_damping"],
+                    data_uv=self.uv,
+                )
+
+    def add_species_to_list(self, spec_dat):
+        """Parses interaction sites and assigns them to relevant species
+
+        Parameters
+        ----------
+        spec_dat: List
+            Contains information on the current species pulled from the .toml file
+        data_object: Core.RISM_Obj
+            The dataclass to which species are being assigned
+        """
+        new_spec = Core.Species(spec_dat[0])
+        spdict = spec_dat[1]
+        new_spec.set_density(spdict["dens"])
+        new_spec.set_numsites(spdict["ns"])
+        site_info = list(spdict.items())[2 : new_spec.ns + 2]
+        atom_list = []
+        species_list = []
+        for i in site_info:
+            atom = Core.Site(i[0], i[1][0], np.asarray(i[1][1]))
+            new_spec.add_site(atom)
+            atom_list.append(atom)
+        species_list.append(new_spec)
+
+        return (atom_list, species_list)
 
     def add_species(self, spec_dat, data_object):
         """Parses interaction sites and assigns them to relevant species
@@ -304,7 +434,6 @@ class RismController:
                     dat.grid.ki * dist_mat[i, j]
                 )
 
-
     def build_Ur(self, dat1, dat2, lam=1):
         """Tabulates full short-range and Coulombic potential
 
@@ -322,7 +451,6 @@ class RismController:
         For solvent-solvent problem `dat1` and `dat2` are the same,
         for the solute-solvent problem they both refer to the solvent
         and solute dataclasses respectively."""
-
 
         sr_pot, mix = self.pot.get_potential()
         cou, _ = Potentials.Potential("cou").get_potential()
@@ -343,12 +471,14 @@ class RismController:
                 qi = iat.params[-1]
                 qj = jat.params[-1]
                 if iat is jat:
-                    dat1.u[:, i, j] = sr_pot(dat2.grid.ri, i_sr_params, lam) \
-                        + cou(dat2.grid.ri, qi, qj, lam, dat2.amph)
+                    dat1.u[:, i, j] = sr_pot(dat2.grid.ri, i_sr_params, lam) + cou(
+                        dat2.grid.ri, qi, qj, lam, dat2.amph
+                    )
                 else:
                     mixed = mix(i_sr_params, j_sr_params)
-                    dat1.u[:, i, j] = sr_pot(dat2.grid.ri, mixed, lam) \
-                        + cou(dat2.grid.ri, qi, qj, lam, dat2.amph)
+                    dat1.u[:, i, j] = sr_pot(dat2.grid.ri, mixed, lam) + cou(
+                        dat2.grid.ri, qi, qj, lam, dat2.amph
+                    )
 
     def build_renorm(self, dat1, dat2, damping=1.0, lam=1):
         """Tabulates full short-range and Coulombic potential
@@ -375,8 +505,12 @@ class RismController:
             for j, jat in enumerate(dat2.atoms):
                 qi = iat.params[-1]
                 qj = jat.params[-1]
-                dat1.ur_lr[:, i, j] = erfr(dat2.grid.ri, qi, qj, damping, 1.0, lam, dat2.amph)
-                dat1.uk_lr[:, i, j] = erfk(dat2.grid.ki, qi, qj, damping, lam, dat2.amph)
+                dat1.ur_lr[:, i, j] = erfr(
+                    dat2.grid.ri, qi, qj, damping, 1.0, lam, dat2.amph
+                )
+                dat1.uk_lr[:, i, j] = erfk(
+                    dat2.grid.ki, qi, qj, damping, lam, dat2.amph
+                )
 
     def build_rho(self, dat):
         """Builds diagonal matrix of species densities
@@ -407,12 +541,23 @@ class RismController:
             Number density
         T: float
             Temperature"""
-        with open(fname+ext, 'w') as ofile:
+        with open(fname + ext, "w") as ofile:
             if SFE is not None:
-                ofile.write("# density: {p}, temp: {T}, HNC: {HNC}, GF: {GF}, KH: {KH}, PW: {PW}, HNCB: {RBC}, PC+: {PC_PLUS}\n".format(p=p[0][0], T=T, HNC=SFE['HNC'], GF=SFE['GF'], KH=SFE['KH'], PW=SFE['PW'], RBC=SFE['RBC'], PC_PLUS=SFE['PC+']))
+                ofile.write(
+                    "# density: {p}, temp: {T}, HNC: {HNC}, GF: {GF}, KH: {KH}, PW: {PW}, HNCB: {RBC}, PC+: {PC_PLUS}\n".format(
+                        p=p[0][0],
+                        T=T,
+                        HNC=SFE["HNC"],
+                        GF=SFE["GF"],
+                        KH=SFE["KH"],
+                        PW=SFE["PW"],
+                        RBC=SFE["RBC"],
+                        PC_PLUS=SFE["PC+"],
+                    )
+                )
             else:
                 ofile.write("# density: {p}, temp: {T}\n".format(p=p[0][0], T=T))
-            df.to_csv(ofile, index=False, header=True, mode='a')
+            df.to_csv(ofile, index=False, header=True, mode="a")
 
     def write_vv(self, dat):
         """Write solvent-solvent data to .csv file
@@ -432,9 +577,9 @@ class RismController:
         for i, j in np.ndindex(dat.ns1, dat.ns2):
             lbl1 = all_sites[i].atom_type
             lbl2 = all_sites[j].atom_type
-            gr[lbl1+"-"+lbl2] = dat.g[:, i, j]
-            cr[lbl1+"-"+lbl2] = dat.c[:, i, j]
-            tr[lbl1+"-"+lbl2] = dat.t[:, i, j]
+            gr[lbl1 + "-" + lbl2] = dat.g[:, i, j]
+            cr[lbl1 + "-" + lbl2] = dat.c[:, i, j]
+            tr[lbl1 + "-" + lbl2] = dat.t[:, i, j]
         self.write_csv(gr, self.name, ".gvv", dat.p, dat.T)
         self.write_csv(cr, self.name, ".cvv", dat.p, dat.T)
         self.write_csv(tr, self.name, ".tvv", dat.p, dat.T)
@@ -456,13 +601,13 @@ class RismController:
             for j, jat in enumerate(vv.atoms):
                 lbl1 = iat.atom_type
                 lbl2 = jat.atom_type
-                gr[lbl1+"-"+lbl2] = uv.g[:, i, j]
-                cr[lbl1+"-"+lbl2] = uv.c[:, i, j]
-                tr[lbl1+"-"+lbl2] = uv.t[:, i, j]
+                gr[lbl1 + "-" + lbl2] = uv.g[:, i, j]
+                cr[lbl1 + "-" + lbl2] = uv.c[:, i, j]
+                tr[lbl1 + "-" + lbl2] = uv.t[:, i, j]
         self.write_csv(gr, self.name, ".guv", uv.p, uv.T)
         self.write_csv(cr, self.name, ".cuv", uv.p, uv.T)
         self.write_csv(tr, self.name, ".tuv", uv.p, uv.T)
-    
+
     def write_output(self, duv_only=False):
         if duv_only and self.uv_check:
             self.SFED_write(self.uv.grid.ri, self.SFED, self.SFE, self.uv.p, self.uv.T)
@@ -490,17 +635,19 @@ class RismController:
         """
         fvv = np.exp(-dat1.B * dat1.u_sr) - 1.0
         if verbose == True:
-            output_str="""\n-- pyRISM --\nRunning: {name},\nTemperature: {T},\nSolvent Density: {p}\nMethod: {IE}\nClosure: {clos}\nPotential: {pot},
-            """.format(name=self.name,
-                    T=str(dat1.T),
-                    p=str(dat1.p[0][0]),
-                    IE=self.IE.__class__.__name__,
-                    clos=self.closure.get_closure().__name__,
-                    pot=self.pot.get_potential()[0].__name__)
+            output_str = """\n-- pyRISM --\nRunning: {name},\nTemperature: {T},\nSolvent Density: {p}\nMethod: {IE}\nClosure: {clos}\nPotential: {pot},
+            """.format(
+                name=self.name,
+                T=str(dat1.T),
+                p=str(dat1.p[0][0]),
+                IE=self.IE.__class__.__name__,
+                clos=self.closure.get_closure().__name__,
+                pot=self.pot.get_potential()[0].__name__,
+            )
             print(output_str)
         if self.uv_check:
             fuv = np.exp(-dat2.B * dat2.u_sr) - 1.0
-        for j in range(1, dat1.nlam+1):
+        for j in range(1, dat1.nlam + 1):
             lam = 1.0 * j / dat1.nlam
             if j == 1:
                 dat1.c = -dat1.B * dat1.ur_lr
@@ -512,9 +659,29 @@ class RismController:
             self.build_Ur(dat1, dat1, lam)
             self.build_renorm(dat1, dat1, 1.0, lam)
             dat1.u_sr = dat1.u - dat1.ur_lr
-            rustrism = RISMController(dat1.T, dat1.kT, dat1.amph, dat1.ns1, dat1.ns2, dat1.npts, dat1.radius, dat1.nlam, dat1.u, dat1.u_sr, dat1.ur_lr, dat1.uk_lr, dat1.w, dat1.p, self.solver.m, self.solver.mdiis_damping, self.solver.damp_picard, self.solver.max_iter, self.solver.tol)
+            rustrism = RISMController(
+                dat1.T,
+                dat1.kT,
+                dat1.amph,
+                dat1.ns1,
+                dat1.ns2,
+                dat1.npts,
+                dat1.radius,
+                dat1.nlam,
+                dat1.u,
+                dat1.u_sr,
+                dat1.ur_lr,
+                dat1.uk_lr,
+                dat1.w,
+                dat1.p,
+                self.solver.m,
+                self.solver.mdiis_damping,
+                self.solver.damp_picard,
+                self.solver.max_iter,
+                self.solver.tol,
+            )
             rustrism.do_rism()
-            #self.solve_vv(lam, verbose)
+            # self.solve_vv(lam, verbose)
             dat1.c, dat1.t, dat1.h, dat1.h_k = rustrism.extract()
             if self.uv_check:
                 self.build_Ur(dat2, dat1, lam)
@@ -557,43 +724,44 @@ class RismController:
             dr[SFED_key] = SFEDs[SFED_key]
         self.write_csv(dr, self.name + "_SFED", ".duv", p, T, SFE=SFEs)
 
-
     def SFED_calc(self, dat2, vv=None):
         SFED_HNC = Functionals.Functional("HNC").get_functional()(dat2, vv)
         SFED_KH = Functionals.Functional("KH").get_functional()(dat2, vv)
         SFED_GF = Functionals.Functional("GF").get_functional()(dat2, vv)
         SFED_SC = Functionals.Functional("SC").get_functional()(dat2, vv)
         SFED_PW = Functionals.Functional("PW").get_functional()(dat2, vv)
-        #SFED_RBC = Functionals.Functional("RBC").get_functional()(dat2, vv)
+        # SFED_RBC = Functionals.Functional("RBC").get_functional()(dat2, vv)
 
         SFE_HNC = self.integrate(SFED_HNC, dat2.grid.d_r)
         SFE_KH = self.integrate(SFED_KH, dat2.grid.d_r)
         SFE_GF = self.integrate(SFED_GF, dat2.grid.d_r)
         SFE_SC = self.integrate(SFED_SC, dat2.grid.d_r)
         SFE_PW = self.integrate(SFED_PW, dat2.grid.d_r)
-        #SFE_RBC = self.integrate(SFED_RBC, dat2.grid.d_r)
-        
+        # SFE_RBC = self.integrate(SFED_RBC, dat2.grid.d_r)
+
         # SFE_text = "\n{clos_name}: {SFE_val} kcal/mol"
 
         # print(SFE_text.format(clos_name="KH", SFE_val=SFE_KH))
         # print(SFE_text.format(clos_name="HNC", SFE_val=SFE_HNC))
         # print(SFE_text.format(clos_name="GF", SFE_val=SFE_GF))
 
-        self.SFED = {"HNC": SFED_HNC,
-                     "KH": SFED_KH,
-                     "GF": SFED_GF,
-                     "SC": SFED_SC,
-                     "PW": SFED_PW
-                     }
-        self.SFE = {"HNC": SFE_HNC,
-                    "KH": SFE_KH,
-                    "GF": SFE_GF,
-                    "SC": SFE_SC,
-                    "PW": SFE_PW
-                    }
+        self.SFED = {
+            "HNC": SFED_HNC,
+            "KH": SFED_KH,
+            "GF": SFED_GF,
+            "SC": SFED_SC,
+            "PW": SFED_PW,
+        }
+        self.SFE = {
+            "HNC": SFE_HNC,
+            "KH": SFE_KH,
+            "GF": SFE_GF,
+            "SC": SFE_SC,
+            "PW": SFE_PW,
+        }
 
         SFE_PC_PLUS = self.pc_plus()
-        self.SFE['PC+'] = SFE_PC_PLUS
+        self.SFE["PC+"] = SFE_PC_PLUS
 
     def epilogue(self, dat1, dat2=None):
         """Computes final total, direct and pair correlation functions
@@ -624,7 +792,6 @@ class RismController:
 
         ck = dat.grid.dht(dat.c)
 
-
         # Amber route to isothermal compressibility
         ck0 = 0.0
         for i in range(dat.grid.npts):
@@ -635,7 +802,9 @@ class RismController:
                         msym = 1.0
                     else:
                         msym = 2.0
-                    ck0r += msym*np.diag(dat.p)[j]*np.diag(dat.p)[k]*dat.c[i, j, k]
+                    ck0r += (
+                        msym * np.diag(dat.p)[j] * np.diag(dat.p)[k] * dat.c[i, j, k]
+                    )
             ck0 += ck0r * dat.grid.ri[i] ** 2.0
         ck0 *= 4.0 * np.pi * dat.grid.d_r
 
@@ -646,15 +815,13 @@ class RismController:
         pck = np.sum(ck[0, ...]) * dat.p[0][0]
         p = dat.p[0][0]
 
-        B = 1.0 / dat.T / 1.380658E-23
-
+        B = 1.0 / dat.T / 1.380658e-23
 
         # return ( 1.0 / ((dat.p[0][0] - ck0)) , 1.0 / (p * (1.0 - pck)))
         return 1.0 / (p * (1.0 - pck))
         # return 1.0 / ((dat.p[0][0] - ck0))
 
     def kb_partial_molar_volume(self):
-
         uv = self.uv
         vv = self.vv
 
@@ -664,10 +831,10 @@ class RismController:
 
         hk_vv = vv.grid.dht((vv.t + vv.c))
 
-        ck = uv.grid.dht(uv.c)   
+        ck = uv.grid.dht(uv.c)
         hk_uv = uv.grid.dht((uv.t + uv.c))
-        #hk_vv = self.vv.h_k
-        #hk_uv = self.uv.h_k
+        # hk_vv = self.vv.h_k
+        # hk_uv = self.uv.h_k
 
         compres = self.isothermal_compressibility(self.vv)
 
@@ -686,7 +853,6 @@ class RismController:
         return (1.0 / pv) + (khvv - khuv) / self.uv.ns1
 
     def rism_kb_partial_molar_volume(self):
-
         uv = self.uv
 
         ck = np.zeros((uv.npts, uv.ns1, uv.ns2), dtype=np.float64)
@@ -701,8 +867,8 @@ class RismController:
         ck0 = self.integrate(self.uv.c * r * r, 4.0 * np.pi * self.uv.grid.d_r)
         rhvv = self.integrate(self.vv.h * r * r, 4.0 * np.pi * self.uv.grid.d_r)
         rhuv = self.integrate(self.uv.h * r * r, 4.0 * np.pi * self.uv.grid.d_r)
-        khvv = np.sum(hk[0,0,0])
-        khuv = np.sum(hk[0,:,0])
+        khvv = np.sum(hk[0, 0, 0])
+        khuv = np.sum(hk[0, :, 0])
         pv = self.vv.p[0][0]
         pvec = np.diag(self.vv.p)
 
@@ -710,11 +876,9 @@ class RismController:
         ck0_direct = np.sum(ck[0, ...])
 
         return inv_B * compres * (1.0 - pv * ck0_direct)
-        
-        #return (1.0 / pv) + khvv - khuv / self.uv.ns1
 
-        
-    
+        # return (1.0 / pv) + khvv - khuv / self.uv.ns1
+
     def dimensionless_pmv(self):
         pmv = self.kb_partial_molar_volume()
 
@@ -725,14 +889,13 @@ class RismController:
         pmv = self.kb_partial_molar_volume()
 
         if self.closure.get_closure().__name__ == "HyperNetted_Chain":
-            keystr = 'HNC'
+            keystr = "HNC"
         elif self.closure.get_closure().__name__ == "KovalenkoHirata":
-            keystr = 'KH'
+            keystr = "KH"
         else:
-            keystr = 'GF'
+            keystr = "GF"
 
         return self.SFE[keystr] - (pcplus * pmv)
-        
 
     def __virial_pressure(self):
         # WIP
@@ -742,10 +905,17 @@ class RismController:
             grad = np.gradient(self.vv.u[:, i, j], self.vv.grid.d_r)
             duvv[:, i, j] = grad
 
-        pressure = (self.vv.g @ duvv) * np.power(self.uv.grid.ri, 3)[:, np.newaxis, np.newaxis]
+        pressure = (self.vv.g @ duvv) * np.power(self.uv.grid.ri, 3)[
+            :, np.newaxis, np.newaxis
+        ]
 
-        return (self.vv.kT * self.vv.T * np.sum(self.vv.p)) - self.vv.grid.d_r * 2.0 / 3.0 * np.pi * np.power(np.sum(self.vv.p), 2) * np.sum(pressure)
-
+        return (
+            self.vv.kT * self.vv.T * np.sum(self.vv.p)
+        ) - self.vv.grid.d_r * 2.0 / 3.0 * np.pi * np.power(
+            np.sum(self.vv.p), 2
+        ) * np.sum(
+            pressure
+        )
 
     def pressure(self):
         uv = self.vv
@@ -754,9 +924,9 @@ class RismController:
 
         p0 = uv.p[0][0]
 
-        B = 1.0 / uv.T / 1.380658E-23
+        B = 1.0 / uv.T / 1.380658e-23
 
-        inv_B = uv.T * 1.380658E-23
+        inv_B = uv.T * 1.380658e-23
 
         inv_py_B = 1.0 / uv.B
 
@@ -772,29 +942,33 @@ class RismController:
 
         ck_compres = np.power(p0, 2) * (1.0 - (uv.B / compres))
 
-        pressure = np.sum(initial_term) - ( (uv.kU * uv.T) / 2.0 ) * ck_direct
+        pressure = np.sum(initial_term) - ((uv.kU * uv.T) / 2.0) * ck_direct
 
         ideal_pressure = p0 * uv.kU * uv.T
 
         return pressure, pressure - ideal_pressure
+
+
 @jit
-def build_Ur_impl(npts, ns1, ns2, sr_pot, mix, cou, atoms1, atoms2, r, charge_coeff, lam=1):
+def build_Ur_impl(
+    npts, ns1, ns2, sr_pot, mix, cou, atoms1, atoms2, r, charge_coeff, lam=1
+):
     """Tabulates full short-range and Coulombic potential
 
-        Parameters
-        ----------
-        dat1: Core.RISM_Obj
-            Dataclass containing information required for potential
-        dat2: Core.RISM_Obj
-            Dataclass containing information required for potential
-        lam: float
-            :math: `\lambda` parameter for current charging cycle
+    Parameters
+    ----------
+    dat1: Core.RISM_Obj
+        Dataclass containing information required for potential
+    dat2: Core.RISM_Obj
+        Dataclass containing information required for potential
+    lam: float
+        :math: `\lambda` parameter for current charging cycle
 
-        Notes
-        -----
-        For solvent-solvent problem `dat1` and `dat2` are the same,
-        for the solute-solvent problem they both refer to the solvent
-        and solute dataclasses respectively."""
+    Notes
+    -----
+    For solvent-solvent problem `dat1` and `dat2` are the same,
+    for the solute-solvent problem they both refer to the solvent
+    and solute dataclasses respectively."""
     u = np.zeros((npts, ns1, ns2), dtype=np.float64)
     for i, iat in enumerate(atoms1):
         for j, jat in enumerate(atoms2):
@@ -803,13 +977,14 @@ def build_Ur_impl(npts, ns1, ns2, sr_pot, mix, cou, atoms1, atoms2, r, charge_co
             qi = iat.params[-1]
             qj = jat.params[-1]
             if iat == jat:
-                u[:, i, j] = sr_pot(r, i_sr_params, lam) \
-                    + cou(r, qi, qj, lam, charge_coeff)
+                u[:, i, j] = sr_pot(r, i_sr_params, lam) + cou(
+                    r, qi, qj, lam, charge_coeff
+                )
             else:
                 mixed = mix(i_sr_params, j_sr_params)
-                u[:, i, j] = sr_pot(r, mixed, lam) \
-                    + cou(r, qi, qj, lam, charge_coeff)
+                u[:, i, j] = sr_pot(r, mixed, lam) + cou(r, qi, qj, lam, charge_coeff)
         return u
+
 
 if __name__ == "__main__":
     mol = RismController(sys.argv[1])

@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 
 @dataclass
 class Species(object):
-
     species_name: str
     dens: float = field(init=False)
     ns: int = field(init=False)

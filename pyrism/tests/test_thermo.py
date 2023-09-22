@@ -23,16 +23,16 @@ RISM_KB_PMV = mol.rism_kb_partial_molar_volume()
 
 print("KB PMV (A^3):", KB_PMV)
 
-print("KB PMV (cm^3 / mol):", KB_PMV / 1e24 * 6.022E23)
+print("KB PMV (cm^3 / mol):", KB_PMV / 1e24 * 6.022e23)
 
 print("RISM-KB PMV (A^3):", RISM_KB_PMV)
 
-print("RISM-KB PMV (cm^3 / mol):", RISM_KB_PMV / 1e24 * 6.022E23)
+print("RISM-KB PMV (cm^3 / mol):", RISM_KB_PMV / 1e24 * 6.022e23)
 
 print("Dimensionless PMV:", mol.dimensionless_pmv())
 
-print("HNC (kcal/mol):", mol.SFE['HNC'])
+print("HNC (kcal/mol):", mol.SFE["HNC"])
 
-print("PW (kcal/mol):", mol.SFE['PW'])
+print("PW (kcal/mol):", mol.SFE["PW"])
 
 print("PC+ (kcal/mol):", mol.pc_plus())

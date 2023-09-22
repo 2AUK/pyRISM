@@ -8,6 +8,7 @@ from .Solver_object import *
 import matplotlib.pyplot as plt
 from numba import njit, prange
 
+
 @dataclass
 class Gillan(SolverObject):
     nbasis: int = field(default=4)
@@ -56,11 +57,10 @@ class Gillan(SolverObject):
         r = self.data_vv.grid.ri
         t = self.data_vv.t
         node = int(npts / self.nbasis / 2)
-        node_index = np.arange(0, self.nbasis+1) * node
+        node_index = np.arange(0, self.nbasis + 1) * node
         nodes = r[node_index]
 
-
-        P = np.zeros((npts, self.nbasis+1), dtype=np.float64)
+        P = np.zeros((npts, self.nbasis + 1), dtype=np.float64)
         Q = np.zeros_like(P)
         R = np.zeros((self.nbasis, self.nbasis), dtype=np.float64)
         B = np.zeros_like(R)
@@ -73,12 +73,12 @@ class Gillan(SolverObject):
             if nodes[0] <= r[idx] <= nodes[1]:
                 P[idx, 1] = (nodes[1] - r[idx]) / nodes[1]
 
-        for a in range(2, self.nbasis+1):
+        for a in range(2, self.nbasis + 1):
             for idx in range(0, npts):
-                if nodes[a-2] <= r[idx] <= nodes[a-1]:
-                    P[idx, a] = (r[idx] - nodes[a-2]) / (nodes[a-1] - nodes[a-2])
-                elif nodes[a-1] <= r[idx] <= nodes[a]:
-                    P[idx, a] = (nodes[a] - r[idx]) / (nodes[a] - nodes[a-1])
+                if nodes[a - 2] <= r[idx] <= nodes[a - 1]:
+                    P[idx, a] = (r[idx] - nodes[a - 2]) / (nodes[a - 1] - nodes[a - 2])
+                elif nodes[a - 1] <= r[idx] <= nodes[a]:
+                    P[idx, a] = (nodes[a] - r[idx]) / (nodes[a] - nodes[a - 1])
 
         # for a in range(1, self.nbasis+1):
         #       plt.plot(r, P[..., a])
@@ -91,23 +91,23 @@ class Gillan(SolverObject):
 
         for a in range(self.nbasis):
             for b in range(self.nbasis):
-                R[a,b] = (Pa[..., a] * Pb[..., b]).sum()
+                R[a, b] = (Pa[..., a] * Pb[..., b]).sum()
 
         # Checking for positive-definiteness
-        #print(self.check_symmetric(R))
-        #print(np.linalg.eigvalsh(R))
+        # print(self.check_symmetric(R))
+        # print(np.linalg.eigvalsh(R))
 
         B = np.linalg.inv(R)
 
         for i in range(npts):
             for a in range(self.nbasis):
-                Q[i,a] = (B[a,:] * P_skip_zero[i,:]).sum()
+                Q[i, a] = (B[a, :] * P_skip_zero[i, :]).sum()
 
         kron = np.zeros_like(R)
 
         for a in range(self.nbasis):
             for b in range(self.nbasis):
-                kron[a,b] = (Q[...,a] * P_skip_zero[...,b]).sum()
+                kron[a, b] = (Q[..., a] * P_skip_zero[..., b]).sum()
 
         identity = np.identity(self.nbasis, dtype=np.float64)
         assert_allclose(kron, identity, atol=1e-4, rtol=1e-4)
@@ -116,24 +116,17 @@ class Gillan(SolverObject):
             for m, n in np.ndindex(ns1, ns2):
                 A[m, n, a] = (Q[..., a] * t[:, m, n]).sum()
 
-        
-
         while i < self.max_iter:
-
             # N-R loop
             while True:
-
                 break
-
-
-
 
     def solve_uv(self, RISM, Closure, lam):
         pass
 
+
 @njit
 def D_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, i):
-
     D = np.zeros((npts, ns1, ns2, ns1, ns2), dtype=np.float64)
     coskr = np.zeros((npts), dtype=np.float64)
     M1 = np.zeros_like(w)
@@ -158,8 +151,9 @@ def D_calc(ns1, ns2, npts, w, ck, p, k_grid, r_grid, dk, i):
                         kron2 = 1.0
                     else:
                         kron2 = 0.0
-                    #print(i, j, k, l)
-                    D[:, i, j, k, l] = coskr[:] * (M1[:, i, j] * M2[:, k, l] - kron1 * kron2)
+                    # print(i, j, k, l)
+                    D[:, i, j, k, l] = coskr[:] * (
+                        M1[:, i, j] * M2[:, k, l] - kron1 * kron2
+                    )
 
     return D.sum(axis=0) * dk
-

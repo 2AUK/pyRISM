@@ -11,7 +11,7 @@ class Solver(object):
         "Ng": NgSolver,
         "MDIIS": MDIIS,
         "Gillan": Gillan,
-                         }
+    }
 
     def __init__(self, solv):
         self.solver = solv
