@@ -10,15 +10,17 @@ import warnings
 import sys
 import matplotlib.pyplot as plt
 
-warnings.simplefilter('ignore', category=NumbaDeprecationWarning)
-warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)
+warnings.simplefilter("ignore", category=NumbaDeprecationWarning)
+warnings.simplefilter("ignore", category=NumbaPendingDeprecationWarning)
 
-np.set_printoptions(edgeitems=30, linewidth=180,
-    formatter=dict(float=lambda x: "%.5g" % x))
+np.set_printoptions(
+    edgeitems=30, linewidth=180, formatter=dict(float=lambda x: "%.5g" % x)
+)
+
 
 @dataclass
 class MDIIS(SolverObject):
-    m: int = field(default=1) # depth
+    m: int = field(default=1)  # depth
     mdiis_damping: float = field(default=0.5)
     fr: list = field(init=False, default_factory=list)
     res: list = field(init=False, default_factory=list)
@@ -30,14 +32,16 @@ class MDIIS(SolverObject):
         return prev + self.damp_picard * (curr - prev)
 
     def step_MDIIS(self, curr, prev, gr):
-        return step_MDIIS_impl(curr,
-                               prev,
-                               self.m,
-                               self.res,
-                               self.fr,
-                               self.damp_picard,
-                               self.mdiis_damping,
-                               gr)
+        return step_MDIIS_impl(
+            curr,
+            prev,
+            self.m,
+            self.res,
+            self.fr,
+            self.damp_picard,
+            self.mdiis_damping,
+            gr,
+        )
 
     def solve(self, RISM, Closure, lam, verbose=False):
         i: int = 0
@@ -57,24 +61,38 @@ class MDIIS(SolverObject):
             except FloatingPointError as e:
                 print("Possible divergence")
                 print("iteration: {i}".format(i=i))
-                print("diff: {diff}".format(diff=(c_A-c_prev).min()))
+                print("diff: {diff}".format(diff=(c_A - c_prev).min()))
                 raise e
             if len(self.fr) < self.m:
                 print("Picard Step")
                 c_next = self.step_Picard(c_A, c_prev)
                 RMS = np.sqrt(
-                1 / self.data_vv.ns1 / self.data_vv.grid.npts * np.power((c_A-c_prev).sum(), 2)
+                    1
+                    / self.data_vv.ns1
+                    / self.data_vv.grid.npts
+                    * np.power((c_A - c_prev).sum(), 2)
                 )
-                print("Iteration: {i}\nRMS: {RMS}\nDiff: {diff}".format(i=i, RMS=RMS, diff=(c_A-c_prev).min()))
+                print(
+                    "Iteration: {i}\nRMS: {RMS}\nDiff: {diff}".format(
+                        i=i, RMS=RMS, diff=(c_A - c_prev).min()
+                    )
+                )
                 self.RMS_res.append(RMS)
             else:
                 print("MDIIS Step")
                 c_next = self.step_MDIIS(c_A, c_prev, self.data_vv.t + c_A)
                 c_next = np.reshape(c_next, c_prev.shape)
                 RMS = np.sqrt(
-                1 / self.data_vv.ns1 / self.data_vv.grid.npts * np.power((c_A-c_prev).sum(), 2)
+                    1
+                    / self.data_vv.ns1
+                    / self.data_vv.grid.npts
+                    * np.power((c_A - c_prev).sum(), 2)
                 )
-                print("Iteration: {i}\nRMS: {RMS}\nDiff: {diff}".format(i=i, RMS=RMS, diff=(c_A-c_prev).min()))
+                print(
+                    "Iteration: {i}\nRMS: {RMS}\nDiff: {diff}".format(
+                        i=i, RMS=RMS, diff=(c_A - c_prev).min()
+                    )
+                )
                 if RMS > 10 * min(self.RMS_res):
                     print("Restarting MDIIS")
                     min_index = self.RMS_res.index(min(self.RMS_res))
@@ -85,7 +103,7 @@ class MDIIS(SolverObject):
                 self.RMS_res.append(RMS)
                 self.RMS_res.pop(0)
 
-            #print(c_next)
+            # print(c_next)
             self.data_vv.c = c_next
             if self.converged(c_next, c_prev) and verbose == True:
                 self.epilogue(i, lam)
@@ -120,19 +138,25 @@ class MDIIS(SolverObject):
             except FloatingPointError as e:
                 print("Possible divergence")
                 print("iteration: {i}".format(i=i))
-                print("diff: {diff}".format(diff=(c_A-c_prev).sum()))
+                print("diff: {diff}".format(diff=(c_A - c_prev).sum()))
                 raise e
             if len(self.fr) < self.m:
                 c_next = self.step_Picard(c_A, c_prev)
                 RMS = np.sqrt(
-                1 / self.data_uv.ns1 / self.data_vv.grid.npts * np.power((c_A-c_prev).sum(), 2)
+                    1
+                    / self.data_uv.ns1
+                    / self.data_vv.grid.npts
+                    * np.power((c_A - c_prev).sum(), 2)
                 )
                 self.RMS_res.append(RMS)
             else:
                 c_next = self.step_MDIIS(c_A, c_prev, self.data_uv.t + c_A)
                 c_next = np.reshape(c_next, c_prev.shape)
                 RMS = np.sqrt(
-                1 / self.data_uv.ns1 / self.data_uv.grid.npts * np.power((c_A-c_prev).sum(), 2)
+                    1
+                    / self.data_uv.ns1
+                    / self.data_uv.grid.npts
+                    * np.power((c_A - c_prev).sum(), 2)
                 )
                 if RMS > 10 * min(self.RMS_res):
                     min_index = self.RMS_res.index(min(self.RMS_res))
@@ -142,7 +166,7 @@ class MDIIS(SolverObject):
                     self.RMS_res.clear()
                 self.RMS_res.append(RMS)
                 self.RMS_res.pop(0)
-            
+
             self.data_uv.c = c_next
 
             if self.converged(c_next, c_prev) and verbose == True:
@@ -159,21 +183,22 @@ class MDIIS(SolverObject):
             elif i == self.max_iter:
                 raise RuntimeError("max iteration reached")
 
+
 @njit
 def step_MDIIS_impl(curr, prev, m, res, fr, damp_picard, damp_mdiis, gr):
-    A = np.zeros((m+1, m+1), dtype=np.float64)
-    b = np.zeros(m+1, dtype=np.float64)
+    A = np.zeros((m + 1, m + 1), dtype=np.float64)
+    b = np.zeros(m + 1, dtype=np.float64)
 
     b[m] = -1
 
-    for i in prange(m+1):
+    for i in prange(m + 1):
         A[i, m] = -1
         A[m, i] = -1
 
     A[m, m] = 0
 
     for i, j in np.ndindex((m, m)):
-        A[i,j] = res[i] @ res[j]
+        A[i, j] = res[i] @ res[j]
 
     coef = np.linalg.solve(A, b)
 

@@ -2,6 +2,7 @@ import numpy as np
 from scipy.special import erf, erfc
 from numba import njit
 
+
 @njit
 def Lennard_Jones(r, params, lam):
     """
@@ -52,7 +53,7 @@ def Lennard_Jones_AB(r, C6, C12, lam):
         The result of the LJ computation
     """
 
-    return ((C12 / r ** 12) - (C6 / r ** 6)) * lam
+    return ((C12 / r**12) - (C6 / r**6)) * lam
 
 
 def hard_spheres(r, sigma, lam):
@@ -80,6 +81,7 @@ def hard_spheres(r, sigma, lam):
 
     return np.where((r >= sigma), 0, np.inf) * lam
 
+
 @njit
 def coulomb(r, q1, q2, lam, charge_coeff):
     """
@@ -104,6 +106,7 @@ def coulomb(r, q1, q2, lam, charge_coeff):
         The result of the LJ computation
     """
     return lam * charge_coeff * q1 * q2 / r
+
 
 def coulomb_lr_r(r, q1, q2, damping, rscreen, lam, charge_coeff):
     """
@@ -131,7 +134,8 @@ def coulomb_lr_r(r, q1, q2, damping, rscreen, lam, charge_coeff):
     """
     return lam * charge_coeff * q1 * q2 * erf(damping * r / rscreen) / r
 
-    #return lam * charge_coeff * q1 * q2 * (1.0 - erfc( r / rscreen))
+    # return lam * charge_coeff * q1 * q2 * (1.0 - erfc( r / rscreen))
+
 
 @njit
 def coulomb_lr_k(k, q1, q2, damping, lam, charge_coeff):
@@ -177,6 +181,6 @@ def coulomb_lr_k(k, q1, q2, damping, lam, charge_coeff):
         * q1
         * q2
         * charge_coeff
-        * np.exp(-1.0 * k ** 2.0 / (4.0 * damping ** 2.0))
-        / k ** 2.0
+        * np.exp(-1.0 * k**2.0 / (4.0 * damping**2.0))
+        / k**2.0
     )

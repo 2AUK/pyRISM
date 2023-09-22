@@ -4,7 +4,6 @@ from .mixing import *
 
 
 class Potential:
-
     potential_dispatcher = {
         "LJ": [Lennard_Jones, Lorentz_Berthelot],
         "LJ_AB": [Lennard_Jones_AB, AB_mixing],

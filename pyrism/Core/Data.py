@@ -7,7 +7,6 @@ from .Species import Species
 
 @dataclass
 class RISM_Obj(object):
-
     # Initial parameters required to instantiate the other attributes
     T: float
     kT: float
@@ -27,7 +26,7 @@ class RISM_Obj(object):
     t: np.ndarray = field(init=False)
     h: np.ndarray = field(init=False)
     g: np.ndarray = field(init=False)
-    h_k: np.ndarray=field(init=False)
+    h_k: np.ndarray = field(init=False)
 
     # Set of attributes that remain constant during the RISM calculation
     B: float = field(init=False)
@@ -40,15 +39,14 @@ class RISM_Obj(object):
     grid: Grid = field(init=False)
     species: list = field(init=False, default_factory=list)
     atoms: list = field(init=False, default_factory=list)
-    Q_r: np.ndarray = field(init=False) #XRISM-DB
-    Q_k: np.ndarray = field(init=False) #XRISM-DB
-    tau: np.ndarray = field(init=False) #XRISM-DB
+    Q_r: np.ndarray = field(init=False)  # XRISM-DB
+    Q_k: np.ndarray = field(init=False)  # XRISM-DB
+    tau: np.ndarray = field(init=False)  # XRISM-DB
 
     def calculate_beta(self):
         self.B = 1 / self.T / self.kT
 
     def __post_init__(self):
-
         self.calculate_beta()
         self.c_prev = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
         self.t = np.zeros((self.npts, self.ns1, self.ns2), dtype=np.float64)
@@ -68,30 +66,32 @@ class RISM_Obj(object):
         self.grid = Grid(self.npts, self.radius)
 
     def __iter__(self):
-        return iter((
-            self.T, 
-            self.kT,
-            self.kU,
-            self.amph,
-            self.ns1,
-            self.ns2,
-            self.nsp1,
-            self.nsp2,
-            self.npts,
-            self.radius,
-            self.nlam,
-            self.c,
-            self.t,
-            self.h,
-            self.h_k,
-            self.g,
-            self.B,
-            self.u,
-            self.u_sr,
-            self.ur_lr,
-            self.uk_lr,
-            self.w,
-            self.p,
-            self.grid.ri,
-            self.grid.ki,
-        ))
+        return iter(
+            (
+                self.T,
+                self.kT,
+                self.kU,
+                self.amph,
+                self.ns1,
+                self.ns2,
+                self.nsp1,
+                self.nsp2,
+                self.npts,
+                self.radius,
+                self.nlam,
+                self.c,
+                self.t,
+                self.h,
+                self.h_k,
+                self.g,
+                self.B,
+                self.u,
+                self.u_sr,
+                self.ur_lr,
+                self.uk_lr,
+                self.w,
+                self.p,
+                self.grid.ri,
+                self.grid.ki,
+            )
+        )

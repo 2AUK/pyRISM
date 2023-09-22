@@ -8,8 +8,8 @@ mol.initialise_controller()
 
 mol.do_rism(verbose=True)
 
-fft_sfed = rfft(mol.SFED['KH'])
-freqs = rfftfreq(mol.SFED['KH'].shape[0], mol.vv.grid.d_r)
+fft_sfed = rfft(mol.SFED["KH"])
+freqs = rfftfreq(mol.SFED["KH"].shape[0], mol.vv.grid.d_r)
 
 a = 0
 b = np.argmax(fft_sfed) + 50
@@ -21,6 +21,6 @@ plt.show()
 
 
 new_sfed = irfft(new_signal)
-plt.plot(mol.vv.grid.ri, mol.SFED['KH'])
+plt.plot(mol.vv.grid.ri, mol.SFED["KH"])
 plt.plot(mol.vv.grid.ri, new_sfed)
 plt.show()

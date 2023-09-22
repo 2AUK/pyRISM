@@ -8,9 +8,9 @@ from scipy.special import spherical_jn
 from numba import njit, prange
 import matplotlib.pyplot as plt
 
+
 @dataclass
 class DRISM(object):
-
     data_vv: RISM_Obj
     diel: float
     adbcor: float
@@ -22,48 +22,59 @@ class DRISM(object):
     kappa: float = field(init=False)
 
     def compute_vv(self):
-
-        ck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
+        ck = np.zeros(
+            (self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64
+        )
 
         r = self.data_vv.grid.ri
         k = self.data_vv.grid.ki
         ck = self.data_vv.grid.dht(self.data_vv.c)
 
-        self.data_vv.h = vv_impl(self.data_vv.ns1,
-                                 self.data_vv.ns2,
-                                 self.data_vv.npts,
-                                 ck,
-                                 self.data_vv.B,
-                                 self.data_vv.uk_lr,
-                                 self.data_vv.w,
-                                 self.data_vv.p,
-                                 self.chi)
-        self.data_vv.t = self.data_vv.grid.idht(self.data_vv.h - ck) \
-                - self.data_vv.B * self.data_vv.ur_lr
+        self.data_vv.h = vv_impl(
+            self.data_vv.ns1,
+            self.data_vv.ns2,
+            self.data_vv.npts,
+            ck,
+            self.data_vv.B,
+            self.data_vv.uk_lr,
+            self.data_vv.w,
+            self.data_vv.p,
+            self.chi,
+        )
+        self.data_vv.t = (
+            self.data_vv.grid.idht(self.data_vv.h - ck)
+            - self.data_vv.B * self.data_vv.ur_lr
+        )
 
         self.data_vv.h_k = self.data_vv.h
 
     def compute_uv(self):
         if self.data_uv is not None:
-
-            ck_uv = np.zeros((self.data_uv.npts, self.data_uv.ns1, self.data_uv.ns2), dtype=np.float64)
+            ck_uv = np.zeros(
+                (self.data_uv.npts, self.data_uv.ns1, self.data_uv.ns2),
+                dtype=np.float64,
+            )
 
             r = self.data_vv.grid.ri
             ck_uv = self.data_uv.grid.dht(self.data_uv.c)
 
-            self.data_uv.h = uv_impl(self.data_uv.ns1,
-                                     self.data_uv.ns2,
-                                     self.data_uv.npts,
-                                     ck_uv,
-                                     self.data_uv.B,
-                                     self.data_uv.uk_lr,
-                                     self.data_uv.w,
-                                     self.data_vv.w,
-                                     self.data_uv.p,
-                                     self.data_vv.h)
+            self.data_uv.h = uv_impl(
+                self.data_uv.ns1,
+                self.data_uv.ns2,
+                self.data_uv.npts,
+                ck_uv,
+                self.data_uv.B,
+                self.data_uv.uk_lr,
+                self.data_uv.w,
+                self.data_vv.w,
+                self.data_uv.p,
+                self.data_vv.h,
+            )
 
-            self.data_uv.t = self.data_uv.grid.idht(self.data_uv.h - ck_uv) \
-                    - self.data_uv.B * self.data_uv.ur_lr
+            self.data_uv.t = (
+                self.data_uv.grid.idht(self.data_uv.h - ck_uv)
+                - self.data_uv.B * self.data_uv.ur_lr
+            )
 
             self.data_uv.h_k = self.data_uv.h
 
@@ -105,7 +116,6 @@ class DRISM(object):
         self.h_c0 = (((self.diel - 1.0) / self.y) - 3.0) / (total_density * ptxv)
 
     def D_matrix(self):
-
         d0x = np.zeros((self.data_vv.ns1), dtype=np.float64)
         d0y = np.zeros((self.data_vv.ns1), dtype=np.float64)
         d1z = np.zeros((self.data_vv.ns1), dtype=np.float64)
@@ -115,7 +125,7 @@ class DRISM(object):
             for isp in self.data_vv.species:
                 for iat in isp.atom_sites:
                     i += 1
-                    k_coord = k*iat.coords
+                    k_coord = k * iat.coords
                     if k_coord[0] == 0.0:
                         d0x[i] = 1.0
                     else:
@@ -129,27 +139,33 @@ class DRISM(object):
                     else:
                         d1z[i] = Util.j1(k_coord[2])
             for i, j in np.ndindex((self.data_vv.ns1, self.data_vv.ns2)):
-                self.chi[ki, i, j] = d0x[i] * d0y[i] * d1z[i] * d0x[j] * d0y[j] * d1z[j] * hck
+                self.chi[ki, i, j] = (
+                    d0x[i] * d0y[i] * d1z[i] * d0x[j] * d0y[j] * d1z[j] * hck
+                )
 
     def __post_init__(self):
         self.calculate_DRISM_params()
-        self.chi = np.zeros((self.data_vv.grid.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
+        self.chi = np.zeros(
+            (self.data_vv.grid.npts, self.data_vv.ns1, self.data_vv.ns2),
+            dtype=np.float64,
+        )
         self.D_matrix()
+
 
 @njit(parallel=True)
 def vv_impl(ns1, ns2, npts, ck, B, uk_lr, w, p, chi):
-
     I = np.eye(ns1, M=ns2, dtype=np.float64)
     w_bar = np.zeros((npts, ns1, ns2), dtype=np.float64)
     h = np.zeros_like(w_bar)
     ck -= B * uk_lr
     for i in prange(npts):
-        w_bar[i] = (w[i] + p @ chi[i])
+        w_bar[i] = w[i] + p @ chi[i]
         iwcp = np.linalg.inv(I - w_bar[i] @ ck[i] @ p)
         wcw = w_bar[i] @ ck[i] @ w_bar[i]
         h[i] = (iwcp @ wcw) + chi[i]
 
     return h
+
 
 @njit(parallel=True)
 def uv_impl(ns1, ns2, npts, ck_uv, B, uk_lr, w_uv, w_vv, p, h_vv):

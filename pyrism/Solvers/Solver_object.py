@@ -3,9 +3,9 @@ import numpy as np
 from dataclasses import dataclass, field
 from numba import njit
 
+
 @dataclass
 class SolverObject:
-    
     data_vv: RISM_Obj
     tol: float
     max_iter: int
@@ -17,7 +17,9 @@ class SolverObject:
         return prev + self.damp_picard * (curr - prev)
 
     def converged(self, curr, prev):
-        self.rms = converged_impl(curr, prev, self.data_vv.grid.d_r, np.prod(curr.shape))
+        self.rms = converged_impl(
+            curr, prev, self.data_vv.grid.d_r, np.prod(curr.shape)
+        )
 
         if self.rms < self.tol:
             return True
@@ -31,8 +33,7 @@ class SolverObject:
             )
         )
 
+
 @njit
 def converged_impl(curr, prev, dr, denom):
-    return np.sqrt(
-        dr * np.power((curr - prev), 2).sum() / denom
-    )
+    return np.sqrt(dr * np.power((curr - prev), 2).sum() / denom)

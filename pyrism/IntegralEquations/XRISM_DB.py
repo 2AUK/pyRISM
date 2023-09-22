@@ -5,9 +5,9 @@ from pyrism.Core import RISM_Obj
 from dataclasses import dataclass, field
 from numba import jit, njit, prange
 
+
 @dataclass
 class XRISM_DB(object):
-
     eps: float = field(init=False)
     b_param: float
     data_vv: RISM_Obj
@@ -44,9 +44,7 @@ class XRISM_DB(object):
                 mu += isp.dens * iat.params[-1] * iat.params[-1]
         return 4.0 * np.pi * dat1.B * mu
 
-
     def compute_vv(self):
-
         ur_lr = -self.data_vv.B * self.data_vv.ur_lr
         uk_lr = -self.data_vv.B * self.data_vv.uk_lr
 
@@ -55,57 +53,77 @@ class XRISM_DB(object):
         self.construct_Q(self.data_vv)
         mu_sq = self.mu_sq(self.data_vv)
 
-        Q_lr_k = uk_lr / (1.0 + (mu_sq / np.power(self.data_vv.grid.ki[:, np.newaxis, np.newaxis], 2)))
+        Q_lr_k = uk_lr / (
+            1.0 + (mu_sq / np.power(self.data_vv.grid.ki[:, np.newaxis, np.newaxis], 2))
+        )
 
-        Q_lr_r = ur_lr * np.exp(-np.sqrt(mu_sq) * self.data_vv.grid.ri[:, np.newaxis, np.newaxis])
+        Q_lr_r = ur_lr * np.exp(
+            -np.sqrt(mu_sq) * self.data_vv.grid.ri[:, np.newaxis, np.newaxis]
+        )
 
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
-            self.data_vv.Q_r[..., i, j] = self.data_vv.grid.idht(self.data_vv.Q_k[..., i, j] - Q_lr_k[..., i, j]) + Q_lr_r[..., i, j]
-            #self.data_vv.Q_r[..., i, j] = self.data_vv.grid.idht(self.data_vv.Q_k[..., i, j])
+            self.data_vv.Q_r[..., i, j] = (
+                self.data_vv.grid.idht(self.data_vv.Q_k[..., i, j] - Q_lr_k[..., i, j])
+                + Q_lr_r[..., i, j]
+            )
+            # self.data_vv.Q_r[..., i, j] = self.data_vv.grid.idht(self.data_vv.Q_k[..., i, j])
 
-        ck = np.zeros((self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64)
+        ck = np.zeros(
+            (self.data_vv.npts, self.data_vv.ns1, self.data_vv.ns2), dtype=np.float64
+        )
 
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
             ck[..., i, j] = self.data_vv.grid.dht(self.data_vv.c[..., i, j])
 
-        self.data_vv.h = vv_impl(self.data_vv.ns1,
-                                 self.data_vv.ns2,
-                                 self.data_vv.npts,
-                                 ck,
-                                 self.data_vv.B,
-                                 self.data_vv.uk_lr,
-                                 self.data_vv.w,
-                                 self.data_vv.p,
-                                 self.data_vv.Q_k)
+        self.data_vv.h = vv_impl(
+            self.data_vv.ns1,
+            self.data_vv.ns2,
+            self.data_vv.npts,
+            ck,
+            self.data_vv.B,
+            self.data_vv.uk_lr,
+            self.data_vv.w,
+            self.data_vv.p,
+            self.data_vv.Q_k,
+        )
 
         for i, j in np.ndindex(self.data_vv.ns1, self.data_vv.ns2):
-            self.data_vv.t[:, i, j] = self.data_vv.grid.idht(self.data_vv.h[:, i, j] - ck[:, i, j])
+            self.data_vv.t[:, i, j] = self.data_vv.grid.idht(
+                self.data_vv.h[:, i, j] - ck[:, i, j]
+            )
         self.data_vv.tau = self.data_vv.t - self.data_vv.Q_r + ur_lr
 
     def compute_uv(self):
         if self.data_uv is not None:
-
-            ck_uv = np.zeros((self.data_uv.npts, self.data_uv.ns1, self.data_uv.ns2), dtype=np.float64)
+            ck_uv = np.zeros(
+                (self.data_uv.npts, self.data_uv.ns1, self.data_uv.ns2),
+                dtype=np.float64,
+            )
 
             for i, j in np.ndindex(self.data_uv.ns1, self.data_uv.ns2):
                 ck_uv[..., i, j] = self.data_uv.grid.dht(self.data_uv.c[..., i, j])
 
-            self.data_uv.h = uv_impl(self.data_uv.ns1,
-                                     self.data_uv.ns2,
-                                     self.data_uv.npts,
-                                     ck_uv,
-                                     self.data_uv.B,
-                                     self.data_uv.uk_lr,
-                                     self.data_uv.w,
-                                     self.data_vv.w,
-                                     self.data_uv.p,
-                                     self.data_vv.h)
+            self.data_uv.h = uv_impl(
+                self.data_uv.ns1,
+                self.data_uv.ns2,
+                self.data_uv.npts,
+                ck_uv,
+                self.data_uv.B,
+                self.data_uv.uk_lr,
+                self.data_uv.w,
+                self.data_vv.w,
+                self.data_uv.p,
+                self.data_vv.h,
+            )
 
             for i, j in np.ndindex(self.data_uv.ns1, self.data_uv.ns2):
-                self.data_uv.t[:, i, j] = self.data_uv.grid.idht(self.data_uv.h[:, i, j] - ck_uv[:, i, j]) \
+                self.data_uv.t[:, i, j] = (
+                    self.data_uv.grid.idht(self.data_uv.h[:, i, j] - ck_uv[:, i, j])
                     - self.data_uv.B * self.data_uv.ur_lr[:, i, j]
+                )
         else:
             raise RuntimeError("uv dataclass not defined")
+
 
 @njit(parallel=True)
 def vv_impl(ns1, ns2, npts, ck, B, uk_lr, w, p, Q):
@@ -119,6 +137,7 @@ def vv_impl(ns1, ns2, npts, ck, B, uk_lr, w, p, Q):
         h[i] = wc @ iwcp @ w[i]
 
     return h + Q
+
 
 @njit(parallel=True)
 def uv_impl(ns1, ns2, npts, ck_uv, B, uk_lr, w_uv, w_vv, p, h_vv):

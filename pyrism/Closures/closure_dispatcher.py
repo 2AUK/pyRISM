@@ -3,7 +3,6 @@ from .closure_routines import *
 
 
 class Closure(object):
-
     closure_dispatcher = {
         "HNC": HyperNetted_Chain,
         "KH": KovalenkoHirata,
