@@ -25,24 +25,22 @@ from pyrism import Util
 from numba import njit, jit, prange
 import time
 import warnings
-from pyrism.rust_helpers import RISMController
+from pyrism.rust_helpers import RISMDriver
 from dataclasses import dataclass, field
 
 np.seterr(over="raise")
 warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
-
 
 @dataclass
 class SolverConfig:
     solver: str
     params: dict = field(default_factory=dict)
 
-
 @dataclass
 class DataConfig:
-    T: float
-    kT: float
-    kU: float
+    temp: float
+    kt: float
+    ku: float
     amph: float
     nsv: int
     nsu: int
@@ -50,7 +48,8 @@ class DataConfig:
     nspu: int
     npts: int
     radius: float
-    nlam: int
+    nlambda: int
+    atoms: list = field(default_factory=list)
     solvent_species: list = field(default_factory=list)
     solute_species: list = field(default_factory=list)
 
@@ -66,14 +65,6 @@ class PotentialConfig:
     nonbonded: str
     coulomb: str
     renormalisation: str
-
-
-@dataclass
-class RISMConfig:
-    operator: OperatorConfig
-    potential: PotentialConfig
-    solver: SolverConfig
-    data: DataConfig
 
 
 @dataclass
@@ -116,7 +107,6 @@ class RismController:
     IE: IntegralEquations.IntegralEquation = field(init=False)
     SFED: dict = field(init=False, default_factory=dict)
     SFE: dict = field(init=False, default_factory=dict)
-    config: RISMConfig = field(init=False)
 
     def initialise_controller(self):
         """Reads input file `fname` to create `vv` and `uv` and
@@ -156,21 +146,30 @@ class RismController:
         npts = inp["system"]["npts"]
         radius = inp["system"]["radius"]
         lam = inp["system"]["lam"]
-        solv_species = list(
-            {
-                k: inp["solvent"][k] for k in inp["solvent"].keys() - {"nsv", "nspv"}
-            }.items()
-        )
-        solu_species = None
-        print(solv_species)
-        if solute in inp:
-            nsu = inp["solute"]["nsu"]
-            nspu = inp["solute"]["nspu"]
-            solu_species = list(
+        solv_atoms, solv_species = self.add_species_to_list(
+            list(
                 {
-                    k: inp["solute"][k] for k in inp["solute"].keys() - {"nsu", "nspu"}
+                    k: inp["solvent"][k]
+                    for k in inp["solvent"].keys() - {"nsv", "nspv"}
                 }.items()
             )
+        )
+        solu_atoms = []
+        solu_species = None
+        if "solute" in inp:
+            nsu = inp["solute"]["nsu"]
+            nspu = inp["solute"]["nspu"]
+            solu_atoms, solu_species = self.add_species_to_list(
+                list(
+                    {
+                        k: inp["solute"][k]
+                        for k in inp["solute"].keys() - {"nsu", "nspu"}
+                    }.items()
+                )
+            )
+        atoms = solv_atoms + solu_atoms
+        data = DataConfig(temp, kt, ku, amph, nsv, nsu, nspv, nspu, npts, radius, lam, atoms, solv_species, solu_species)
+        RISMDriver.data_config_build(data)
 
         self.name = os.path.basename(self.fname).split(sep=".")[0]
         if "solvent" not in inp:
@@ -215,13 +214,6 @@ class RismController:
         self.pot = Potentials.Potential(inp["params"]["potential"])
 
         self.closure = Closures.Closure(inp["params"]["closure"])
-
-        self.config = RISMConfig(
-            inp["params"]["IE"],
-            inp["params"]["potential"],
-            inp["params"]["closure"],
-            inp["params"]["solver"],
-        )
 
         if inp["params"]["IE"] == "DRISM":
             IE = IntegralEquations.IntegralEquation(inp["params"]["IE"]).get_IE()
@@ -332,7 +324,7 @@ class RismController:
                     data_uv=self.uv,
                 )
 
-    def add_species_to_list(self, spec_dat):
+    def add_species_to_list(self, solv_species):
         """Parses interaction sites and assigns them to relevant species
 
         Parameters
@@ -342,18 +334,19 @@ class RismController:
         data_object: Core.RISM_Obj
             The dataclass to which species are being assigned
         """
-        new_spec = Core.Species(spec_dat[0])
-        spdict = spec_dat[1]
-        new_spec.set_density(spdict["dens"])
-        new_spec.set_numsites(spdict["ns"])
-        site_info = list(spdict.items())[2 : new_spec.ns + 2]
         atom_list = []
         species_list = []
-        for i in site_info:
-            atom = Core.Site(i[0], i[1][0], np.asarray(i[1][1]))
-            new_spec.add_site(atom)
-            atom_list.append(atom)
-        species_list.append(new_spec)
+        for spec_dat in solv_species:
+            new_spec = Core.Species(spec_dat[0])
+            spdict = spec_dat[1]
+            new_spec.set_density(spdict["dens"])
+            new_spec.set_numsites(spdict["ns"])
+            site_info = list(spdict.items())[2 : new_spec.ns + 2]
+            for i in site_info:
+                atom = Core.Site(i[0], i[1][0], np.asarray(i[1][1]))
+                new_spec.add_site(atom)
+                atom_list.append(atom)
+            species_list.append(new_spec)
 
         return (atom_list, species_list)
 
@@ -659,7 +652,7 @@ class RismController:
             self.build_Ur(dat1, dat1, lam)
             self.build_renorm(dat1, dat1, 1.0, lam)
             dat1.u_sr = dat1.u - dat1.ur_lr
-            rustrism = RISMController(
+            rustrism = RISMDriver(
                 dat1.T,
                 dat1.kT,
                 dat1.amph,

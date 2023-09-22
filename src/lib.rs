@@ -1,9 +1,9 @@
 extern crate blas_src;
-use crate::controller::RISMController;
+use crate::driver::RISMDriver;
 use pyo3::prelude::*;
 
 pub mod closure;
-pub mod controller;
+pub mod driver;
 pub mod data;
 pub mod mdiis;
 pub mod transforms;
@@ -13,6 +13,6 @@ pub mod xrism;
 /// import the module.
 #[pymodule]
 fn rust_helpers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    m.add_class::<RISMController>()?;
+    m.add_class::<RISMDriver>()?;
     Ok(())
 }
