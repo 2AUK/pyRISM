@@ -2,6 +2,7 @@ use ndarray::{Array1, Array2, Array3};
 use numpy::{PyArray1, PyArray2, PyArray3};
 use pyo3::prelude::*;
 use std::f64::consts::PI;
+use crate::driver::{Species, Site};
 
 #[derive(Clone, Debug)]
 pub struct Grid {
@@ -30,23 +31,29 @@ impl Grid {
 
 #[derive(Clone, Debug)]
 pub struct DataRs {
+    // Thermodynamic parameters
     pub temp: f64,
     pub kt: f64,
     pub amph: f64,
+    pub nlam: usize,
+    pub beta: f64,
+
+    // System size
     pub ns1: usize,
     pub ns2: usize,
-    pub nlam: usize,
 
+    // Sampling grid
     pub grid: Grid,
+    
+    pub sites: Vec<Site>,
+    pub species: Vec<Species>,
 
     pub cr: Array3<f64>,
     pub tr: Array3<f64>,
     pub hr: Array3<f64>,
     pub hk: Array3<f64>,
 
-    pub beta: f64,
-
-    // This set of arrays can be taken directly from python
+    
     pub ur: Array3<f64>,
     pub u_sr: Array3<f64>,
     pub ur_lr: Array3<f64>,
@@ -65,12 +72,6 @@ impl DataRs {
         npts: usize,
         radius: f64,
         nlam: usize,
-        ur: Array3<f64>,
-        u_sr: Array3<f64>,
-        ur_lr: Array3<f64>,
-        uk_lr: Array3<f64>,
-        wk: Array3<f64>,
-        density: Array2<f64>,
     ) -> Self {
         let shape = (npts, ns1, ns2);
         let grid = Grid::new(npts, radius);
@@ -78,21 +79,21 @@ impl DataRs {
             temp,
             kt,
             amph,
+            nlam,
+            beta: 1.0 / temp / kt,
             ns1,
             ns2,
             grid,
-            nlam,
             cr: Array3::zeros(shape),
             tr: Array3::zeros(shape),
             hr: Array3::zeros(shape),
             hk: Array3::zeros(shape),
-            beta: 1.0 / temp / kt,
-            ur,
-            u_sr,
-            ur_lr,
-            uk_lr,
-            wk,
-            density,
+            ur: Array3::zeros(shape),
+            u_sr: Array3::zeros(shape),
+            ur_lr: Array3::zeros(shape),
+            uk_lr: Array3::zeros(shape),
+            wk: Array3::zeros(shape),
+            density: Array2::zeros((ns1, ns2)),
         }
     }
 }
