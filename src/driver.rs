@@ -26,21 +26,27 @@ pub struct DataConfig {
     pub ku: f64,
     pub amph: f64,
     pub nsv: usize,
-    pub nsu: usize,
+    pub nsu: Option<usize>,
     pub nspv: usize,
-    pub nspu: usize,
+    pub nspu: Option<usize>,
     pub npts: usize,
     pub radius: f64,
     pub nlambda: f64,
     pub atoms: Vec<Site>,
     pub solvent_species: Vec<Species>,
-    pub solute_species: Vec<Species>,
+    pub solute_species: Option<Vec<Species>>,
 }
 
 #[derive(FromPyObject, Debug, Clone)]
 pub struct OperatorConfig {
     pub integral_equation: IntegralEquationKind,
     pub closure: ClosureKind,
+}
+
+impl fmt::Display for OperatorConfig {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Integral Equation: {}\nClosure: {}", self.integral_equation, self.closure)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -176,12 +182,6 @@ impl RISMDriver {
             npts,
             radius,
             nlam,
-            ur.as_array().to_owned(),
-            u_sr.as_array().to_owned(),
-            ur_lr.as_array().to_owned(),
-            uk_lr.as_array().to_owned(),
-            wk.as_array().to_owned(),
-            density.as_array().to_owned(),
         );
         let solver = MDIIS::new(m, mdiis_damping, picard_damping, max_iter, tolerance, npts, ns1, ns2);
         Ok(RISMDriver {
@@ -206,7 +206,7 @@ impl RISMDriver {
     #[staticmethod]
     pub fn operator_config_build(operatorconfig: &PyAny) {
         let opconfig: OperatorConfig = operatorconfig.extract().expect("could not extract operator details");
-        println!("{:#?}", opconfig);
+        println!("{}", opconfig);
     }
 
     pub fn extract<'py>(
