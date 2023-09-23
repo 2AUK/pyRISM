@@ -2,7 +2,7 @@ use std::fmt;
 use crate::data::DataRs;
 use crate::mdiis::MDIIS;
 use numpy::{IntoPyArray, PyReadonlyArray2, PyReadonlyArray3, PyArray3};
-use pyo3::prelude::*;
+use pyo3::{prelude::*, types::PyString};
 
 #[derive(FromPyObject, Debug, Clone)]
 pub struct Site {
@@ -37,11 +37,31 @@ pub struct DataConfig {
     pub solute_species: Vec<Species>,
 }
 
+#[derive(FromPyObject, Debug, Clone)]
+pub struct OperatorConfig {
+    pub integral_equation: IntegralEquationKind,
+    pub closure: ClosureKind,
+}
+
+#[derive(Debug, Clone)]
 pub enum PotentialKind {
     LennardJones,
     HardSpheres,
     Coulomb,
     NgRenormalisation,
+}
+
+impl<'source> FromPyObject<'source> for PotentialKind {
+    fn extract(obj: &'source PyAny) -> PyResult<Self> {
+        let str = obj.downcast::<PyString>()?.to_str().map(ToOwned::to_owned).expect("could not convert string");
+        match str.as_str() {
+            "LJ" => Ok(PotentialKind::LennardJones),
+            "HS" => Ok(PotentialKind::HardSpheres),
+            "COU" => Ok(PotentialKind::Coulomb),
+            "NG" => Ok(PotentialKind::NgRenormalisation),
+            _ => panic!("not a valid potential"),
+        }
+    }
 }
 
 impl fmt::Display for PotentialKind {
@@ -54,12 +74,29 @@ impl fmt::Display for PotentialKind {
         }
     }
 }
-
+#[derive(Debug, Clone)]
 pub enum ClosureKind {
     HyperNettedChain,
     KovalenkoHirata,
     PercusYevick,
     PartialSeriesExpansion(i8)
+}
+
+impl<'source> FromPyObject<'source> for ClosureKind {
+    fn extract(obj: &'source PyAny) -> PyResult<Self> {
+        let str = obj.downcast::<PyString>()?.to_str().map(ToOwned::to_owned).expect("could not convert string");
+        match str.as_str() {
+            "HNC" => Ok(ClosureKind::HyperNettedChain),
+            "KH" => Ok(ClosureKind::KovalenkoHirata),
+            "PSE-1" => Ok(ClosureKind::PartialSeriesExpansion(1)),
+            "PSE-2" => Ok(ClosureKind::PartialSeriesExpansion(2)),
+            "PSE-3" => Ok(ClosureKind::PartialSeriesExpansion(3)),
+            "PSE-4" => Ok(ClosureKind::PartialSeriesExpansion(4)),
+            "PSE-5" => Ok(ClosureKind::PartialSeriesExpansion(5)),
+            "PY" => Ok(ClosureKind::PercusYevick),
+            _ => panic!("not a valid closure"),
+        }
+    }
 }
 
 impl fmt::Display for ClosureKind {
@@ -73,9 +110,21 @@ impl fmt::Display for ClosureKind {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum IntegralEquationKind {
     XRISM,
     DRISM,
+}
+
+impl<'source> FromPyObject<'source> for IntegralEquationKind {
+    fn extract(obj: &'source PyAny) -> PyResult<Self> {
+        let str = obj.downcast::<PyString>()?.to_str().map(ToOwned::to_owned).expect("could not convert string");
+        match str.as_str() {
+            "XRISM" => Ok(IntegralEquationKind::XRISM),
+            "DRISM" => Ok(IntegralEquationKind::DRISM),
+            _ => panic!("not a valid integral equation"),
+        }
+    }
 }
 
 impl fmt::Display for IntegralEquationKind {
@@ -85,11 +134,6 @@ impl fmt::Display for IntegralEquationKind {
             IntegralEquationKind::DRISM => write!(f, "Dielectrically Consistent RISM"),
         }
     }
-}
-
-pub struct OperatorConfig {
-    pub integral_equation: IntegralEquationKind,
-    pub closure: ClosureKind,
 }
 
 #[pyclass]
@@ -155,8 +199,14 @@ impl RISMDriver {
 
     #[staticmethod]
     pub fn data_config_build(dataconfig: &PyAny) {
-        let data: DataConfig = dataconfig.extract().expect("could not extract");
+        let data: DataConfig = dataconfig.extract().expect("could not extract data");
         println!("{:#?}", data);
+    }
+
+    #[staticmethod]
+    pub fn operator_config_build(operatorconfig: &PyAny) {
+        let opconfig: OperatorConfig = operatorconfig.extract().expect("could not extract operator details");
+        println!("{:#?}", opconfig);
     }
 
     pub fn extract<'py>(

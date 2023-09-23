@@ -170,6 +170,8 @@ class RismController:
         atoms = solv_atoms + solu_atoms
         data = DataConfig(temp, kt, ku, amph, nsv, nsu, nspv, nspu, npts, radius, lam, atoms, solv_species, solu_species)
         RISMDriver.data_config_build(data)
+        operator = OperatorConfig(inp["params"]["IE"], inp["params"]["closure"])
+        RISMDriver.operator_config_build(operator)
 
         self.name = os.path.basename(self.fname).split(sep=".")[0]
         if "solvent" not in inp:
