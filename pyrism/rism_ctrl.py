@@ -63,7 +63,7 @@ class OperatorConfig:
 @dataclass
 class PotentialConfig:
     nonbonded: str
-    coulomb: str
+    coulombic: str
     renormalisation: str
 
 
@@ -168,10 +168,12 @@ class RismController:
                 )
             )
         atoms = solv_atoms + solu_atoms
-        data = DataConfig(temp, kt, ku, amph, nsv, nsu, nspv, nspu, npts, radius, lam, atoms, solv_species, solu_species)
-        RISMDriver.data_config_build(data)
-        operator = OperatorConfig(inp["params"]["IE"], inp["params"]["closure"])
-        RISMDriver.operator_config_build(operator)
+        data_config = DataConfig(temp, kt, ku, amph, nsv, nsu, nspv, nspu, npts, radius, lam, atoms, solv_species, solu_species)
+        operator_config = OperatorConfig(inp["params"]["IE"], inp["params"]["closure"])
+        solver_config = SolverConfig(inp["params"]["solver"])
+        potential_config = PotentialConfig(inp["params"]["potential"], "COU", "NG")
+        rism_job = RISMDriver(data_config, operator_config, potential_config, solver_config)
+        rism_job.print_info()
 
         self.name = os.path.basename(self.fname).split(sep=".")[0]
         if "solvent" not in inp:
@@ -654,30 +656,30 @@ class RismController:
             self.build_Ur(dat1, dat1, lam)
             self.build_renorm(dat1, dat1, 1.0, lam)
             dat1.u_sr = dat1.u - dat1.ur_lr
-            rustrism = RISMDriver(
-                dat1.T,
-                dat1.kT,
-                dat1.amph,
-                dat1.ns1,
-                dat1.ns2,
-                dat1.npts,
-                dat1.radius,
-                dat1.nlam,
-                dat1.u,
-                dat1.u_sr,
-                dat1.ur_lr,
-                dat1.uk_lr,
-                dat1.w,
-                dat1.p,
-                self.solver.m,
-                self.solver.mdiis_damping,
-                self.solver.damp_picard,
-                self.solver.max_iter,
-                self.solver.tol,
-            )
-            rustrism.do_rism()
-            # self.solve_vv(lam, verbose)
-            dat1.c, dat1.t, dat1.h, dat1.h_k = rustrism.extract()
+            # rustrism = RISMDriver(
+            #     dat1.T,
+            #     dat1.kT,
+            #     dat1.amph,
+            #     dat1.ns1,
+            #     dat1.ns2,
+            #     dat1.npts,
+            #     dat1.radius,
+            #     dat1.nlam,
+            #     dat1.u,
+            #     dat1.u_sr,
+            #     dat1.ur_lr,
+            #     dat1.uk_lr,
+            #     dat1.w,
+            #     dat1.p,
+            #     self.solver.m,
+            #     self.solver.mdiis_damping,
+            #     self.solver.damp_picard,
+            #     self.solver.max_iter,
+            #     self.solver.tol,
+            # )
+            # rustrism.do_rism()
+            self.solve_vv(lam, verbose)
+            # dat1.c, dat1.t, dat1.h, dat1.h_k = rustrism.extract()
             if self.uv_check:
                 self.build_Ur(dat2, dat1, lam)
                 self.build_renorm(dat2, dat1, 1.0, lam)

@@ -1,8 +1,8 @@
+use crate::driver::{Site, Species};
 use ndarray::{Array1, Array2, Array3};
 use numpy::{PyArray1, PyArray2, PyArray3};
 use pyo3::prelude::*;
-use std::f64::consts::PI;
-use crate::driver::{Species, Site};
+use std::{f64::consts::PI, fmt};
 
 #[derive(Clone, Debug)]
 pub struct Grid {
@@ -41,10 +41,12 @@ pub struct DataRs {
     // System size
     pub ns1: usize,
     pub ns2: usize,
+    pub nsp1: usize,
+    pub nsp2: usize,
 
     // Sampling grid
     pub grid: Grid,
-    
+
     pub sites: Vec<Site>,
     pub species: Vec<Species>,
 
@@ -53,13 +55,22 @@ pub struct DataRs {
     pub hr: Array3<f64>,
     pub hk: Array3<f64>,
 
-    
     pub ur: Array3<f64>,
     pub u_sr: Array3<f64>,
     pub ur_lr: Array3<f64>,
     pub uk_lr: Array3<f64>,
     pub wk: Array3<f64>,
     pub density: Array2<f64>,
+}
+
+impl fmt::Display for DataRs {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Temperature: {} K\nLambda(s): {}\nSize: {}x{}\nSpecies: {}\nGrid points: {} points\nRadius: {} Å",
+            self.temp, self.nlam, self.ns1, self.ns2, self.nsp1, self.grid.npts, self.grid.radius,
+        )
+    }
 }
 
 impl DataRs {
@@ -69,9 +80,13 @@ impl DataRs {
         amph: f64,
         ns1: usize,
         ns2: usize,
+        nsp1: usize,
+        nsp2: usize,
         npts: usize,
         radius: f64,
         nlam: usize,
+        sites: Vec<Site>,
+        species: Vec<Species>,
     ) -> Self {
         let shape = (npts, ns1, ns2);
         let grid = Grid::new(npts, radius);
@@ -83,7 +98,11 @@ impl DataRs {
             beta: 1.0 / temp / kt,
             ns1,
             ns2,
+            nsp1,
+            nsp2,
             grid,
+            sites,
+            species,
             cr: Array3::zeros(shape),
             tr: Array3::zeros(shape),
             hr: Array3::zeros(shape),

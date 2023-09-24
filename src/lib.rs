@@ -3,8 +3,8 @@ use crate::driver::RISMDriver;
 use pyo3::prelude::*;
 
 pub mod closure;
-pub mod driver;
 pub mod data;
+pub mod driver;
 pub mod mdiis;
 pub mod transforms;
 pub mod xrism;

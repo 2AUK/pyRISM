@@ -1,5 +1,5 @@
-use crate::transforms::fourier_bessel_transform_fftw;
 use crate::data::DataRs;
+use crate::transforms::fourier_bessel_transform_fftw;
 use fftw::plan::*;
 use ndarray::{Array, Array1, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis, Zip};
 use ndarray_linalg::Inverse;
