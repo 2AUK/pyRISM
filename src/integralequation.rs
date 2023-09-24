@@ -4,6 +4,38 @@ use fftw::plan::*;
 use ndarray::{Array, Array1, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis, Zip};
 use ndarray_linalg::Inverse;
 use std::f64::consts::PI;
+use pyo3::{prelude::*, types::PyString};
+use std::fmt;
+
+#[derive(Debug, Clone)]
+pub enum IntegralEquationKind {
+    XRISM,
+    DRISM,
+}
+
+impl<'source> FromPyObject<'source> for IntegralEquationKind {
+    fn extract(obj: &'source PyAny) -> PyResult<Self> {
+        let str = obj
+            .downcast::<PyString>()?
+            .to_str()
+            .map(ToOwned::to_owned)
+            .expect("could not convert string");
+        match str.as_str() {
+            "XRISM" => Ok(IntegralEquationKind::XRISM),
+            "DRISM" => Ok(IntegralEquationKind::DRISM),
+            _ => panic!("not a valid integral equation"),
+        }
+    }
+}
+
+impl fmt::Display for IntegralEquationKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            IntegralEquationKind::XRISM => write!(f, "Extended RISM"),
+            IntegralEquationKind::DRISM => write!(f, "Dielectrically Consistent RISM"),
+        }
+    }
+}
 
 pub fn xrism_vv(data: &mut DataRs, plan: &mut R2RPlan64) {
     (data.hk, data.tr) = xrism_vv_equation_impl(

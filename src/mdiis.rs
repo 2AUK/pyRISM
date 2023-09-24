@@ -1,6 +1,6 @@
 use crate::closure::hyper_netted_chain;
 use crate::data::DataRs;
-use crate::xrism::xrism_vv;
+use crate::integralequation::xrism_vv;
 use fftw::plan::*;
 use fftw::types::*;
 use ndarray_linalg::Solve;

@@ -4,6 +4,24 @@ use numpy::{PyArray1, PyArray2, PyArray3};
 use pyo3::prelude::*;
 use std::{f64::consts::PI, fmt};
 
+#[derive(FromPyObject, Debug, Clone)]
+pub struct DataConfig {
+    pub temp: f64,
+    pub kt: f64,
+    pub ku: f64,
+    pub amph: f64,
+    pub nsv: usize,
+    pub nsu: Option<usize>,
+    pub nspv: usize,
+    pub nspu: Option<usize>,
+    pub npts: usize,
+    pub radius: f64,
+    pub nlambda: usize,
+    pub atoms: Vec<Site>,
+    pub solvent_species: Vec<Species>,
+    pub solute_species: Option<Vec<Species>>,
+}
+
 #[derive(Clone, Debug)]
 pub struct Grid {
     pub npts: usize,
