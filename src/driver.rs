@@ -1,6 +1,9 @@
-use crate::data::{self, DataRs};
-use crate::mdiis::MDIIS;
-use pyo3::{prelude::*, types::PyString};
+use crate::data::{DataConfig, DataRs};
+use crate::solver::SolverConfig;
+use crate::potential::PotentialConfig;
+use crate::closure::ClosureKind;
+use crate::integralequation::IntegralEquationKind;
+use pyo3::prelude::*;
 use std::fmt;
 
 #[derive(FromPyObject, Debug, Clone)]
@@ -19,84 +22,6 @@ pub struct Species {
 }
 
 #[derive(FromPyObject, Debug, Clone)]
-pub struct DataConfig {
-    pub temp: f64,
-    pub kt: f64,
-    pub ku: f64,
-    pub amph: f64,
-    pub nsv: usize,
-    pub nsu: Option<usize>,
-    pub nspv: usize,
-    pub nspu: Option<usize>,
-    pub npts: usize,
-    pub radius: f64,
-    pub nlambda: usize,
-    pub atoms: Vec<Site>,
-    pub solvent_species: Vec<Species>,
-    pub solute_species: Option<Vec<Species>>,
-}
-
-#[derive(FromPyObject, Debug, Clone)]
-pub struct PotentialConfig {
-    pub nonbonded: PotentialKind,
-    pub coulombic: PotentialKind,
-    pub renormalisation: PotentialKind,
-}
-
-impl fmt::Display for PotentialConfig {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Potential: {}", self.nonbonded)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum SolverKind {
-    Picard,
-    Ng,
-    MDIIS,
-    Gillan,
-}
-
-impl fmt::Display for SolverKind {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            SolverKind::Picard => write!(f, "Picard"),
-            SolverKind::Ng => write!(f, "Ng"),
-            SolverKind::MDIIS => write!(f, "MDIIS"),
-            SolverKind::Gillan => write!(f, "Gillan"),
-        }
-    }
-}
-
-impl<'source> FromPyObject<'source> for SolverKind {
-    fn extract(obj: &'source PyAny) -> PyResult<Self> {
-        let str = obj
-            .downcast::<PyString>()?
-            .to_str()
-            .map(ToOwned::to_owned)
-            .expect("could not convert string");
-        match str.as_str() {
-            "Picard" => Ok(SolverKind::Picard),
-            "Ng" => Ok(SolverKind::Ng),
-            "MDIIS" => Ok(SolverKind::MDIIS),
-            "Gillan" => Ok(SolverKind::Gillan),
-            _ => panic!("not a valid solver"),
-        }
-    }
-}
-
-#[derive(FromPyObject, Debug, Clone)]
-pub struct SolverConfig {
-    pub solver: SolverKind,
-}
-
-impl fmt::Display for SolverConfig {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Solver: {}", self.solver)
-    }
-}
-
-#[derive(FromPyObject, Debug, Clone)]
 pub struct OperatorConfig {
     pub integral_equation: IntegralEquationKind,
     pub closure: ClosureKind,
@@ -109,114 +34,6 @@ impl fmt::Display for OperatorConfig {
             "Integral Equation: {}\nClosure: {}",
             self.integral_equation, self.closure
         )
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum PotentialKind {
-    LennardJones,
-    HardSpheres,
-    Coulomb,
-    NgRenormalisation,
-}
-
-impl<'source> FromPyObject<'source> for PotentialKind {
-    fn extract(obj: &'source PyAny) -> PyResult<Self> {
-        let str = obj
-            .downcast::<PyString>()?
-            .to_str()
-            .map(ToOwned::to_owned)
-            .expect("could not convert string");
-        match str.as_str() {
-            "LJ" => Ok(PotentialKind::LennardJones),
-            "HS" => Ok(PotentialKind::HardSpheres),
-            "COU" => Ok(PotentialKind::Coulomb),
-            "NG" => Ok(PotentialKind::NgRenormalisation),
-            _ => panic!("not a valid potential"),
-        }
-    }
-}
-
-impl fmt::Display for PotentialKind {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            PotentialKind::LennardJones => write!(f, "Lennard-Jones"),
-            PotentialKind::HardSpheres => write!(f, "Hard Spheres"),
-            PotentialKind::Coulomb => write!(f, "Coulomb"),
-            PotentialKind::NgRenormalisation => write!(f, "Ng Renormalisation"),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum ClosureKind {
-    HyperNettedChain,
-    KovalenkoHirata,
-    PercusYevick,
-    PartialSeriesExpansion(i8),
-}
-
-impl<'source> FromPyObject<'source> for ClosureKind {
-    fn extract(obj: &'source PyAny) -> PyResult<Self> {
-        let str = obj
-            .downcast::<PyString>()?
-            .to_str()
-            .map(ToOwned::to_owned)
-            .expect("could not convert string");
-        match str.as_str() {
-            "HNC" => Ok(ClosureKind::HyperNettedChain),
-            "KH" => Ok(ClosureKind::KovalenkoHirata),
-            "PSE-1" => Ok(ClosureKind::PartialSeriesExpansion(1)),
-            "PSE-2" => Ok(ClosureKind::PartialSeriesExpansion(2)),
-            "PSE-3" => Ok(ClosureKind::PartialSeriesExpansion(3)),
-            "PSE-4" => Ok(ClosureKind::PartialSeriesExpansion(4)),
-            "PSE-5" => Ok(ClosureKind::PartialSeriesExpansion(5)),
-            "PY" => Ok(ClosureKind::PercusYevick),
-            _ => panic!("not a valid closure"),
-        }
-    }
-}
-
-impl fmt::Display for ClosureKind {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            ClosureKind::HyperNettedChain => write!(f, "Hyper-Netted Chain"),
-            ClosureKind::KovalenkoHirata => write!(f, "Kovalenko-Hirata"),
-            ClosureKind::PercusYevick => write!(f, "Percus-Yevick"),
-            ClosureKind::PartialSeriesExpansion(x) => {
-                write!(f, "Partial Series Expansion ({} terms)", x)
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum IntegralEquationKind {
-    XRISM,
-    DRISM,
-}
-
-impl<'source> FromPyObject<'source> for IntegralEquationKind {
-    fn extract(obj: &'source PyAny) -> PyResult<Self> {
-        let str = obj
-            .downcast::<PyString>()?
-            .to_str()
-            .map(ToOwned::to_owned)
-            .expect("could not convert string");
-        match str.as_str() {
-            "XRISM" => Ok(IntegralEquationKind::XRISM),
-            "DRISM" => Ok(IntegralEquationKind::DRISM),
-            _ => panic!("not a valid integral equation"),
-        }
-    }
-}
-
-impl fmt::Display for IntegralEquationKind {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            IntegralEquationKind::XRISM => write!(f, "Extended RISM"),
-            IntegralEquationKind::DRISM => write!(f, "Dielectrically Consistent RISM"),
-        }
     }
 }
 
