@@ -208,7 +208,7 @@ impl MDIIS {
 
 fn compute_rmse(
     ns1: usize,
-    ns2: usize,
+    _ns2: usize,
     npts: usize,
     curr: &Array3<f64>,
     prev: &Array3<f64>,

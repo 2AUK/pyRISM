@@ -1,4 +1,3 @@
-use fftw::array::AlignedVec;
 use fftw::plan::*;
 use ndarray::{Array1, ArrayView1};
 use rustdct::TransformType4;
