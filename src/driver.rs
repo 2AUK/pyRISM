@@ -1,8 +1,8 @@
-use std::fmt;
-use crate::data::DataRs;
+use crate::data::{self, DataRs};
 use crate::mdiis::MDIIS;
-use numpy::{IntoPyArray, PyReadonlyArray2, PyReadonlyArray3, PyArray3};
+use numpy::{IntoPyArray, PyArray3, PyReadonlyArray2, PyReadonlyArray3};
 use pyo3::{prelude::*, types::PyString};
+use std::fmt;
 
 #[derive(FromPyObject, Debug, Clone)]
 pub struct Site {
@@ -31,10 +31,70 @@ pub struct DataConfig {
     pub nspu: Option<usize>,
     pub npts: usize,
     pub radius: f64,
-    pub nlambda: f64,
+    pub nlambda: usize,
     pub atoms: Vec<Site>,
     pub solvent_species: Vec<Species>,
     pub solute_species: Option<Vec<Species>>,
+}
+
+#[derive(FromPyObject, Debug, Clone)]
+pub struct PotentialConfig {
+    pub nonbonded: PotentialKind,
+    pub coulombic: PotentialKind,
+    pub renormalisation: PotentialKind,
+}
+
+impl fmt::Display for PotentialConfig {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Potential: {}", self.nonbonded)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum SolverKind {
+    Picard,
+    Ng,
+    MDIIS,
+    Gillan,
+}
+
+impl fmt::Display for SolverKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            SolverKind::Picard => write!(f, "Picard"),
+            SolverKind::Ng => write!(f, "Ng"),
+            SolverKind::MDIIS => write!(f, "MDIIS"),
+            SolverKind::Gillan => write!(f, "Gillan"),
+        }
+    }
+}
+
+impl<'source> FromPyObject<'source> for SolverKind {
+    fn extract(obj: &'source PyAny) -> PyResult<Self> {
+        let str = obj
+            .downcast::<PyString>()?
+            .to_str()
+            .map(ToOwned::to_owned)
+            .expect("could not convert string");
+        match str.as_str() {
+            "Picard" => Ok(SolverKind::Picard),
+            "Ng" => Ok(SolverKind::Ng),
+            "MDIIS" => Ok(SolverKind::MDIIS),
+            "Gillan" => Ok(SolverKind::Gillan),
+            _ => panic!("not a valid solver"),
+        }
+    }
+}
+
+#[derive(FromPyObject, Debug, Clone)]
+pub struct SolverConfig {
+    pub solver: SolverKind,
+}
+
+impl fmt::Display for SolverConfig {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Solver: {}", self.solver)
+    }
 }
 
 #[derive(FromPyObject, Debug, Clone)]
@@ -45,7 +105,11 @@ pub struct OperatorConfig {
 
 impl fmt::Display for OperatorConfig {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Integral Equation: {}\nClosure: {}", self.integral_equation, self.closure)
+        write!(
+            f,
+            "Integral Equation: {}\nClosure: {}",
+            self.integral_equation, self.closure
+        )
     }
 }
 
@@ -59,7 +123,11 @@ pub enum PotentialKind {
 
 impl<'source> FromPyObject<'source> for PotentialKind {
     fn extract(obj: &'source PyAny) -> PyResult<Self> {
-        let str = obj.downcast::<PyString>()?.to_str().map(ToOwned::to_owned).expect("could not convert string");
+        let str = obj
+            .downcast::<PyString>()?
+            .to_str()
+            .map(ToOwned::to_owned)
+            .expect("could not convert string");
         match str.as_str() {
             "LJ" => Ok(PotentialKind::LennardJones),
             "HS" => Ok(PotentialKind::HardSpheres),
@@ -80,17 +148,22 @@ impl fmt::Display for PotentialKind {
         }
     }
 }
+
 #[derive(Debug, Clone)]
 pub enum ClosureKind {
     HyperNettedChain,
     KovalenkoHirata,
     PercusYevick,
-    PartialSeriesExpansion(i8)
+    PartialSeriesExpansion(i8),
 }
 
 impl<'source> FromPyObject<'source> for ClosureKind {
     fn extract(obj: &'source PyAny) -> PyResult<Self> {
-        let str = obj.downcast::<PyString>()?.to_str().map(ToOwned::to_owned).expect("could not convert string");
+        let str = obj
+            .downcast::<PyString>()?
+            .to_str()
+            .map(ToOwned::to_owned)
+            .expect("could not convert string");
         match str.as_str() {
             "HNC" => Ok(ClosureKind::HyperNettedChain),
             "KH" => Ok(ClosureKind::KovalenkoHirata),
@@ -107,12 +180,14 @@ impl<'source> FromPyObject<'source> for ClosureKind {
 
 impl fmt::Display for ClosureKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-       match self {
-           ClosureKind::HyperNettedChain => write!(f, "Hyper-Netted Chain"),
-           ClosureKind::KovalenkoHirata => write!(f, "Kovalenko-Hirata"),
-           ClosureKind::PercusYevick => write!(f, "Percus-Yevick"),
-           ClosureKind::PartialSeriesExpansion(x) => write!(f, "Partial Series Expansion ({} terms)", x),
-       }
+        match self {
+            ClosureKind::HyperNettedChain => write!(f, "Hyper-Netted Chain"),
+            ClosureKind::KovalenkoHirata => write!(f, "Kovalenko-Hirata"),
+            ClosureKind::PercusYevick => write!(f, "Percus-Yevick"),
+            ClosureKind::PartialSeriesExpansion(x) => {
+                write!(f, "Partial Series Expansion ({} terms)", x)
+            }
+        }
     }
 }
 
@@ -124,7 +199,11 @@ pub enum IntegralEquationKind {
 
 impl<'source> FromPyObject<'source> for IntegralEquationKind {
     fn extract(obj: &'source PyAny) -> PyResult<Self> {
-        let str = obj.downcast::<PyString>()?.to_str().map(ToOwned::to_owned).expect("could not convert string");
+        let str = obj
+            .downcast::<PyString>()?
+            .to_str()
+            .map(ToOwned::to_owned)
+            .expect("could not convert string");
         match str.as_str() {
             "XRISM" => Ok(IntegralEquationKind::XRISM),
             "DRISM" => Ok(IntegralEquationKind::DRISM),
@@ -145,85 +224,116 @@ impl fmt::Display for IntegralEquationKind {
 #[pyclass]
 #[derive(Clone, Debug)]
 pub struct RISMDriver {
-    data: DataRs,
-    solver: MDIIS,
+    pub vv: DataRs,
+    pub uv: Option<DataRs>,
+    pub operator: OperatorConfig,
+    pub potential: PotentialConfig,
+    pub solver: SolverConfig,
 }
 
 #[pymethods]
 impl RISMDriver {
     #[new]
     fn new<'py>(
-        temp: f64,
-        kt: f64,
-        amph: f64,
-        ns1: usize,
-        ns2: usize,
-        npts: usize,
-        radius: f64,
-        nlam: usize,
-        ur: PyReadonlyArray3<'py, f64>,
-        u_sr: PyReadonlyArray3<'py, f64>,
-        ur_lr: PyReadonlyArray3<'py, f64>,
-        uk_lr: PyReadonlyArray3<'py, f64>,
-        wk: PyReadonlyArray3<'py, f64>,
-        density: PyReadonlyArray2<'py, f64>,
-        m: usize,
-        mdiis_damping: f64,
-        picard_damping: f64,
-        max_iter: usize,
-        tolerance: f64,
+        data_config: &PyAny,
+        operator_config: &PyAny,
+        potential_config: &PyAny,
+        solver_config: &PyAny,
     ) -> PyResult<Self> {
-        let data = DataRs::new(
-            temp,
-            kt,
-            amph,
-            ns1,
-            ns2,
-            npts,
-            radius,
-            nlam,
+        // Extract problem data
+        let data_config: DataConfig = data_config.extract()?;
+        let (vv, uv);
+
+        // Construct the solvent-solvent problem
+        vv = DataRs::new(
+            data_config.temp,
+            data_config.kt,
+            data_config.amph,
+            data_config.nsv,
+            data_config.nsv,
+            data_config.nspv,
+            data_config.nspv,
+            data_config.npts,
+            data_config.radius,
+            data_config.nlambda,
+            data_config.atoms.clone(),
+            data_config.solvent_species.clone(),
         );
-        let solver = MDIIS::new(m, mdiis_damping, picard_damping, max_iter, tolerance, npts, ns1, ns2);
+
+        // Check if a solute-solvent problem exists
+        match data_config.nsu {
+            None => uv = None,
+            _ => {
+                // Construct the solute-solvent problem
+                uv = Some(DataRs::new(
+                    data_config.temp,
+                    data_config.kt,
+                    data_config.amph,
+                    data_config.nsu.unwrap(),
+                    data_config.nsv,
+                    data_config.nspu.unwrap(),
+                    data_config.nspv,
+                    data_config.npts,
+                    data_config.radius,
+                    data_config.nlambda,
+                    data_config.atoms,
+                    data_config.solvent_species,
+                ));
+            }
+        }
+
+        // Extract operator information
+        let operator: OperatorConfig = operator_config.extract()?;
+
+        // Extract potential information
+        let potential: PotentialConfig = potential_config.extract()?;
+
+        // Extract solver information
+        let solver: SolverConfig = solver_config.extract()?;
+
         Ok(RISMDriver {
-            data,
+            vv,
+            uv,
+            operator,
+            potential,
             solver,
         })
     }
 
+    pub fn print_info(&self) {
+        println!("
+             ____  ___ ____  __  __ 
+ _ __  _   _|  _ \\|_ _/ ___||  \\/  |
+| '_ \\| | | | |_) || |\\___ \\| |\\/| |
+| |_) | |_| |  _ < | | ___) | |  | |
+| .__/ \\__, |_| \\_\\___|____/|_|  |_|
+|_|    |___/                        
+
+");
+        match &self.uv {
+            None => println!("Solvent-Solvent Problem:\n{}\n\nJob Configuration:\n{}\n{}\n{}", self.vv, self.operator, self.potential, self.solver),
+            Some(uv) => println!("Solvent-Solvent Problem:\n{}\n\nSolute-Solvent Problem:\n{}\n\nJob Configuration:\n{}\n{}\n{}", self.vv, uv, self.operator, self.potential, self.solver),
+        }
+    }
+
     pub fn do_rism(&mut self) {
-        println!("{}", ClosureKind::PartialSeriesExpansion(3));
-        println!("{}", IntegralEquationKind::DRISM);
-        println!("{}", PotentialKind::Coulomb);
-        self.solver.solve(&mut self.data);
+        todo!()
     }
 
-    #[staticmethod]
-    pub fn data_config_build(dataconfig: &PyAny) {
-        let data: DataConfig = dataconfig.extract().expect("could not extract data");
-        println!("{:#?}", data);
-    }
-
-    #[staticmethod]
-    pub fn operator_config_build(operatorconfig: &PyAny) {
-        let opconfig: OperatorConfig = operatorconfig.extract().expect("could not extract operator details");
-        println!("{}", opconfig);
-    }
-
-    pub fn extract<'py>(
-        &'py self,
-        py: Python<'py>,
-    ) -> PyResult<(
-        &PyArray3<f64>,
-        &PyArray3<f64>,
-        &PyArray3<f64>,
-        &PyArray3<f64>,
-    )> {
-        Ok((
-            self.data.cr.clone().into_pyarray(py),
-            self.data.tr.clone().into_pyarray(py),
-            self.data.hr.clone().into_pyarray(py),
-            self.data.hk.clone().into_pyarray(py),
-        ))
-    }
+    // pub fn extract<'py>(
+    //     &'py self,
+    //     py: Python<'py>,
+    // ) -> PyResult<(
+    //     &PyArray3<f64>,
+    //     &PyArray3<f64>,
+    //     &PyArray3<f64>,
+    //     &PyArray3<f64>,
+    // )> {
+    //     Ok((
+    //         self.data.cr.clone().into_pyarray(py),
+    //         self.data.tr.clone().into_pyarray(py),
+    //         self.data.hr.clone().into_pyarray(py),
+    //         self.data.hk.clone().into_pyarray(py),
+    //     ))
+    // }
 }
-

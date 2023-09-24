@@ -33,10 +33,12 @@ impl MDIIS {
         let diff = curr.clone() - prev.clone();
 
         // push current flattened solution into MDIIS array
-        self.fr.push_back(Array::from_iter(curr.clone().into_iter()));
+        self.fr
+            .push_back(Array::from_iter(curr.clone().into_iter()));
 
         // push flattened difference into residual array
-        self.res.push_back(Array::from_iter(diff.clone().into_iter()));
+        self.res
+            .push_back(Array::from_iter(diff.clone().into_iter()));
 
         // return Picard iteration step
         prev + self.picard_damping * diff
@@ -84,10 +86,12 @@ impl MDIIS {
         let diff = curr.clone() - prev.clone();
 
         // push current flattened solution into MDIIS array
-        self.fr.push_back(Array::from_iter(curr.clone().into_iter()));
+        self.fr
+            .push_back(Array::from_iter(curr.clone().into_iter()));
 
         // push flattened difference into residual array
-        self.res.push_back(Array::from_iter(diff.clone().into_iter()));
+        self.res
+            .push_back(Array::from_iter(diff.clone().into_iter()));
 
         self.fr.pop_front();
         self.res.pop_front();
@@ -125,16 +129,13 @@ impl MDIIS {
     }
 
     pub fn solve(&mut self, data: &mut DataRs) {
-        println!{"Solving solvent-solvent RISM equation"};
+        println! {"Solving solvent-solvent RISM equation"};
         self.fr.clear();
         self.res.clear();
         self.rms_res.clear();
-        let mut r2r: R2RPlan64 = R2RPlan::aligned(
-            &[data.grid.npts],
-            R2RKind::FFTW_RODFT11,
-            Flag::ESTIMATE,
-        )
-        .expect("could not execute FFTW plan");
+        let mut r2r: R2RPlan64 =
+            R2RPlan::aligned(&[data.grid.npts], R2RKind::FFTW_RODFT11, Flag::ESTIMATE)
+                .expect("could not execute FFTW plan");
         let mut i = 0;
         while i < self.max_iter {
             //println!("Iteration: {}", i);
@@ -146,26 +147,14 @@ impl MDIIS {
             if self.fr.len() < self.m {
                 //println!("Picard Step");
                 c_next = self.step_picard(&c_a, &c_prev);
-                let rmse = compute_rmse(
-                    data.ns1,
-                    data.ns2,
-                    data.grid.npts,
-                    &c_a,
-                    &c_prev,
-                );
+                let rmse = compute_rmse(data.ns1, data.ns2, data.grid.npts, &c_a, &c_prev);
                 //println!("\tMDIIS RMSE: {}", rmse);
                 self.rms_res.push_back(rmse)
             } else {
                 //println!("MDIIS Step");
                 let gr = &data.tr + &c_a;
                 c_next = self.step_mdiis(&c_a, &c_prev, &gr);
-                let rmse = compute_rmse(
-                    data.ns1,
-                    data.ns2,
-                    data.grid.npts,
-                    &c_a,
-                    &c_prev,
-                );
+                let rmse = compute_rmse(data.ns1, data.ns2, data.grid.npts, &c_a, &c_prev);
                 //println!("\tMDIIS RMSE: {}", rmse);
                 let rmse_min = self.rms_res.iter().fold(f64::INFINITY, |a, &b| a.min(b));
                 let min_index = self
@@ -195,8 +184,10 @@ impl MDIIS {
                 &c_next,
                 &c_prev,
             );
-            if i % 10 == 0 { println!("Iteration: {}\tConvergence RMSE: {:E}", i, rmse); }
-        
+            if i % 10 == 0 {
+                println!("Iteration: {}\tConvergence RMSE: {:E}", i, rmse);
+            }
+
             if rmse < self.tolerance {
                 println!("Converged at:\n\tIteration: {}\n\tRMSE: {:E}", i, rmse);
                 break;

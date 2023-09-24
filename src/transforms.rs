@@ -4,7 +4,6 @@ use ndarray::{Array1, ArrayView1};
 use rustdct::TransformType4;
 use std::sync::Arc;
 
-
 type FFTPlan = Arc<dyn TransformType4<f64>>;
 
 pub fn fourier_bessel_transform(
@@ -30,7 +29,10 @@ pub fn fourier_bessel_transform_fftw(
     let arr = func * grid1;
     let mut input = arr.as_standard_layout();
     let mut output = Array1::zeros(input.raw_dim());
-    r2r.r2r(input.as_slice_mut().unwrap() , output.as_slice_mut().unwrap())
-        .expect("could not perform DST-IV operation");
+    r2r.r2r(
+        input.as_slice_mut().unwrap(),
+        output.as_slice_mut().unwrap(),
+    )
+    .expect("could not perform DST-IV operation");
     prefac * output / grid2
 }
