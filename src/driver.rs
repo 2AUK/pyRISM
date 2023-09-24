@@ -1,6 +1,5 @@
 use crate::data::{self, DataRs};
 use crate::mdiis::MDIIS;
-use numpy::{IntoPyArray, PyArray3, PyReadonlyArray2, PyReadonlyArray3};
 use pyo3::{prelude::*, types::PyString};
 use std::fmt;
 
