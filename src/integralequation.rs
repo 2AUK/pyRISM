@@ -1,7 +1,7 @@
 use crate::data::DataRs;
 use crate::transforms::fourier_bessel_transform_fftw;
 use fftw::plan::*;
-use ndarray::{Array, Array1, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis, Zip};
+use ndarray::{Array, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis, Zip};
 use ndarray_linalg::Inverse;
 use std::f64::consts::PI;
 use pyo3::{prelude::*, types::PyString};
@@ -57,7 +57,7 @@ pub fn xrism_vv(data: &mut DataRs, plan: &mut R2RPlan64) {
 
 fn xrism_vv_equation_impl(
     ns: usize,
-    npts: usize,
+    _npts: usize,
     r: ArrayView1<f64>,
     k: ArrayView1<f64>,
     dr: f64,
