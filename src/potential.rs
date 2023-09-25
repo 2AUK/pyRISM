@@ -52,7 +52,6 @@ impl fmt::Display for PotentialConfig {
     }
 }
 
-
 pub fn lennard_jones(_data: DataRs) -> Array3<f64> {
     Array3::zeros((1, 1, 1))
 }

@@ -18,7 +18,6 @@ pub struct Species {
     pub atom_sites: Vec<Site>,
 }
 
-
 #[derive(FromPyObject, Debug, Clone)]
 pub struct DataConfig {
     pub temp: f64,
