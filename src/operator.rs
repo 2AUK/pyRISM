@@ -1,6 +1,6 @@
-use pyo3::prelude::*;
 use crate::closure::ClosureKind;
 use crate::integralequation::IntegralEquationKind;
+use pyo3::prelude::*;
 use std::fmt;
 
 pub enum CycleOrder {

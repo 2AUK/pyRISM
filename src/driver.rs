@@ -1,7 +1,7 @@
 use crate::data::{DataConfig, DataRs};
-use crate::solver::SolverConfig;
-use crate::potential::PotentialConfig;
 use crate::operator::OperatorConfig;
+use crate::potential::PotentialConfig;
+use crate::solver::SolverConfig;
 use pyo3::prelude::*;
 
 #[pyclass]
@@ -84,7 +84,8 @@ impl RISMDriver {
     }
 
     pub fn print_info(&self) {
-        println!("
+        println!(
+            "
              ____  ___ ____  __  __ 
  _ __  _   _|  _ \\|_ _/ ___||  \\/  |
 | '_ \\| | | | |_) || |\\___ \\| |\\/| |
@@ -92,7 +93,8 @@ impl RISMDriver {
 | .__/ \\__, |_| \\_\\___|____/|_|  |_|
 |_|    |___/                        
 
-");
+"
+        );
         match &self.uv {
             None => println!("Solvent-Solvent Problem:\n{}\n\nJob Configuration:\n{}\n{}\n{}", self.vv, self.operator, self.potential, self.solver),
             Some(uv) => println!("Solvent-Solvent Problem:\n{}\n\nSolute-Solvent Problem:\n{}\n\nJob Configuration:\n{}\n{}\n{}", self.vv, uv, self.operator, self.potential, self.solver),
