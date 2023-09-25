@@ -1,41 +1,8 @@
 use crate::data::{DataConfig, DataRs};
 use crate::solver::SolverConfig;
 use crate::potential::PotentialConfig;
-use crate::closure::ClosureKind;
-use crate::integralequation::IntegralEquationKind;
+use crate::operator::OperatorConfig;
 use pyo3::prelude::*;
-use std::fmt;
-
-#[derive(FromPyObject, Debug, Clone)]
-pub struct Site {
-    pub atom_type: String,
-    pub params: Vec<f64>,
-    pub coords: Vec<f64>,
-}
-
-#[derive(FromPyObject, Debug, Clone)]
-pub struct Species {
-    pub species_name: String,
-    pub dens: f64,
-    pub ns: usize,
-    pub atom_sites: Vec<Site>,
-}
-
-#[derive(FromPyObject, Debug, Clone)]
-pub struct OperatorConfig {
-    pub integral_equation: IntegralEquationKind,
-    pub closure: ClosureKind,
-}
-
-impl fmt::Display for OperatorConfig {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "Integral Equation: {}\nClosure: {}",
-            self.integral_equation, self.closure
-        )
-    }
-}
 
 #[pyclass]
 #[derive(Clone, Debug)]
