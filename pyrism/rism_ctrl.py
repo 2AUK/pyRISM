@@ -31,10 +31,12 @@ from dataclasses import dataclass, field
 np.seterr(over="raise")
 warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
+
 @dataclass
 class SolverConfig:
     solver: str
     params: dict = field(default_factory=dict)
+
 
 @dataclass
 class DataConfig:
@@ -168,11 +170,28 @@ class RismController:
                 )
             )
         atoms = solv_atoms + solu_atoms
-        data_config = DataConfig(temp, kt, ku, amph, nsv, nsu, nspv, nspu, npts, radius, lam, atoms, solv_species, solu_species)
+        data_config = DataConfig(
+            temp,
+            kt,
+            ku,
+            amph,
+            nsv,
+            nsu,
+            nspv,
+            nspu,
+            npts,
+            radius,
+            lam,
+            atoms,
+            solv_species,
+            solu_species,
+        )
         operator_config = OperatorConfig(inp["params"]["IE"], inp["params"]["closure"])
         solver_config = SolverConfig(inp["params"]["solver"])
         potential_config = PotentialConfig(inp["params"]["potential"], "COU", "NG")
-        rism_job = RISMDriver(data_config, operator_config, potential_config, solver_config)
+        rism_job = RISMDriver(
+            data_config, operator_config, potential_config, solver_config
+        )
         rism_job.print_info()
 
         self.name = os.path.basename(self.fname).split(sep=".")[0]
