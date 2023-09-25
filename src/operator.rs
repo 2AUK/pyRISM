@@ -3,6 +3,11 @@ use crate::closure::ClosureKind;
 use crate::integralequation::IntegralEquationKind;
 use std::fmt;
 
+pub enum CycleOrder {
+    C2T2C,
+    T2C2T,
+}
+
 #[derive(FromPyObject, Debug, Clone)]
 pub struct OperatorConfig {
     pub integral_equation: IntegralEquationKind,
