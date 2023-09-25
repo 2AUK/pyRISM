@@ -1,8 +1,23 @@
-use crate::driver::{Site, Species};
 use ndarray::{Array1, Array2, Array3};
 use numpy::{PyArray1, PyArray2, PyArray3};
 use pyo3::prelude::*;
 use std::{f64::consts::PI, fmt};
+
+#[derive(FromPyObject, Debug, Clone)]
+pub struct Site {
+    pub atom_type: String,
+    pub params: Vec<f64>,
+    pub coords: Vec<f64>,
+}
+
+#[derive(FromPyObject, Debug, Clone)]
+pub struct Species {
+    pub species_name: String,
+    pub dens: f64,
+    pub ns: usize,
+    pub atom_sites: Vec<Site>,
+}
+
 
 #[derive(FromPyObject, Debug, Clone)]
 pub struct DataConfig {
