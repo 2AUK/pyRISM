@@ -1,5 +1,8 @@
 use crate::closure::ClosureKind;
+use crate::data::DataRs;
 use crate::integralequation::IntegralEquationKind;
+use fftw::plan::*;
+use ndarray::Array3;
 use pyo3::prelude::*;
 use std::fmt;
 
@@ -21,5 +24,21 @@ impl fmt::Display for OperatorConfig {
             "Integral Equation: {}\nClosure: {}",
             self.integral_equation, self.closure
         )
+    }
+}
+
+pub struct Operator {
+    pub eq_vv: fn(&mut DataRs, &mut R2RPlan64),
+    pub eq_uv: fn(&mut DataRs, &mut R2RPlan64),
+    pub closure: fn(&DataRs) -> Array3<f64>,
+}
+
+impl Operator {
+    pub fn new(config: &OperatorConfig) -> Self {
+        Operator {
+            eq_vv: config.integral_equation.set(),
+            eq_uv: IntegralEquationKind::UV.set(),
+            closure: config.closure.set(),
+        }
     }
 }

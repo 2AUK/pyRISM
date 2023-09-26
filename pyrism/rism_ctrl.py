@@ -188,11 +188,11 @@ class RismController:
         )
         operator_config = OperatorConfig(inp["params"]["IE"], inp["params"]["closure"])
         solver_config = SolverConfig(inp["params"]["solver"])
-        potential_config = PotentialConfig(inp["params"]["potential"], "COU", "NG")
+        potential_config = PotentialConfig(inp["params"]["potential"], "COU", "NGR", "NGK")
         rism_job = RISMDriver(
             data_config, operator_config, potential_config, solver_config
         )
-        rism_job.print_info()
+        rism_job.execute()
 
         self.name = os.path.basename(self.fname).split(sep=".")[0]
         if "solvent" not in inp:
