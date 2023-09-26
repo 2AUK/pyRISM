@@ -51,7 +51,8 @@ class DataConfig:
     npts: int
     radius: float
     nlambda: int
-    atoms: list = field(default_factory=list)
+    solvent_atoms: list = field(default_factory=list)
+    solute_atoms: list = field(default_factory=list)
     solvent_species: list = field(default_factory=list)
     solute_species: list = field(default_factory=list)
 
@@ -66,7 +67,8 @@ class OperatorConfig:
 class PotentialConfig:
     nonbonded: str
     coulombic: str
-    renormalisation: str
+    renormalisation_real: str
+    renormalisation_fourier: str
 
 
 @dataclass
@@ -156,7 +158,7 @@ class RismController:
                 }.items()
             )
         )
-        solu_atoms = []
+        solu_atoms = None
         solu_species = None
         if "solute" in inp:
             nsu = inp["solute"]["nsu"]
@@ -169,7 +171,6 @@ class RismController:
                     }.items()
                 )
             )
-        atoms = solv_atoms + solu_atoms
         data_config = DataConfig(
             temp,
             kt,
@@ -182,7 +183,8 @@ class RismController:
             npts,
             radius,
             lam,
-            atoms,
+            solv_atoms,
+            solu_atoms,
             solv_species,
             solu_species,
         )

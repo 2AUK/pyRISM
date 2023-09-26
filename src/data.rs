@@ -31,7 +31,8 @@ pub struct DataConfig {
     pub npts: usize,
     pub radius: f64,
     pub nlambda: usize,
-    pub atoms: Vec<Site>,
+    pub solvent_atoms: Vec<Site>,
+    pub solute_atoms: Option<Vec<Site>>,
     pub solvent_species: Vec<Species>,
     pub solute_species: Option<Vec<Species>>,
 }
