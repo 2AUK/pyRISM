@@ -40,7 +40,7 @@ impl RISMDriver {
             data_config.npts,
             data_config.radius,
             data_config.nlambda,
-            data_config.atoms.clone(),
+            data_config.solvent_atoms.clone(),
             data_config.solvent_species.clone(),
         );
 
@@ -60,8 +60,8 @@ impl RISMDriver {
                     data_config.npts,
                     data_config.radius,
                     data_config.nlambda,
-                    data_config.atoms,
-                    data_config.solvent_species,
+                    data_config.solute_atoms.unwrap().clone(),
+                    data_config.solute_species.unwrap().clone(),
                 ));
             }
         }
@@ -85,16 +85,14 @@ impl RISMDriver {
     }
 
     pub fn execute(&mut self) {
+        self.print_info();
         // set up operator(RISM equation and Closure)
+        println!("Defining operator...");
         let operator = Operator::new(&self.operator);
 
         // build potentials
+        println!("Building potentials...");
         self.build_vv_potential();
-
-
-
-        self.print_info()
-
     }
 
     fn do_rism(&mut self) {
@@ -143,14 +141,18 @@ impl RISMDriver {
         // set up total potential
         let (mut u_nb, mut u_c) = (Array::zeros(self.vv.ur.raw_dim()), Array::zeros(self.vv.ur.raw_dim()));
         // compute nonbonded interaction
+        println!("\t{}...", self.potential.nonbonded);
         (potential.nonbonded)(&self.vv.sites, &self.vv.sites, &self.vv.grid.rgrid, &mut u_nb);
         // compute electrostatic interaction
-        (potential.nonbonded)(&self.vv.sites, &self.vv.sites, &self.vv.grid.rgrid, &mut u_c);
+        println!("\t{}...", self.potential.coulombic);
+        (potential.coulombic)(&self.vv.sites, &self.vv.sites, &self.vv.grid.rgrid, &mut u_c);
         // set total interaction
         self.vv.ur = u_nb + u_c;
 
         // compute renormalised potentials
+        println!("\t{}...", self.potential.renormalisation_real);
         (potential.renormalisation_real)(&self.vv.sites, &self.vv.sites, &self.vv.grid.rgrid, &mut self.vv.ur_lr);
+        println!("\t{}...", self.potential.renormalisation_fourier);
         (potential.renormalisation_real)(&self.vv.sites, &self.vv.sites, &self.vv.grid.kgrid, &mut self.vv.uk_lr);
     }
 
