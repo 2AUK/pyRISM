@@ -45,10 +45,31 @@ impl fmt::Display for ClosureKind {
     }
 }
 
+impl ClosureKind {
+    pub fn set(&self) -> fn(&DataRs) -> Array3<f64> {
+        match self {
+            ClosureKind::HyperNettedChain => hyper_netted_chain,
+            ClosureKind::KovalenkoHirata => kovalenko_hirata,
+            ClosureKind::PercusYevick => percus_yevick,
+            ClosureKind::PartialSeriesExpansion(x) => partial_series_expansion,
+        }
+    }
+}
+
 // pub fn hyper_netted_chain(b: f64, u: ArrayView3<f64>, t: ArrayView3<f64>) -> Array3<f64> {
 //     (-b * u.to_owned() + t).mapv(|a| a.exp()) - 1.0 - t
 // }
 
 pub fn hyper_netted_chain(data: &DataRs) -> Array3<f64> {
     (-data.beta * &data.u_sr + &data.tr).mapv(|a| a.exp()) - 1.0 - &data.tr
+}
+
+pub fn kovalenko_hirata(data: &DataRs) -> Array3<f64> {
+    todo!()
+}
+pub fn percus_yevick(data: &DataRs) -> Array3<f64> {
+    todo!()
+}
+pub fn partial_series_expansion(data: &DataRs) -> Array3<f64> {
+    todo!()
 }

@@ -1,7 +1,8 @@
-use crate::data::{DataConfig, DataRs};
-use crate::operator::OperatorConfig;
-use crate::potential::PotentialConfig;
+use crate::data::{DataConfig, DataRs, Site};
+use crate::operator::{Operator, OperatorConfig};
+use crate::potential::{Potential, PotentialConfig};
 use crate::solver::SolverConfig;
+use ndarray::{Array, Array3};
 use pyo3::prelude::*;
 
 #[pyclass]
@@ -83,25 +84,20 @@ impl RISMDriver {
         })
     }
 
-    pub fn print_info(&self) {
-        println!(
-            "
-             ____  ___ ____  __  __ 
- _ __  _   _|  _ \\|_ _/ ___||  \\/  |
-| '_ \\| | | | |_) || |\\___ \\| |\\/| |
-| |_) | |_| |  _ < | | ___) | |  | |
-| .__/ \\__, |_| \\_\\___|____/|_|  |_|
-|_|    |___/                        
+    pub fn execute(&mut self) {
+        // set up operator(RISM equation and Closure)
+        let operator = Operator::new(&self.operator);
 
-"
-        );
-        match &self.uv {
-            None => println!("Solvent-Solvent Problem:\n{}\n\nJob Configuration:\n{}\n{}\n{}", self.vv, self.operator, self.potential, self.solver),
-            Some(uv) => println!("Solvent-Solvent Problem:\n{}\n\nSolute-Solvent Problem:\n{}\n\nJob Configuration:\n{}\n{}\n{}", self.vv, uv, self.operator, self.potential, self.solver),
-        }
+        // build potentials
+        self.build_vv_potential();
+
+
+
+        self.print_info()
+
     }
 
-    pub fn do_rism(&mut self) {
+    fn do_rism(&mut self) {
         todo!()
     }
 
@@ -121,4 +117,57 @@ impl RISMDriver {
     //         self.data.hk.clone().into_pyarray(py),
     //     ))
     // }
+}
+
+impl RISMDriver {
+    fn print_info(&self) {
+        println!(
+            "
+             ____  ___ ____  __  __ 
+ _ __  _   _|  _ \\|_ _/ ___||  \\/  |
+| '_ \\| | | | |_) || |\\___ \\| |\\/| |
+| |_) | |_| |  _ < | | ___) | |  | |
+| .__/ \\__, |_| \\_\\___|____/|_|  |_|
+|_|    |___/                        
+
+"
+        );
+        match &self.uv {
+            None => println!("Solvent-Solvent Problem:\n{}\n\nJob Configuration:\n{}\n{}\n{}", self.vv, self.operator, self.potential, self.solver),
+            Some(uv) => println!("Solvent-Solvent Problem:\n{}\n\nSolute-Solvent Problem:\n{}\n\nJob Configuration:\n{}\n{}\n{}", self.vv, uv, self.operator, self.potential, self.solver),
+        }
+    }
+
+    fn build_vv_potential(&mut self) {
+        let potential = Potential::new(&self.potential);
+        // set up total potential
+        let (mut u_nb, mut u_c) = (Array::zeros(self.vv.ur.raw_dim()), Array::zeros(self.vv.ur.raw_dim()));
+        // compute nonbonded interaction
+        (potential.nonbonded)(&self.vv.sites, &self.vv.sites, &self.vv.grid.rgrid, &mut u_nb);
+        // compute electrostatic interaction
+        (potential.nonbonded)(&self.vv.sites, &self.vv.sites, &self.vv.grid.rgrid, &mut u_c);
+        // set total interaction
+        self.vv.ur = u_nb + u_c;
+
+        // compute renormalised potentials
+        (potential.renormalisation_real)(&self.vv.sites, &self.vv.sites, &self.vv.grid.rgrid, &mut self.vv.ur_lr);
+        (potential.renormalisation_real)(&self.vv.sites, &self.vv.sites, &self.vv.grid.kgrid, &mut self.vv.uk_lr);
+    }
+
+    fn build_uv_potential(&mut self) {
+        let potential = Potential::new(&self.potential);
+        let uv = self.uv.as_mut().unwrap();
+        // set up total potential
+        let (mut u_nb, mut u_c) = (Array::zeros(uv.ur.raw_dim()), Array::zeros(uv.ur.raw_dim()));
+        // compute nonbonded interaction
+        (potential.nonbonded)(&uv.sites, &self.vv.sites, &uv.grid.rgrid, &mut u_nb);
+        // compute electrostatic interaction
+        (potential.nonbonded)(&uv.sites, &self.vv.sites, &uv.grid.rgrid, &mut u_c);
+        // set total interaction
+        uv.ur = u_nb + u_c;
+
+        // compute renormalised potentials
+        (potential.renormalisation_real)(&uv.sites, &self.vv.sites, &self.vv.grid.rgrid, &mut uv.ur_lr);
+        (potential.renormalisation_real)(&uv.sites, &self.vv.sites, &self.vv.grid.kgrid, &mut uv.uk_lr);
+    }
 }

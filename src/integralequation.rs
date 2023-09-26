@@ -11,6 +11,7 @@ use std::fmt;
 pub enum IntegralEquationKind {
     XRISM,
     DRISM,
+    UV,
 }
 
 impl<'source> FromPyObject<'source> for IntegralEquationKind {
@@ -33,12 +34,27 @@ impl fmt::Display for IntegralEquationKind {
         match self {
             IntegralEquationKind::XRISM => write!(f, "Extended RISM"),
             IntegralEquationKind::DRISM => write!(f, "Dielectrically Consistent RISM"),
+            IntegralEquationKind::UV => write!(f, "Solute-Solvent RISM"),
         }
     }
 }
 
+impl IntegralEquationKind {
+    pub fn set(&self) -> fn(&mut DataRs, &mut R2RPlan64) {
+        match self {
+            IntegralEquationKind::XRISM => xrism_vv,
+            IntegralEquationKind::DRISM => drism_vv,
+            IntegralEquationKind::UV => rism_uv,
+        }
+    }
+}
+
+pub fn rism_uv(data: &mut DataRs, plan: &mut R2RPlan64) {
+    todo!()
+}
+
 pub fn xrism_vv(data: &mut DataRs, plan: &mut R2RPlan64) {
-    (data.hk, data.tr) = xrism_vv_equation_impl(
+    (data.hk, data.tr) = rism_vv_equation_impl(
         data.ns1,
         data.grid.npts,
         data.grid.rgrid.view(),
@@ -51,11 +67,31 @@ pub fn xrism_vv(data: &mut DataRs, plan: &mut R2RPlan64) {
         data.beta,
         data.uk_lr.view(),
         data.ur_lr.view(),
+        Array::zeros((data.grid.npts, data.ns1, data.ns2)).view(),
         plan,
     )
 }
 
-fn xrism_vv_equation_impl(
+pub fn drism_vv(data: &mut DataRs, plan: &mut R2RPlan64) {
+    (data.hk, data.tr) = rism_vv_equation_impl(
+        data.ns1,
+        data.grid.npts,
+        data.grid.rgrid.view(),
+        data.grid.kgrid.view(),
+        data.grid.dr,
+        data.grid.dk,
+        data.cr.view(),
+        data.wk.view(),
+        data.density.view(),
+        data.beta,
+        data.uk_lr.view(),
+        data.ur_lr.view(),
+        Array::zeros((data.grid.npts, data.ns1, data.ns2)).view(),
+        plan,
+    )
+}
+
+fn rism_vv_equation_impl(
     ns: usize,
     _npts: usize,
     r: ArrayView1<f64>,
@@ -68,6 +104,7 @@ fn xrism_vv_equation_impl(
     b: f64,
     uk_lr: ArrayView3<f64>,
     ur_lr: ArrayView3<f64>,
+    chi: ArrayView3<f64>,
     plan: &mut R2RPlan64,
 ) -> (Array3<f64>, Array3<f64>) {
     // Setting up prefactors for Fourier-Bessel transforms
