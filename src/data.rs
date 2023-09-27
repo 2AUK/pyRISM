@@ -63,25 +63,33 @@ impl Grid {
 }
 
 #[derive(Clone, Debug)]
-pub struct DataRs {
+pub struct SystemState {
     // Thermodynamic parameters
     pub temp: f64,
     pub kt: f64,
     pub amph: f64,
     pub nlam: usize,
     pub beta: f64,
+}
 
+#[derive(Clone, Debug)]
+pub struct SingleData {
     // System size
-    pub ns1: usize,
-    pub ns2: usize,
-    pub nsp1: usize,
-    pub nsp2: usize,
+    pub sites: Vec<Site>,
+    pub species: Vec<Species>,
+}
+
+#[derive(Clone, Debug)]
+pub struct DataRs {
+
+    pub system: SystemState,
+
+    pub solvent: SingleData,
+
+    pub solute: Option<SingleData>,
 
     // Sampling grid
     pub grid: Grid,
-
-    pub sites: Vec<Site>,
-    pub species: Vec<Species>,
 
     pub cr: Array3<f64>,
     pub tr: Array3<f64>,
@@ -129,13 +137,7 @@ impl DataRs {
             amph,
             nlam,
             beta: 1.0 / temp / kt,
-            ns1,
-            ns2,
-            nsp1,
-            nsp2,
             grid,
-            sites,
-            species,
             cr: Array3::zeros(shape),
             tr: Array3::zeros(shape),
             hr: Array3::zeros(shape),
