@@ -1,22 +1,24 @@
 use pyo3::{prelude::*, types::PyString};
 use std::fmt;
 
-// pub enum MDIISSettings {
-//     depth(usize),
-//     damping(f64),
-// }
+#[derive(FromPyObject, Debug, Clone)]
+pub struct MDIISSettings {
+    pub depth: usize,
+    pub damping: f64,
+}
 
-// pub enum GillanSettings {
-//     nbasis(usize),
-// }
+#[derive(FromPyObject, Debug, Clone)]
+pub struct GillanSettings {
+    pub nbasis: usize,
+}
 
 #[derive(FromPyObject, Debug, Clone)]
 pub struct SolverSettings {
     pub picard_damping: f64,
     pub max_iter: usize,
     pub tolerance: f64,
-    pub gillan_settings: Option<usize>,
-    pub mdiis_settings: Option<(usize, f64)>,
+    pub gillan_settings: Option<GillanSettings>,
+    pub mdiis_settings: Option<MDIISSettings>,
 }
 
 #[derive(FromPyObject, Debug, Clone)]
