@@ -1,10 +1,10 @@
 use crate::data::Site;
+use errorfunctions::RealErrorFunctions;
+use itertools::Itertools;
 use ndarray::{s, Array1, Array3};
 use pyo3::{prelude::*, types::PyString};
-use std::fmt;
 use std::f64::consts::PI;
-use itertools::Itertools;
-use errorfunctions::RealErrorFunctions;
+use std::fmt;
 
 #[derive(Debug, Clone)]
 pub enum PotentialKind {
@@ -40,7 +40,9 @@ impl fmt::Display for PotentialKind {
             PotentialKind::HardSpheres => write!(f, "Hard Spheres"),
             PotentialKind::Coulomb => write!(f, "Coulomb"),
             PotentialKind::NgRenormalisationReal => write!(f, "Ng Renormalisation (Real space)"),
-            PotentialKind::NgRenormalisationFourier => write!(f, "Ng Renormalisation (Fourier space)"),
+            PotentialKind::NgRenormalisationFourier => {
+                write!(f, "Ng Renormalisation (Fourier space)")
+            }
         }
     }
 }
@@ -101,10 +103,23 @@ fn lorentz_berthelot(eps1: f64, eps2: f64, sig1: f64, sig2: f64) -> (f64, f64) {
     (geometric_mean(eps1, eps2), arithmetic_mean(sig1, sig2))
 }
 
-pub fn lennard_jones(atoms_a: &[Site], atoms_b: &[Site], r: &Array1<f64>, result: &mut Array3<f64>) {
-    let atom_pairs = atoms_a.iter().enumerate().cartesian_product(atoms_b.iter().enumerate());
+pub fn lennard_jones(
+    atoms_a: &[Site],
+    atoms_b: &[Site],
+    r: &Array1<f64>,
+    result: &mut Array3<f64>,
+) {
+    let atom_pairs = atoms_a
+        .iter()
+        .enumerate()
+        .cartesian_product(atoms_b.iter().enumerate());
     for ((i, site_a), (j, site_b)) in atom_pairs {
-        let (eps, sig) = lorentz_berthelot(site_a.params[0], site_b.params[0], site_a.params[1], site_b.params[1]);
+        let (eps, sig) = lorentz_berthelot(
+            site_a.params[0],
+            site_b.params[0],
+            site_a.params[1],
+            site_b.params[1],
+        );
         result.slice_mut(s![.., i, j]).assign({
             let mut ir = sig / r;
             let mut ir6 = ir.view_mut();
@@ -117,7 +132,10 @@ pub fn lennard_jones(atoms_a: &[Site], atoms_b: &[Site], r: &Array1<f64>, result
 }
 
 pub fn hard_spheres(atoms_a: &[Site], atoms_b: &[Site], r: &Array1<f64>, result: &mut Array3<f64>) {
-    let atom_pairs = atoms_a.iter().enumerate().cartesian_product(atoms_b.iter().enumerate());
+    let atom_pairs = atoms_a
+        .iter()
+        .enumerate()
+        .cartesian_product(atoms_b.iter().enumerate());
     for ((i, site_a), (j, site_b)) in atom_pairs {
         let d = arithmetic_mean(site_a.params[0], site_b.params[0]);
         let mut out = r.clone();
@@ -132,22 +150,31 @@ pub fn hard_spheres(atoms_a: &[Site], atoms_b: &[Site], r: &Array1<f64>, result:
                 new_x
             });
             &out
-    });
-    }
-}
-
-pub fn coulomb(atoms_a: &[Site], atoms_b: &[Site], r: &Array1<f64>, result: &mut Array3<f64>) {
-    let atom_pairs = atoms_a.iter().enumerate().cartesian_product(atoms_b.iter().enumerate());
-    for ((i, site_a), (j, site_b)) in atom_pairs {
-        let q = site_a.params.last().unwrap() * site_b.params.last().unwrap();
-        result.slice_mut(s![.., i, j]).assign({
-            &(q / r.clone())
         });
     }
 }
 
-pub fn ng_renormalisation_real(atoms_a: &[Site], atoms_b: &[Site], r: &Array1<f64>, result: &mut Array3<f64>) {
-    let atom_pairs = atoms_a.iter().enumerate().cartesian_product(atoms_b.iter().enumerate());
+pub fn coulomb(atoms_a: &[Site], atoms_b: &[Site], r: &Array1<f64>, result: &mut Array3<f64>) {
+    let atom_pairs = atoms_a
+        .iter()
+        .enumerate()
+        .cartesian_product(atoms_b.iter().enumerate());
+    for ((i, site_a), (j, site_b)) in atom_pairs {
+        let q = site_a.params.last().unwrap() * site_b.params.last().unwrap();
+        result.slice_mut(s![.., i, j]).assign({ &(q / r.clone()) });
+    }
+}
+
+pub fn ng_renormalisation_real(
+    atoms_a: &[Site],
+    atoms_b: &[Site],
+    r: &Array1<f64>,
+    result: &mut Array3<f64>,
+) {
+    let atom_pairs = atoms_a
+        .iter()
+        .enumerate()
+        .cartesian_product(atoms_b.iter().enumerate());
     for ((i, site_a), (j, site_b)) in atom_pairs {
         let q = site_a.params.last().unwrap() * site_b.params.last().unwrap();
         result.slice_mut(s![.., i, j]).assign({
@@ -158,15 +185,23 @@ pub fn ng_renormalisation_real(atoms_a: &[Site], atoms_b: &[Site], r: &Array1<f6
     }
 }
 
-pub fn ng_renormalisation_fourier(atoms_a: &[Site], atoms_b: &[Site], k: &Array1<f64>, result: &mut Array3<f64>) {
-    let atom_pairs = atoms_a.iter().enumerate().cartesian_product(atoms_b.iter().enumerate());
+pub fn ng_renormalisation_fourier(
+    atoms_a: &[Site],
+    atoms_b: &[Site],
+    k: &Array1<f64>,
+    result: &mut Array3<f64>,
+) {
+    let atom_pairs = atoms_a
+        .iter()
+        .enumerate()
+        .cartesian_product(atoms_b.iter().enumerate());
     for ((i, site_a), (j, site_b)) in atom_pairs {
         let q = site_a.params.last().unwrap() * site_b.params.last().unwrap();
         result.slice_mut(s![.., i, j]).assign({
             let mut exp_k = k.clone();
             let mut k2 = k.clone();
             k2.par_mapv_inplace(|x| x.powf(2.0));
-            exp_k.par_mapv_inplace(|x| (-1.0 * x.powf(2.0) / 4.0).exp() );
+            exp_k.par_mapv_inplace(|x| (-1.0 * x.powf(2.0) / 4.0).exp());
             &(q * PI * exp_k / k2)
         });
     }

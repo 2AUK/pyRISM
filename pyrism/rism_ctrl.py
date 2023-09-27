@@ -27,16 +27,25 @@ import time
 import warnings
 from pyrism.rust_helpers import RISMDriver
 from dataclasses import dataclass, field
+from enum import Enum
+
 
 np.seterr(over="raise")
 warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
 
 @dataclass
+class SolverSettings:
+    picard_damping: float
+    max_iter: int
+    tolerance: float
+    gillan_settings: int = None
+    mdiis_settings: tuple = None
+
+@dataclass
 class SolverConfig:
     solver: str
-    params: dict = field(default_factory=dict)
-
+    settings: object
 
 @dataclass
 class DataConfig:
@@ -189,8 +198,26 @@ class RismController:
             solu_species,
         )
         operator_config = OperatorConfig(inp["params"]["IE"], inp["params"]["closure"])
-        solver_config = SolverConfig(inp["params"]["solver"])
+
         potential_config = PotentialConfig(inp["params"]["potential"], "COU", "NGR", "NGK")
+
+        solver = inp["params"]["solver"]
+        picard_damping = inp["params"]["picard_damping"]
+        max_iter = inp["params"]["itermax"]
+        tolerance = inp["params"]["tol"]
+        mdiis_settings = gillan_settings = None
+        if solver == "MDIIS":
+            if "mdiis_settings" not in inp["params"]:
+                mdiis_settings = (inp["params"]["depth"], inp["params"]["picard_damping"])
+            else:
+                mdiis_settings = (inp["params"]["depth"], inp["params"]["mdiis_damping"])
+        elif solver == "Gillan":
+            gillan_settings = inp["params"]["nbasis"]
+
+        settings = SolverSettings(picard_damping, max_iter, tolerance, gillan_settings=gillan_settings, mdiis_settings=mdiis_settings)
+
+        solver_config = SolverConfig(solver, settings)
+
         rism_job = RISMDriver(
             data_config, operator_config, potential_config, solver_config
         )
