@@ -1,6 +1,7 @@
 use crate::closure::hyper_netted_chain;
 use crate::data::DataRs;
 use crate::integralequation::xrism_vv;
+use crate::solver::SolverSettings;
 use fftw::plan::*;
 use fftw::types::*;
 use ndarray_linalg::Solve;
@@ -104,21 +105,14 @@ impl MDIIS {
 
 impl MDIIS {
     pub fn new(
-        m: usize,
-        mdiis_damping: f64,
-        picard_damping: f64,
-        max_iter: usize,
-        tolerance: f64,
-        npts: usize,
-        ns1: usize,
-        ns2: usize,
+        settings: SolverSettings,
     ) -> Self {
         MDIIS {
-            m,
-            mdiis_damping,
-            picard_damping,
-            max_iter,
-            tolerance,
+            m: settings.mdiis_settings.expect("MDIIS settings not found").depth,
+            mdiis_damping: settings.mdiis_settings.expect("MDIIS settings not found").damping,
+            picard_damping: settings.picard_damping,
+            max_iter: settings.max_iter,
+            tolerance: settings.tolerance,
             npts,
             ns1,
             ns2,

@@ -74,7 +74,7 @@ impl RISMDriver {
 
         // Extract solver information
         let solver: SolverConfig = solver_config.extract()?;
-        
+
         Ok(RISMDriver {
             vv,
             uv,
@@ -171,7 +171,7 @@ impl RISMDriver {
             &mut u_c,
         );
         // set total interaction
-        self.vv.ur = u_nb + u_c;
+        self.vv.ur = u_nb + self.vv.amph * u_c;
 
         // compute renormalised potentials
         println!("\t{}...", self.potential.renormalisation_real);
@@ -203,7 +203,7 @@ impl RISMDriver {
         println!("\t{}...", self.potential.coulombic);
         (potential.nonbonded)(&uv.sites, &self.vv.sites, &uv.grid.rgrid, &mut u_c);
         // set total interaction
-        uv.ur = u_nb + u_c;
+        uv.ur = u_nb + uv.amph * u_c;
 
         // compute renormalised potentials
         println!("\t{}...", self.potential.renormalisation_real);

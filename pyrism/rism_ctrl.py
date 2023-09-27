@@ -33,14 +33,22 @@ from enum import Enum
 np.seterr(over="raise")
 warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
+@dataclass
+class GillanSettings:
+    nbasis: int
+
+@dataclass
+class MDIISSettings:
+    depth: int
+    damping: float
 
 @dataclass
 class SolverSettings:
     picard_damping: float
     max_iter: int
     tolerance: float
-    gillan_settings: int = None
-    mdiis_settings: tuple = None
+    gillan_settings: object = None
+    mdiis_settings: object = None
 
 @dataclass
 class SolverConfig:
@@ -208,11 +216,11 @@ class RismController:
         mdiis_settings = gillan_settings = None
         if solver == "MDIIS":
             if "mdiis_settings" not in inp["params"]:
-                mdiis_settings = (inp["params"]["depth"], inp["params"]["picard_damping"])
+                mdiis_settings = MDIISSettings(inp["params"]["depth"], inp["params"]["picard_damping"])
             else:
-                mdiis_settings = (inp["params"]["depth"], inp["params"]["mdiis_damping"])
+                mdiis_settings = MDIISSettings(inp["params"]["depth"], inp["params"]["mdiis_damping"])
         elif solver == "Gillan":
-            gillan_settings = inp["params"]["nbasis"]
+            gillan_settings = GillanSettings(inp["params"]["nbasis"])
 
         settings = SolverSettings(picard_damping, max_iter, tolerance, gillan_settings=gillan_settings, mdiis_settings=mdiis_settings)
 
