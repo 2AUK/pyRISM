@@ -3,14 +3,14 @@ use numpy::{PyArray1, PyArray2, PyArray3};
 use pyo3::prelude::*;
 use std::{f64::consts::PI, fmt};
 
-#[derive(FromPyObject, Debug, Clone)]
+#[derive(FromPyObject, Debug, Clone, PartialEq)]
 pub struct Site {
     pub atom_type: String,
     pub params: Vec<f64>,
     pub coords: Vec<f64>,
 }
 
-#[derive(FromPyObject, Debug, Clone)]
+#[derive(FromPyObject, Debug, Clone, PartialEq)]
 pub struct Species {
     pub species_name: String,
     pub dens: f64,
@@ -144,7 +144,7 @@ impl DataRs {
             u_sr: Array3::zeros(shape),
             ur_lr: Array3::zeros(shape),
             uk_lr: Array3::zeros(shape),
-            wk: Array3::zeros(shape),
+            wk: Array3::zeros((npts, ns1, ns1)),
             density: Array2::zeros((ns1, ns2)),
         }
     }
