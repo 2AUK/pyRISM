@@ -88,7 +88,6 @@ class XRISM(object):
 def vv_impl(ns1, ns2, npts, ck, B, uk_lr, w, p):
     I = np.eye(ns1, M=ns2)
     h = np.zeros((npts, ns1, ns2), dtype=np.float64)
-
     ck -= B * uk_lr
     for i in prange(npts):
         iwcp = np.linalg.inv(I - w[i] @ ck[i] @ p)

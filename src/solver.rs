@@ -1,8 +1,8 @@
-use pyo3::{prelude::*, types::PyString};
 use crate::data::DataRs;
-use std::fmt::{self, Display, Debug};
 use crate::mdiis::MDIIS;
 use crate::operator::Operator;
+use pyo3::{prelude::*, types::PyString};
+use std::fmt::{self, Debug, Display};
 
 #[derive(Debug)]
 pub enum SolverError {
@@ -13,10 +13,8 @@ pub enum SolverError {
 impl Display for SolverError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SolverError::ConvergenceError(i) => 
-                write!(f, "Solver diverged at iteration {}", i),
-            SolverError::MaxIterationError(i) => 
-                write!(f, "Max iteration reach at {}", i),
+            SolverError::ConvergenceError(i) => write!(f, "Solver diverged at iteration {}", i),
+            SolverError::MaxIterationError(i) => write!(f, "Max iteration reach at {}", i),
         }
     }
 }

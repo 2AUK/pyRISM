@@ -9,7 +9,6 @@ use ndarray_linalg::Solve;
 use numpy::ndarray::{Array, Array1, Array2, Array3};
 use std::collections::VecDeque;
 
-
 #[derive(Clone, Debug)]
 pub struct MDIIS {
     // input parameters for solver
@@ -27,7 +26,10 @@ pub struct MDIIS {
 
 impl MDIIS {
     pub fn new(settings: &SolverSettings) -> Self {
-        let mdiis_settings = settings.clone().mdiis_settings.expect("MDIIS settings not found");
+        let mdiis_settings = settings
+            .clone()
+            .mdiis_settings
+            .expect("MDIIS settings not found");
         MDIIS {
             m: mdiis_settings.depth,
             mdiis_damping: mdiis_settings.damping,
@@ -108,7 +110,7 @@ impl MDIIS {
         self.fr.pop_front();
         self.res.pop_front();
 
-        (c_a + self.mdiis_damping * min_res)
+        c_a + self.mdiis_damping * min_res
     }
 }
 
@@ -168,9 +170,9 @@ impl Solver for MDIIS {
             }
             problem.correlations.cr = c_next.clone();
             let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &c_next, &c_prev);
-            if i % 10 == 0 {
-                println!("Iteration: {}\tConvergence RMSE: {:E}", i, rmse);
-            }
+
+            println!("Iteration: {}\tConvergence RMSE: {:E}", i, rmse);
+
 
             if rmse < self.tolerance {
                 break Ok(());

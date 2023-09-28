@@ -3,11 +3,11 @@ use crate::data::{
 };
 use crate::operator::{Operator, OperatorConfig};
 use crate::potential::{Potential, PotentialConfig};
+use crate::solver::Solver;
 use crate::solver::SolverConfig;
-use log::{info, warn};
+use log::{info, warn, error};
 use ndarray::{Array, Array1, Array2, Array3, Axis, Zip};
 use pyo3::prelude::*;
-use crate::solver::Solver;
 
 pub enum Verbosity {
     Quiet,
@@ -84,7 +84,7 @@ impl RISMDriver {
 
     pub fn execute(&mut self) {
         self.print_header();
-        env_logger::init();
+        simple_logger::init_with_env().unwrap();
         // set up operator(RISM equation and Closure)
         info!("Defining operator");
         let operator = Operator::new(&self.operator);
@@ -93,12 +93,12 @@ impl RISMDriver {
 
         let mut solver = self.solver.solver.set(&self.solver.settings);
 
-        println!("{:?}", vv);
-        println!("{:?}", solver);
+        //println!("{:?}", vv);
+        //println!("{:?}", solver);
 
         match solver.solve(&mut vv, &operator) {
             Ok(()) => info!("Finished!"),
-            Err(e) => info!("{}", e),
+            Err(e) => error!("{}", e),
         }
     }
 
@@ -220,8 +220,9 @@ impl RISMDriver {
             &problem.grid.rgrid,
             &mut u_c,
         );
+        u_c *= problem.system.amph;
         // set total interaction
-        problem.interactions.ur = u_nb + problem.system.amph * u_c;
+        problem.interactions.ur = u_nb + u_c;
 
         // compute renormalised potentials
         (potential.renormalisation_real)(
@@ -230,7 +231,7 @@ impl RISMDriver {
             &problem.grid.rgrid,
             &mut problem.interactions.ur_lr,
         );
-        (potential.renormalisation_real)(
+        (potential.renormalisation_fourier)(
             &problem.data_a.sites,
             &problem.data_b.sites,
             &problem.grid.kgrid,
