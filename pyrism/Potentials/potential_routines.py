@@ -27,6 +27,7 @@ def Lennard_Jones(r, params, lam):
         The result of the LJ computation
     """
     eps, sig = params
+    print("LJ: ", 4.0 * eps * ((sig / r) ** 12 - (sig / r) ** 6))
     return 4.0 * eps * ((sig / r) ** 12 - (sig / r) ** 6) * lam
 
 
@@ -105,6 +106,7 @@ def coulomb(r, q1, q2, lam, charge_coeff):
     result: float
         The result of the LJ computation
     """
+    print("coulomb:", charge_coeff * q1 * q2 / r)
     return lam * charge_coeff * q1 * q2 / r
 
 

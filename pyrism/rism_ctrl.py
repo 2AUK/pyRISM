@@ -31,6 +31,7 @@ from enum import Enum
 
 
 np.seterr(over="raise")
+np.set_printoptions(precision=16)
 warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
 @dataclass
@@ -735,10 +736,11 @@ class RismController:
             # )
             # rustrism.do_rism()
             print(dat1.grid.d_r)
-            print(dat1.u[0, ...])
-            print(dat1.u_sr[0, ...])
-            print(dat1.ur_lr[0, ...])
-            print(dat1.uk_lr[0, ...])
+            print(dat1.grid.ri)
+            print(repr(dat1.u[:, 0, 0]))
+            print(dat1.u_sr[:, 0, 0])
+            print(dat1.ur_lr[:, 0, 0])
+            print(dat1.uk_lr[:, 0, 0])
             self.solve_vv(lam, verbose)
             # dat1.c, dat1.t, dat1.h, dat1.h_k = rustrism.extract()
             if self.uv_check:

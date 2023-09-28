@@ -237,6 +237,9 @@ impl RISMDriver {
             &mut problem.interactions.uk_lr,
         );
 
+        problem.interactions.ur_lr *= problem.system.amph;
+        problem.interactions.uk_lr *= problem.system.amph;
+
         // set short range interactions
         problem.interactions.u_sr = &problem.interactions.ur - &problem.interactions.ur_lr;
     }
