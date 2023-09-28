@@ -1,12 +1,14 @@
 use crate::closure::hyper_netted_chain;
 use crate::data::DataRs;
 use crate::integralequation::xrism_vv;
-use crate::solver::SolverSettings;
+use crate::operator::Operator;
+use crate::solver::{Solver, SolverError, SolverSettings};
 use fftw::plan::*;
 use fftw::types::*;
 use ndarray_linalg::Solve;
 use numpy::ndarray::{Array, Array1, Array2, Array3};
 use std::collections::VecDeque;
+
 
 #[derive(Clone, Debug)]
 pub struct MDIIS {
@@ -17,11 +19,6 @@ pub struct MDIIS {
     pub max_iter: usize,
     pub tolerance: f64,
 
-    // store original shape of array
-    pub npts: usize,
-    pub ns1: usize,
-    pub ns2: usize,
-
     // arrays for MDIIS methods - to only be used in Rust code
     fr: VecDeque<Array1<f64>>,
     res: VecDeque<Array1<f64>>,
@@ -29,6 +26,20 @@ pub struct MDIIS {
 }
 
 impl MDIIS {
+    pub fn new(settings: &SolverSettings) -> Self {
+        let mdiis_settings = settings.clone().mdiis_settings.expect("MDIIS settings not found");
+        MDIIS {
+            m: mdiis_settings.depth,
+            mdiis_damping: mdiis_settings.damping,
+            picard_damping: settings.picard_damping,
+            max_iter: settings.max_iter,
+            tolerance: settings.tolerance,
+            fr: VecDeque::new(),
+            res: VecDeque::new(),
+            rms_res: VecDeque::new(),
+        }
+    }
+
     fn step_picard(&mut self, curr: &Array3<f64>, prev: &Array3<f64>) -> Array3<f64> {
         // calculate difference between current and previous solutions from RISM equation
         let diff = curr.clone() - prev.clone();
@@ -50,7 +61,7 @@ impl MDIIS {
         curr: &Array3<f64>,
         prev: &Array3<f64>,
         gr: &Array3<f64>,
-    ) -> Array3<f64> {
+    ) -> Array1<f64> {
         let mut a = Array2::zeros((self.m + 1, self.m + 1));
         let mut b = Array1::zeros(self.m + 1);
 
@@ -98,57 +109,43 @@ impl MDIIS {
         self.res.pop_front();
 
         (c_a + self.mdiis_damping * min_res)
-            .into_shape((self.npts, self.ns1, self.ns2))
-            .expect("could not reshape array into original shape")
     }
 }
 
-impl MDIIS {
-    pub fn new(
-        settings: SolverSettings,
-    ) -> Self {
-        MDIIS {
-            m: settings.mdiis_settings.expect("MDIIS settings not found").depth,
-            mdiis_damping: settings.mdiis_settings.expect("MDIIS settings not found").damping,
-            picard_damping: settings.picard_damping,
-            max_iter: settings.max_iter,
-            tolerance: settings.tolerance,
-            npts,
-            ns1,
-            ns2,
-            fr: VecDeque::new(),
-            res: VecDeque::new(),
-            rms_res: VecDeque::new(),
-        }
-    }
-
-    pub fn solve(&mut self, data: &mut DataRs) {
+impl Solver for MDIIS {
+    fn solve(&mut self, problem: &mut DataRs, operator: &Operator) -> Result<(), SolverError> {
         println! {"Solving solvent-solvent RISM equation"};
         self.fr.clear();
         self.res.clear();
         self.rms_res.clear();
+        let shape = problem.correlations.cr.dim();
+        let (npts, ns1, ns2) = shape;
         let mut r2r: R2RPlan64 =
-            R2RPlan::aligned(&[data.grid.npts], R2RKind::FFTW_RODFT11, Flag::ESTIMATE)
+            R2RPlan::aligned(&[problem.grid.npts], R2RKind::FFTW_RODFT11, Flag::ESTIMATE)
                 .expect("could not execute FFTW plan");
         let mut i = 0;
-        while i < self.max_iter {
+
+        let result = loop {
             //println!("Iteration: {}", i);
-            let c_prev = data.cr.clone();
-            xrism_vv(data, &mut r2r);
-            let c_a = hyper_netted_chain(&data);
+            let c_prev = problem.correlations.cr.clone();
+            (operator.eq)(problem, &mut r2r);
+            let c_a = (operator.closure)(&problem);
             let mut c_next;
 
             if self.fr.len() < self.m {
                 //println!("Picard Step");
                 c_next = self.step_picard(&c_a, &c_prev);
-                let rmse = compute_rmse(data.ns1, data.ns2, data.grid.npts, &c_a, &c_prev);
+                let rmse = compute_rmse(ns1, ns2, npts, &c_a, &c_prev);
                 //println!("\tMDIIS RMSE: {}", rmse);
                 self.rms_res.push_back(rmse)
             } else {
                 //println!("MDIIS Step");
-                let gr = &data.tr + &c_a;
-                c_next = self.step_mdiis(&c_a, &c_prev, &gr);
-                let rmse = compute_rmse(data.ns1, data.ns2, data.grid.npts, &c_a, &c_prev);
+                let gr = &problem.correlations.tr + &c_a;
+                c_next = self
+                    .step_mdiis(&c_a, &c_prev, &gr)
+                    .into_shape(shape)
+                    .expect("could not reshape array into original shape");
+                let rmse = compute_rmse(ns1, ns2, npts, &c_a, &c_prev);
                 //println!("\tMDIIS RMSE: {}", rmse);
                 let rmse_min = self.rms_res.iter().fold(f64::INFINITY, |a, &b| a.min(b));
                 let min_index = self
@@ -160,7 +157,7 @@ impl MDIIS {
                     //println!("\t!!MDIIS restarting!!");
                     c_next = self.fr[min_index]
                         .clone()
-                        .into_shape((self.npts, self.ns1, self.ns2))
+                        .into_shape(shape)
                         .expect("could not reshape array into original shape");
                     self.fr.clear();
                     self.res.clear();
@@ -169,34 +166,27 @@ impl MDIIS {
                 self.rms_res.push_back(rmse);
                 self.rms_res.pop_front();
             }
-            data.cr = c_next.clone();
-            let rmse = conv_rmse(
-                data.ns1,
-                data.ns2,
-                data.grid.npts,
-                data.grid.dr,
-                &c_next,
-                &c_prev,
-            );
+            problem.correlations.cr = c_next.clone();
+            let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &c_next, &c_prev);
             if i % 10 == 0 {
                 println!("Iteration: {}\tConvergence RMSE: {:E}", i, rmse);
             }
 
             if rmse < self.tolerance {
-                println!("Converged at:\n\tIteration: {}\n\tRMSE: {:E}", i, rmse);
-                break;
+                break Ok(());
+            }
+
+            if rmse == std::f64::NAN || rmse == std::f64::INFINITY {
+                break Err(SolverError::ConvergenceError(i));
             }
 
             i += 1;
 
             if i == self.max_iter {
-                println!(
-                    "Max iteration reached at:\n\tIteration: {}\n\tRMSE: {:E}",
-                    i, rmse
-                );
-                break;
+                break Err(SolverError::MaxIterationError(i));
             }
-        }
+        };
+        result
     }
 }
 

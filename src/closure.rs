@@ -60,16 +60,18 @@ impl ClosureKind {
 //     (-b * u.to_owned() + t).mapv(|a| a.exp()) - 1.0 - t
 // }
 
-pub fn hyper_netted_chain(data: &DataRs) -> Array3<f64> {
-    (-data.beta * &data.u_sr + &data.tr).mapv(|a| a.exp()) - 1.0 - &data.tr
+pub fn hyper_netted_chain(problem: &DataRs) -> Array3<f64> {
+    (-problem.system.beta * &problem.interactions.u_sr + &problem.correlations.tr).mapv(|a| a.exp())
+        - 1.0
+        - &problem.correlations.tr
 }
 
-pub fn kovalenko_hirata(data: &DataRs) -> Array3<f64> {
+pub fn kovalenko_hirata(problem: &DataRs) -> Array3<f64> {
     todo!()
 }
-pub fn percus_yevick(data: &DataRs) -> Array3<f64> {
+pub fn percus_yevick(problem: &DataRs) -> Array3<f64> {
     todo!()
 }
-pub fn partial_series_expansion(data: &DataRs) -> Array3<f64> {
+pub fn partial_series_expansion(problem: &DataRs) -> Array3<f64> {
     todo!()
 }
