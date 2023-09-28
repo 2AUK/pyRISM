@@ -229,7 +229,7 @@ class RismController:
         rism_job = RISMDriver(
             data_config, operator_config, potential_config, solver_config
         )
-        rism_job.execute()
+        #rism_job.execute()
 
         self.name = os.path.basename(self.fname).split(sep=".")[0]
         if "solvent" not in inp:
@@ -734,6 +734,11 @@ class RismController:
             #     self.solver.tol,
             # )
             # rustrism.do_rism()
+            print(dat1.grid.d_r)
+            print(dat1.u[0, ...])
+            print(dat1.u_sr[0, ...])
+            print(dat1.ur_lr[0, ...])
+            print(dat1.uk_lr[0, ...])
             self.solve_vv(lam, verbose)
             # dat1.c, dat1.t, dat1.h, dat1.h_k = rustrism.extract()
             if self.uv_check:
