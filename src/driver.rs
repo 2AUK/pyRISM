@@ -53,7 +53,7 @@ impl RISMDriver {
         match data.nsu {
             None => solute = None,
             _ => {
-                let shape = (data.npts, data.nsu.unwrap(), data.nsv);
+                let shape = (data.npts, data.nsu.unwrap(), data.nsu.unwrap());
                 // Construct the solute-solvent problem
                 solute = Some(SingleData::new(
                     data.solute_atoms.as_ref().unwrap().clone(),
