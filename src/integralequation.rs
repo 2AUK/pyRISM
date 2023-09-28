@@ -134,7 +134,6 @@ fn rism_vv_equation_impl(
                 plan,
             ));
         });
-
     // Adding long-range component back in
     ck = ck - b * uk_lr.to_owned();
 
