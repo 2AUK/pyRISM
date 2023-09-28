@@ -161,7 +161,7 @@ pub fn coulomb(atoms_a: &[Site], atoms_b: &[Site], r: &Array1<f64>, result: &mut
         .cartesian_product(atoms_b.iter().enumerate());
     for ((i, site_a), (j, site_b)) in atom_pairs {
         let q = site_a.params.last().unwrap() * site_b.params.last().unwrap();
-        result.slice_mut(s![.., i, j]).assign({ &(q / r.clone()) });
+        result.slice_mut(s![.., i, j]).assign(&(q / r.clone()));
     }
 }
 
@@ -236,8 +236,11 @@ mod tests {
         lennard_jones(&input_data.oxygen, &input_data.oxygen, &input_data.r, &mut out_nb);
         coulomb(&input_data.oxygen, &input_data.oxygen, &input_data.r, &mut out_c);
 
-        let ur = out_nb + out_c;
+        let ur = &out_nb + 167101.0 * &out_c;
 
+        println!("{:?}", out_nb);
+        println!("{:?}", 167101.0 * out_c);
+        println!("{:?}", input_data.r);
         println!("{:?}", ur);
     }
 }
