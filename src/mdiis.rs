@@ -8,6 +8,7 @@ use fftw::types::*;
 use ndarray_linalg::Solve;
 use numpy::ndarray::{Array, Array1, Array2, Array3};
 use std::collections::VecDeque;
+use log::warn;
 
 #[derive(Clone, Debug)]
 pub struct MDIIS {
@@ -156,7 +157,7 @@ impl Solver for MDIIS {
                     .position(|x| *x == rmse_min)
                     .expect("could not find index of minimum in rms_res");
                 if rmse > 10.0 * rmse_min {
-                    //println!("\t!!MDIIS restarting!!");
+                    warn!("MDIIS restarting");
                     c_next = self.fr[min_index]
                         .clone()
                         .into_shape(shape)
