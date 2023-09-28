@@ -93,9 +93,6 @@ impl RISMDriver {
 
         let mut solver = self.solver.solver.set(&self.solver.settings);
 
-        //println!("{:?}", vv);
-        //println!("{:?}", solver);
-
         match solver.solve(&mut vv, &operator) {
             Ok(()) => info!("Finished!"),
             Err(e) => error!("{}", e),
