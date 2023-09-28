@@ -206,3 +206,38 @@ pub fn ng_renormalisation_fourier(
         });
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    // Note this useful idiom: importing names from outer (for mod tests) scope.
+    use super::*;
+
+    struct TestData {
+        pub oxygen: Vec<Site>,
+        pub r: Array1<f64>
+    }
+
+    impl TestData {
+        fn new() -> Self {
+            TestData {
+                oxygen: vec![Site{atom_type: String::from("O"), params: vec![78.15, 3.1657, -0.8476000010975563], coords: vec![0.0, 0.0, 0.0]}],
+                r: Array1::range(0.5, 8 as f64, 1.0) * 5.12
+            }
+        }
+    }
+
+    #[test]
+    fn test_total_potential() {
+        let input_data = TestData::new();
+        let mut out_nb = Array3::zeros((8, 1, 1));
+        let mut out_c = Array3::zeros((8, 1, 1));
+
+        lennard_jones(&input_data.oxygen, &input_data.oxygen, &input_data.r, &mut out_nb);
+        coulomb(&input_data.oxygen, &input_data.oxygen, &input_data.r, &mut out_c);
+
+        let ur = out_nb + out_c;
+
+        println!("{:?}", ur);
+    }
+}
