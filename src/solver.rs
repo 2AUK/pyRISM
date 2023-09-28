@@ -1,5 +1,31 @@
 use pyo3::{prelude::*, types::PyString};
-use std::fmt;
+use crate::data::DataRs;
+use std::fmt::{self, Display, Debug};
+use crate::mdiis::MDIIS;
+use crate::operator::Operator;
+
+#[derive(Debug)]
+pub enum SolverError {
+    ConvergenceError(usize),
+    MaxIterationError(usize),
+}
+
+impl Display for SolverError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SolverError::ConvergenceError(i) => 
+                write!(f, "Solver diverged at iteration {}", i),
+            SolverError::MaxIterationError(i) => 
+                write!(f, "Max iteration reach at {}", i),
+        }
+    }
+}
+
+impl std::error::Error for SolverError {}
+
+pub trait Solver: Debug {
+    fn solve(&mut self, data: &mut DataRs, operator: &Operator) -> Result<(), SolverError>;
+}
 
 #[derive(FromPyObject, Debug, Clone)]
 pub struct MDIISSettings {
@@ -65,6 +91,15 @@ impl<'source> FromPyObject<'source> for SolverKind {
             "MDIIS" => Ok(SolverKind::MDIIS),
             "Gillan" => Ok(SolverKind::Gillan),
             _ => panic!("not a valid solver"),
+        }
+    }
+}
+
+impl SolverKind {
+    pub fn set(&self, settings: &SolverSettings) -> impl Solver {
+        match self {
+            SolverKind::MDIIS => MDIIS::new(settings),
+            _ => panic!("solver unimplemented"),
         }
     }
 }

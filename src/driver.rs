@@ -1,15 +1,28 @@
-use crate::data::{DataConfig, DataRs, Site, Species};
+use crate::data::{
+    Correlations, DataConfig, DataRs, Grid, Interactions, SingleData, Site, Species, SystemState,
+};
 use crate::operator::{Operator, OperatorConfig};
 use crate::potential::{Potential, PotentialConfig};
 use crate::solver::SolverConfig;
+use log::{info, warn};
 use ndarray::{Array, Array1, Array2, Array3, Axis, Zip};
 use pyo3::prelude::*;
+use crate::solver::Solver;
+
+pub enum Verbosity {
+    Quiet,
+    Warning,
+    Info,
+    Debug,
+    Trace,
+}
 
 #[pyclass]
 #[derive(Clone, Debug)]
 pub struct RISMDriver {
-    pub vv: DataRs,
-    pub uv: Option<DataRs>,
+    pub solvent: SingleData,
+    pub solute: Option<SingleData>,
+    pub data: DataConfig,
     pub operator: OperatorConfig,
     pub potential: PotentialConfig,
     pub solver: SolverConfig,
@@ -25,43 +38,27 @@ impl RISMDriver {
         solver_config: &PyAny,
     ) -> PyResult<Self> {
         // Extract problem data
-        let data_config: DataConfig = data_config.extract()?;
-        let (vv, uv);
+        let data: DataConfig = data_config.extract()?;
+        let (solvent, solute);
+        let shape = (data.npts, data.nsv, data.nsv);
 
         // Construct the solvent-solvent problem
-        vv = DataRs::new(
-            data_config.temp,
-            data_config.kt,
-            data_config.amph,
-            data_config.nsv,
-            data_config.nsv,
-            data_config.nspv,
-            data_config.nspv,
-            data_config.npts,
-            data_config.radius,
-            data_config.nlambda,
-            data_config.solvent_atoms.clone(),
-            data_config.solvent_species.clone(),
+        solvent = SingleData::new(
+            data.solvent_atoms.clone(),
+            data.solvent_species.clone(),
+            shape,
         );
 
         // Check if a solute-solvent problem exists
-        match data_config.nsu {
-            None => uv = None,
+        match data.nsu {
+            None => solute = None,
             _ => {
+                let shape = (data.npts, data.nsu.unwrap(), data.nsv);
                 // Construct the solute-solvent problem
-                uv = Some(DataRs::new(
-                    data_config.temp,
-                    data_config.kt,
-                    data_config.amph,
-                    data_config.nsu.unwrap(),
-                    data_config.nsv,
-                    data_config.nspu.unwrap(),
-                    data_config.nspv,
-                    data_config.npts,
-                    data_config.radius,
-                    data_config.nlambda,
-                    data_config.solute_atoms.unwrap().clone(),
-                    data_config.solute_species.unwrap().clone(),
+                solute = Some(SingleData::new(
+                    data.solute_atoms.as_ref().unwrap().clone(),
+                    data.solute_species.as_ref().unwrap().clone(),
+                    shape,
                 ));
             }
         }
@@ -76,8 +73,9 @@ impl RISMDriver {
         let solver: SolverConfig = solver_config.extract()?;
 
         Ok(RISMDriver {
-            vv,
-            uv,
+            solvent,
+            solute,
+            data,
             operator,
             potential,
             solver,
@@ -85,23 +83,22 @@ impl RISMDriver {
     }
 
     pub fn execute(&mut self) {
-        self.print_info();
+        self.print_header();
+        env_logger::init();
         // set up operator(RISM equation and Closure)
-        println!("\nDefining operator...");
+        info!("Defining operator");
         let operator = Operator::new(&self.operator);
 
-        // build potentials
-        self.build_vv_potential();
+        let (mut vv, uv) = self.problem_setup();
 
-        // compute intramolecular correlation function
-        self.build_vv_intramolecular_correlation();
+        let mut solver = self.solver.solver.set(&self.solver.settings);
 
-        match self.uv {
-            None => println!("\nNo solute-solvent data..."),
-            _ => {
-                self.build_uv_potential();
-                self.build_uu_intramolecular_correlation();
-            }
+        println!("{:?}", vv);
+        println!("{:?}", solver);
+
+        match solver.solve(&mut vv, &operator) {
+            Ok(()) => info!("Finished!"),
+            Err(e) => info!("{}", e),
         }
     }
 
@@ -128,7 +125,66 @@ impl RISMDriver {
 }
 
 impl RISMDriver {
-    fn print_info(&self) {
+    fn problem_setup(&mut self) -> (DataRs, Option<DataRs>) {
+        let (mut vv_problem, uv_problem);
+        info!("Defining solvent-solvent problem");
+        let system = SystemState::new(
+            self.data.temp,
+            self.data.kt,
+            self.data.amph,
+            self.data.nlambda,
+        );
+        let grid = Grid::new(self.data.npts, self.data.radius);
+        let interactions = Interactions::new(self.data.npts, self.data.nsv, self.data.nsv);
+        let correlations = Correlations::new(self.data.npts, self.data.nsv, self.data.nsv);
+
+        vv_problem = DataRs::new(
+            system.clone(),
+            self.solvent.clone(),
+            self.solvent.clone(),
+            grid.clone(),
+            interactions,
+            correlations,
+        );
+
+        info!("Tabulating solvent-solvent potentials");
+        self.build_potential(&mut vv_problem);
+
+        info!("Tabulating solvent intramolecular correlation functions");
+        self.build_intramolecular_correlation(&mut vv_problem);
+        match &self.solute {
+            None => {
+                info!("No solute data");
+                uv_problem = None
+            }
+            Some(solute) => {
+                info!("Solute data found");
+                warn!("pyRISM only tested for infinite dilution - setting non-zero solute density may not work");
+                let interactions =
+                    Interactions::new(self.data.npts, self.data.nsu.unwrap(), self.data.nsv);
+                let correlations =
+                    Correlations::new(self.data.npts, self.data.nsu.unwrap(), self.data.nsv);
+                let mut uv = DataRs::new(
+                    system.clone(),
+                    solute.clone(),
+                    self.solvent.clone(),
+                    grid.clone(),
+                    interactions,
+                    correlations,
+                );
+                info!("Tabulating solute-solvent potentials");
+                self.build_potential(&mut uv);
+
+                info!("Tabulating solute intramolecular correlation functions");
+                self.build_intramolecular_correlation(&mut uv);
+
+                uv_problem = Some(uv)
+            }
+        }
+        (vv_problem, uv_problem)
+    }
+
+    fn print_header(&self) {
         println!(
             "
              ____  ___ ____  __  __ 
@@ -140,96 +196,70 @@ impl RISMDriver {
 
 "
         );
-        match &self.uv {
-            None => println!("Solvent-Solvent Problem:\n{}\n\nJob Configuration:\n{}\n{}\n{}", self.vv, self.operator, self.potential, self.solver),
-            Some(uv) => println!("Solvent-Solvent Problem:\n{}\n\nSolute-Solvent Problem:\n{}\n\nJob Configuration:\n{}\n{}\n{}", self.vv, uv, self.operator, self.potential, self.solver),
-        }
     }
 
-    fn build_vv_potential(&mut self) {
-        println!("\nBuilding solvent-solvent potentials...");
+    fn build_potential(&mut self, problem: &mut DataRs) {
         let potential = Potential::new(&self.potential);
         // set up total potential
-        let (mut u_nb, mut u_c) = (
-            Array::zeros(self.vv.ur.raw_dim()),
-            Array::zeros(self.vv.ur.raw_dim()),
-        );
+        let npts = problem.grid.npts;
+        let num_sites_a = problem.data_a.sites.len();
+        let num_sites_b = problem.data_b.sites.len();
+        let shape = (npts, num_sites_a, num_sites_b);
+        let (mut u_nb, mut u_c) = (Array::zeros(shape), Array::zeros(shape));
         // compute nonbonded interaction
-        println!("\t{}...", self.potential.nonbonded);
         (potential.nonbonded)(
-            &self.vv.sites,
-            &self.vv.sites,
-            &self.vv.grid.rgrid,
+            &problem.data_a.sites,
+            &problem.data_b.sites,
+            &problem.grid.rgrid,
             &mut u_nb,
         );
         // compute electrostatic interaction
-        println!("\t{}...", self.potential.coulombic);
         (potential.coulombic)(
-            &self.vv.sites,
-            &self.vv.sites,
-            &self.vv.grid.rgrid,
+            &problem.data_a.sites,
+            &problem.data_b.sites,
+            &problem.grid.rgrid,
             &mut u_c,
         );
         // set total interaction
-        self.vv.ur = u_nb + self.vv.amph * u_c;
+        problem.interactions.ur = u_nb + problem.system.amph * u_c;
 
         // compute renormalised potentials
-        println!("\t{}...", self.potential.renormalisation_real);
         (potential.renormalisation_real)(
-            &self.vv.sites,
-            &self.vv.sites,
-            &self.vv.grid.rgrid,
-            &mut self.vv.ur_lr,
+            &problem.data_a.sites,
+            &problem.data_b.sites,
+            &problem.grid.rgrid,
+            &mut problem.interactions.ur_lr,
         );
-        println!("\t{}...", self.potential.renormalisation_fourier);
         (potential.renormalisation_real)(
-            &self.vv.sites,
-            &self.vv.sites,
-            &self.vv.grid.kgrid,
-            &mut self.vv.uk_lr,
+            &problem.data_a.sites,
+            &problem.data_b.sites,
+            &problem.grid.kgrid,
+            &mut problem.interactions.uk_lr,
         );
+
+        // set short range interactions
+        problem.interactions.u_sr = &problem.interactions.ur - &problem.interactions.ur_lr;
     }
 
-    fn build_uv_potential(&mut self) {
-        println!("\nBuilding solute-solvent potentials...");
-        let potential = Potential::new(&self.potential);
-        let uv = self.uv.as_mut().unwrap();
-        // set up total potential
-        let (mut u_nb, mut u_c) = (Array::zeros(uv.ur.raw_dim()), Array::zeros(uv.ur.raw_dim()));
-        // compute nonbonded interaction
-        println!("\t{}...", self.potential.nonbonded);
-        (potential.nonbonded)(&uv.sites, &self.vv.sites, &uv.grid.rgrid, &mut u_nb);
-        // compute electrostatic interaction
-        println!("\t{}...", self.potential.coulombic);
-        (potential.nonbonded)(&uv.sites, &self.vv.sites, &uv.grid.rgrid, &mut u_c);
-        // set total interaction
-        uv.ur = u_nb + uv.amph * u_c;
+    fn build_intramolecular_correlation(&mut self, problem: &mut DataRs) {
+        let distances_a = Self::distance_matrix(&problem.data_a.species, &problem.data_a.species);
+        let distances_b = Self::distance_matrix(&problem.data_b.species, &problem.data_b.species);
 
-        // compute renormalised potentials
-        println!("\t{}...", self.potential.renormalisation_real);
-        (potential.renormalisation_real)(
-            &uv.sites,
-            &self.vv.sites,
-            &self.vv.grid.rgrid,
-            &mut uv.ur_lr,
-        );
-        println!("\t{}...", self.potential.renormalisation_fourier);
-        (potential.renormalisation_real)(
-            &uv.sites,
-            &self.vv.sites,
-            &self.vv.grid.kgrid,
-            &mut uv.uk_lr,
-        );
+        Self::intramolecular_corr_impl(&distances_a, &problem.grid.kgrid, &mut problem.data_a.wk);
+        Self::intramolecular_corr_impl(&distances_b, &problem.grid.kgrid, &mut problem.data_b.wk);
     }
 
-    fn build_vv_intramolecular_correlation(&mut self) {
-        println!("\nBuilding solvent-solvent intramolecular correlation matrix...");
-        let distances = Self::distance_matrix(&self.vv.species, &self.vv.species);
-        let one = Array::ones(self.vv.grid.npts);
-        let zero = Array::zeros(self.vv.grid.npts);
+    fn intramolecular_corr_impl(
+        distances: &Array2<f64>,
+        k: &Array1<f64>,
+        out_array: &mut Array3<f64>,
+    ) {
+        let (npts, num_sites_a, num_sites_b) = out_array.dim();
+        let one = Array::ones(npts);
+        let zero = Array::zeros(npts);
 
-        Zip::from(self.vv.wk.lanes_mut(Axis(0)))
-            .and(&distances)
+        Zip::from(out_array.lanes_mut(Axis(0)))
+            .and(distances)
             .par_for_each(|mut lane, elem| {
                 let elem = *elem;
                 if elem < 0.0 {
@@ -237,30 +267,7 @@ impl RISMDriver {
                 } else if elem == 0.0 {
                     lane.assign(&one)
                 } else {
-                    let arr = (elem * &self.vv.grid.kgrid).mapv(|a| a.sin())
-                        / (elem * &self.vv.grid.kgrid);
-                    lane.assign(&arr)
-                }
-            });
-    }
-
-    fn build_uu_intramolecular_correlation(&mut self) {
-        println!("\nBuilding solute-solute intramolecular correlation matrix...");
-        let uv = self.uv.as_mut().unwrap();
-        let distances = Self::distance_matrix(&uv.species.clone(), &uv.species.clone());
-        let one = Array::ones(uv.grid.npts);
-        let zero = Array::zeros(uv.grid.npts);
-
-        Zip::from(uv.wk.lanes_mut(Axis(0)))
-            .and(&distances)
-            .par_for_each(|mut lane, elem| {
-                let elem = *elem;
-                if elem < 0.0 {
-                    lane.assign(&zero)
-                } else if elem == 0.0 {
-                    lane.assign(&one)
-                } else {
-                    let arr = (elem * &uv.grid.kgrid).mapv(|a| a.sin()) / (elem * &uv.grid.kgrid);
+                    let arr = (elem * k).mapv(|a| a.sin()) / (elem * k);
                     lane.assign(&arr)
                 }
             });

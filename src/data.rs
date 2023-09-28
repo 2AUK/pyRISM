@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2, Array3};
+use ndarray::{Array, Array1, Array2, Array3};
 use numpy::{PyArray1, PyArray2, PyArray3};
 use pyo3::prelude::*;
 use std::{f64::consts::PI, fmt};
@@ -48,7 +48,7 @@ pub struct Grid {
 }
 
 impl Grid {
-    fn new(npts: usize, radius: f64) -> Self {
+    pub fn new(npts: usize, radius: f64) -> Self {
         let dr = radius / npts as f64;
         let dk = 2.0 * PI / (2.0 * npts as f64 * dr);
         Grid {
@@ -72,82 +72,119 @@ pub struct SystemState {
     pub beta: f64,
 }
 
+impl SystemState {
+    pub fn new(temp: f64, kt: f64, amph: f64, nlam: usize) -> Self {
+        SystemState {
+            temp,
+            kt,
+            amph,
+            nlam,
+            beta: 1.0 / kt / temp,
+        }
+    }
+
+    pub fn recompute_beta(&mut self) {
+        self.beta = 1.0 / self.kt / self.temp;
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct SingleData {
     // System size
     pub sites: Vec<Site>,
     pub species: Vec<Species>,
+    pub density: Array2<f64>,
+    pub wk: Array3<f64>,
+}
+
+impl SingleData {
+    pub fn new(sites: Vec<Site>, species: Vec<Species>, shape: (usize, usize, usize)) -> Self {
+        let density = {
+            let mut dens_vec: Vec<f64> = Vec::new();
+            for i in species.clone().into_iter() {
+                for _j in i.atom_sites {
+                    dens_vec.push(i.dens);
+                }
+            }
+            let density = Array2::from_diag(&Array::from_vec(dens_vec));
+            density
+        };
+
+        SingleData {
+            sites,
+            species,
+            density,
+            wk: Array::zeros(shape),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
-pub struct DataRs {
-
-    pub system: SystemState,
-
-    pub solvent: SingleData,
-
-    pub solute: Option<SingleData>,
-
-    // Sampling grid
-    pub grid: Grid,
-
-    pub cr: Array3<f64>,
-    pub tr: Array3<f64>,
-    pub hr: Array3<f64>,
-    pub hk: Array3<f64>,
-
+pub struct Interactions {
     pub ur: Array3<f64>,
     pub u_sr: Array3<f64>,
     pub ur_lr: Array3<f64>,
     pub uk_lr: Array3<f64>,
-    pub wk: Array3<f64>,
-    pub density: Array2<f64>,
 }
 
-impl fmt::Display for DataRs {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "Temperature: {} K\nLambda(s): {}\nSize: {}x{}\nSpecies: {}\nGrid points: {} points\nRadius: {} Å",
-            self.temp, self.nlam, self.ns1, self.ns2, self.nsp1, self.grid.npts, self.grid.radius,
-        )
+impl Interactions {
+    pub fn new(npts: usize, num_sites_a: usize, num_sites_b: usize) -> Self {
+        let shape = (npts, num_sites_a, num_sites_b);
+        Interactions {
+            ur: Array::zeros(shape),
+            u_sr: Array::zeros(shape),
+            ur_lr: Array::zeros(shape),
+            uk_lr: Array::zeros(shape),
+        }
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct Correlations {
+    pub cr: Array3<f64>,
+    pub tr: Array3<f64>,
+    pub hr: Array3<f64>,
+    pub hk: Array3<f64>,
+}
+
+impl Correlations {
+    pub fn new(npts: usize, num_sites_a: usize, num_sites_b: usize) -> Self {
+        let shape = (npts, num_sites_a, num_sites_b);
+        Correlations {
+            cr: Array::zeros(shape),
+            tr: Array::zeros(shape),
+            hr: Array::zeros(shape),
+            hk: Array::zeros(shape),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct DataRs {
+    pub system: SystemState,
+    pub data_a: SingleData,
+    pub data_b: SingleData,
+    pub grid: Grid,
+    pub interactions: Interactions,
+    pub correlations: Correlations,
 }
 
 impl DataRs {
     pub fn new(
-        temp: f64,
-        kt: f64,
-        amph: f64,
-        ns1: usize,
-        ns2: usize,
-        nsp1: usize,
-        nsp2: usize,
-        npts: usize,
-        radius: f64,
-        nlam: usize,
-        sites: Vec<Site>,
-        species: Vec<Species>,
+        system: SystemState,
+        data_a: SingleData,
+        data_b: SingleData,
+        grid: Grid,
+        interactions: Interactions,
+        correlations: Correlations,
     ) -> Self {
-        let shape = (npts, ns1, ns2);
-        let grid = Grid::new(npts, radius);
         DataRs {
-            temp,
-            kt,
-            amph,
-            nlam,
-            beta: 1.0 / temp / kt,
+            system,
+            data_a,
+            data_b,
             grid,
-            cr: Array3::zeros(shape),
-            tr: Array3::zeros(shape),
-            hr: Array3::zeros(shape),
-            hk: Array3::zeros(shape),
-            ur: Array3::zeros(shape),
-            u_sr: Array3::zeros(shape),
-            ur_lr: Array3::zeros(shape),
-            uk_lr: Array3::zeros(shape),
-            wk: Array3::zeros((npts, ns1, ns1)),
-            density: Array2::zeros((ns1, ns2)),
+            interactions,
+            correlations,
         }
     }
 }

@@ -53,46 +53,48 @@ pub fn rism_uv(data: &mut DataRs, plan: &mut R2RPlan64) {
     todo!()
 }
 
-pub fn xrism_vv(data: &mut DataRs, plan: &mut R2RPlan64) {
-    (data.hk, data.tr) = rism_vv_equation_impl(
-        data.ns1,
-        data.grid.npts,
-        data.grid.rgrid.view(),
-        data.grid.kgrid.view(),
-        data.grid.dr,
-        data.grid.dk,
-        data.cr.view(),
-        data.wk.view(),
-        data.density.view(),
-        data.beta,
-        data.uk_lr.view(),
-        data.ur_lr.view(),
-        Array::zeros((data.grid.npts, data.ns1, data.ns2)).view(),
+pub fn xrism_vv(problem: &mut DataRs, plan: &mut R2RPlan64) {
+    let nsv = problem.data_a.sites.len();
+    (problem.correlations.hk, problem.correlations.tr) = rism_vv_equation_impl(
+        nsv,
+        problem.grid.npts,
+        problem.grid.rgrid.view(),
+        problem.grid.kgrid.view(),
+        problem.grid.dr,
+        problem.grid.dk,
+        problem.correlations.cr.view(),
+        problem.data_a.wk.view(),
+        problem.data_a.density.view(),
+        problem.system.beta,
+        problem.interactions.uk_lr.view(),
+        problem.interactions.ur_lr.view(),
+        Array::zeros((problem.grid.npts, nsv, nsv)).view(),
         plan,
-    )
+    );
 }
 
-pub fn drism_vv(data: &mut DataRs, plan: &mut R2RPlan64) {
-    (data.hk, data.tr) = rism_vv_equation_impl(
-        data.ns1,
-        data.grid.npts,
-        data.grid.rgrid.view(),
-        data.grid.kgrid.view(),
-        data.grid.dr,
-        data.grid.dk,
-        data.cr.view(),
-        data.wk.view(),
-        data.density.view(),
-        data.beta,
-        data.uk_lr.view(),
-        data.ur_lr.view(),
-        Array::zeros((data.grid.npts, data.ns1, data.ns2)).view(),
+pub fn drism_vv(problem: &mut DataRs, plan: &mut R2RPlan64) {
+    let nsv = problem.data_a.sites.len();
+    (problem.correlations.hk, problem.correlations.tr) = rism_vv_equation_impl(
+        nsv,
+        problem.grid.npts,
+        problem.grid.rgrid.view(),
+        problem.grid.kgrid.view(),
+        problem.grid.dr,
+        problem.grid.dk,
+        problem.correlations.cr.view(),
+        problem.data_a.wk.view(),
+        problem.data_a.density.view(),
+        problem.system.beta,
+        problem.interactions.uk_lr.view(),
+        problem.interactions.ur_lr.view(),
+        Array::zeros((problem.grid.npts, nsv, nsv)).view(),
         plan,
-    )
+    );
 }
 
 fn rism_vv_equation_impl(
-    ns: usize,
+    nsv: usize,
     _npts: usize,
     r: ArrayView1<f64>,
     k: ArrayView1<f64>,
@@ -115,7 +117,7 @@ fn rism_vv_equation_impl(
     // let plan = DctPlanner::new().plan_dst4(npts);
 
     // Setting up arrays used in calculating XRISM equation
-    let identity: Array2<f64> = Array::eye(ns);
+    let identity: Array2<f64> = Array::eye(nsv);
     let mut ck = Array::zeros(cr.raw_dim());
     let mut hk = Array::zeros(cr.raw_dim());
     let mut tr = Array::zeros(cr.raw_dim());

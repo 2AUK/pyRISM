@@ -28,16 +28,14 @@ impl fmt::Display for OperatorConfig {
 }
 
 pub struct Operator {
-    pub eq_vv: fn(&mut DataRs, &mut R2RPlan64),
-    pub eq_uv: fn(&mut DataRs, &mut R2RPlan64),
+    pub eq: fn(&mut DataRs, &mut R2RPlan64),
     pub closure: fn(&DataRs) -> Array3<f64>,
 }
 
 impl Operator {
     pub fn new(config: &OperatorConfig) -> Self {
         Operator {
-            eq_vv: config.integral_equation.set(),
-            eq_uv: IntegralEquationKind::UV.set(),
+            eq: config.integral_equation.set(),
             closure: config.closure.set(),
         }
     }
