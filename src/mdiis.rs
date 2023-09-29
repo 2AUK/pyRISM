@@ -5,10 +5,10 @@ use crate::operator::Operator;
 use crate::solver::{Solver, SolverError, SolverSettings};
 use fftw::plan::*;
 use fftw::types::*;
+use log::warn;
 use ndarray_linalg::Solve;
 use numpy::ndarray::{Array, Array1, Array2, Array3};
 use std::collections::VecDeque;
-use log::warn;
 
 #[derive(Clone, Debug)]
 pub struct MDIIS {
@@ -173,7 +173,6 @@ impl Solver for MDIIS {
             let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &c_next, &c_prev);
 
             println!("Iteration: {}\tConvergence RMSE: {:E}", i, rmse);
-
 
             if rmse < self.tolerance {
                 break Ok(());

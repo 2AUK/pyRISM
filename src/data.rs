@@ -24,6 +24,8 @@ pub struct DataConfig {
     pub kt: f64,
     pub ku: f64,
     pub amph: f64,
+    pub drism_damping: Option<f64>,
+    pub dielec: Option<f64>,
     pub nsv: usize,
     pub nsu: Option<usize>,
     pub nspv: usize,
@@ -147,6 +149,23 @@ pub struct Correlations {
     pub hk: Array3<f64>,
 }
 
+#[derive(Clone, Debug)]
+pub struct DielectricData {
+    pub drism_damping: f64,
+    pub diel: f64,
+    pub chi: Array3<f64>,
+}
+
+impl DielectricData {
+    pub fn new(drism_damping: f64, diel: f64, shape: (usize, usize, usize)) -> Self {
+        DielectricData {
+            drism_damping,
+            diel,
+            chi: Array::zeros(shape),
+        }
+    }
+}
+
 impl Correlations {
     pub fn new(npts: usize, num_sites_a: usize, num_sites_b: usize) -> Self {
         let shape = (npts, num_sites_a, num_sites_b);
@@ -167,6 +186,7 @@ pub struct DataRs {
     pub grid: Grid,
     pub interactions: Interactions,
     pub correlations: Correlations,
+    pub dielectrics: Option<DielectricData>,
 }
 
 impl DataRs {
@@ -177,6 +197,7 @@ impl DataRs {
         grid: Grid,
         interactions: Interactions,
         correlations: Correlations,
+        dielectrics: Option<DielectricData>,
     ) -> Self {
         DataRs {
             system,
@@ -185,6 +206,7 @@ impl DataRs {
             grid,
             interactions,
             correlations,
+            dielectrics,
         }
     }
 }

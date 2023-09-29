@@ -62,6 +62,8 @@ class DataConfig:
     kt: float
     ku: float
     amph: float
+    drism_damping: float
+    dielec: float
     nsv: int
     nsu: int
     nspv: int
@@ -161,6 +163,11 @@ class RismController:
         kt = inp["system"]["kT"]
         ku = inp["system"]["kU"]
         amph = inp["system"]["charge_coeff"]
+        drism_damping = None
+        dielec = None
+        if inp["params"]["IE"] == "DRISM":
+            drism_damping = inp["params"]["adbcor"]
+            dielec = inp["params"]["diel"]
         nsv = inp["solvent"]["nsv"]
         nsu = None
         nspv = inp["solvent"]["nspv"]
@@ -194,6 +201,8 @@ class RismController:
             kt,
             ku,
             amph,
+            drism_damping,
+            dielec,
             nsv,
             nsu,
             nspv,
