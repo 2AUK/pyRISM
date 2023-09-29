@@ -127,6 +127,7 @@ impl RISMDriver {
     fn problem_setup(&mut self) -> (DataRs, Option<DataRs>) {
         let (mut vv_problem, uv_problem);
         info!("Defining solvent-solvent problem");
+        let grid = Grid::new(self.data.npts, self.data.radius);
         let system = SystemState::new(
             self.data.temp,
             self.data.kt,
@@ -136,17 +137,71 @@ impl RISMDriver {
         let dielectric;
         match self.operator.integral_equation {
             IntegralEquationKind::DRISM => {
+                let mut k_exp_term = grid.kgrid.clone();
+                let total_density = self.solvent.species.iter().fold(0.0,|acc, species| acc + species.dens); 
+                let drism_damping = self.data.drism_damping.expect("damping parameter for DRISM set");
+                let diel = self.data.dielec.expect("dielectric constant set");
+                k_exp_term.par_mapv_inplace(|x| (-1.0 * (drism_damping * x / 2.0).powf(2.0)).exp());
+                let y = 0.0;
+                let hc0 = (((diel - 1.0) / y) - 3.0) / total_density;
+                let hck = hc0 * k_exp_term;
+
+                let chi = {
+                    let mut d0x = Array::zeros(self.data.nsv);
+                    let mut d0y = Array::zeros(self.data.nsv);
+                    let mut d1z = Array::zeros(self.data.nsv);
+                    let mut chi = Array::zeros((self.data.npts, self.data.nsv, self.data.nsv));
+                    let mut i = 0;
+                    for (ki, k) in grid.kgrid.iter().enumerate() {
+                        for species in self.solvent.species.iter() {
+                            for atm in species.atom_sites.iter() {
+                                
+                                let k_coord = *k * Array::from_vec(atm.coords.clone());
+
+                                if k_coord[0] == 0.0 {
+                                    d0x[i] = 1.0
+                                } else {
+                                    d0x[i] = (k_coord[0]).sin() / k_coord[0];
+                                }
+
+                                if k_coord[1] == 0.0 {
+                                    d0y[i] = 1.0
+                                } else {
+                                    d0y[i] = (k_coord[1]).sin() / k_coord[1];
+                                }
+
+                                if k_coord[2] == 0.0 {
+                                    d1z[i] = 1.0
+                                } else {
+                                    d1z[i] = ((k_coord[2].sin() / k_coord[2]) - k_coord[2].cos()) / k_coord[2];
+                                }
+
+                                i += 1;
+                            }
+                        }
+
+                        for i in 0..self.data.nsv {
+                            for j in 0..self.data.nsv {
+                                chi[[ki, i, j]] = d0x[i] * d0y[i] * d1z[i] * d0x[j] * d0y[j] * d1z[j] * hck[ki];
+                            }
+                        }
+                    }
+
+                    
+
+                };
+
+                
+
                 dielectric = Some(DielectricData::new(
-                    self.data
-                        .drism_damping
-                        .expect("damping parameter for DRISM not defined"),
-                    self.data.dielec.expect("dielectric constant not defined"),
+                    drism_damping,
+                    diel,
                     (self.data.npts, self.data.nsv, self.data.nsv),
                 ));
             }
             _ => dielectric = None,
         }
-        let grid = Grid::new(self.data.npts, self.data.radius);
+        
         let interactions = Interactions::new(self.data.npts, self.data.nsv, self.data.nsv);
         let correlations = Correlations::new(self.data.npts, self.data.nsv, self.data.nsv);
 
@@ -157,7 +212,7 @@ impl RISMDriver {
             grid.clone(),
             interactions,
             correlations,
-            dielectric,
+            dielectric.clone(),
         );
 
         info!("Tabulating solvent-solvent potentials");
@@ -184,7 +239,7 @@ impl RISMDriver {
                     grid.clone(),
                     interactions,
                     correlations,
-                    dielectric,
+                    dielectric.clone(),
                 );
                 info!("Tabulating solute-solvent potentials");
                 self.build_potential(&mut uv);
