@@ -1,11 +1,13 @@
 use crate::data::{
-    Correlations, DataConfig, DataRs, Grid, Interactions, SingleData, Site, Species, SystemState,
+    Correlations, DataConfig, DataRs, DielectricData, Grid, Interactions, SingleData, Site,
+    Species, SystemState,
 };
+use crate::integralequation::IntegralEquationKind;
 use crate::operator::{Operator, OperatorConfig};
 use crate::potential::{Potential, PotentialConfig};
 use crate::solver::Solver;
 use crate::solver::SolverConfig;
-use log::{info, warn, error};
+use log::{error, info, warn};
 use ndarray::{Array, Array1, Array2, Array3, Axis, Zip};
 use pyo3::prelude::*;
 
@@ -131,6 +133,19 @@ impl RISMDriver {
             self.data.amph,
             self.data.nlambda,
         );
+        let dielectric;
+        match self.operator.integral_equation {
+            IntegralEquationKind::DRISM => {
+                dielectric = Some(DielectricData::new(
+                    self.data
+                        .drism_damping
+                        .expect("damping parameter for DRISM not defined"),
+                    self.data.dielec.expect("dielectric constant not defined"),
+                    (self.data.npts, self.data.nsv, self.data.nsv),
+                ));
+            }
+            _ => dielectric = None,
+        }
         let grid = Grid::new(self.data.npts, self.data.radius);
         let interactions = Interactions::new(self.data.npts, self.data.nsv, self.data.nsv);
         let correlations = Correlations::new(self.data.npts, self.data.nsv, self.data.nsv);
@@ -142,6 +157,7 @@ impl RISMDriver {
             grid.clone(),
             interactions,
             correlations,
+            dielectric,
         );
 
         info!("Tabulating solvent-solvent potentials");
@@ -168,6 +184,7 @@ impl RISMDriver {
                     grid.clone(),
                     interactions,
                     correlations,
+                    dielectric,
                 );
                 info!("Tabulating solute-solvent potentials");
                 self.build_potential(&mut uv);

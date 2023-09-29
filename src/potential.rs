@@ -369,8 +369,8 @@ mod tests {
         assert_relative_eq!(
             known_result,
             calculated_result,
-            max_relative = PRECISION*5.0,
-            epsilon = PRECISION*5.0
+            max_relative = PRECISION * 5.0,
+            epsilon = PRECISION * 5.0
         );
     }
 }
