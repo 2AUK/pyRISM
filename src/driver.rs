@@ -90,6 +90,10 @@ impl RISMDriver {
         // set up operator(RISM equation and Closure)
         info!("Defining operator");
         let operator = Operator::new(&self.operator);
+        let operator_uv = Operator::new(&OperatorConfig {
+            integral_equation: IntegralEquationKind::UV,
+            ..self.operator.clone()
+        });
 
         let (mut vv, uv) = self.problem_setup();
 
@@ -98,6 +102,14 @@ impl RISMDriver {
         match solver.solve(&mut vv, &operator) {
             Ok(()) => info!("Finished!"),
             Err(e) => error!("{}", e),
+        }
+
+        match uv {
+            None => info!("No solute-solvent problem"),
+            Some(mut uv) => match solver.solve(&mut uv, &operator_uv) {
+                Ok(()) => info!("Finished"),
+                Err(e) => error!("{}", e),
+            },
         }
     }
 
@@ -137,9 +149,17 @@ impl RISMDriver {
         let dielectric;
         match self.operator.integral_equation {
             IntegralEquationKind::DRISM => {
+                info!("Calculating dielectric asymptotics for DRISM");
                 let mut k_exp_term = grid.kgrid.clone();
-                let total_density = self.solvent.species.iter().fold(0.0,|acc, species| acc + species.dens); 
-                let drism_damping = self.data.drism_damping.expect("damping parameter for DRISM set");
+                let total_density = self
+                    .solvent
+                    .species
+                    .iter()
+                    .fold(0.0, |acc, species| acc + species.dens);
+                let drism_damping = self
+                    .data
+                    .drism_damping
+                    .expect("damping parameter for DRISM set");
                 let diel = self.data.dielec.expect("dielectric constant set");
                 k_exp_term.par_mapv_inplace(|x| (-1.0 * (drism_damping * x / 2.0).powf(2.0)).exp());
                 let y = 0.0;
@@ -155,7 +175,6 @@ impl RISMDriver {
                     for (ki, k) in grid.kgrid.iter().enumerate() {
                         for species in self.solvent.species.iter() {
                             for atm in species.atom_sites.iter() {
-                                
                                 let k_coord = *k * Array::from_vec(atm.coords.clone());
 
                                 if k_coord[0] == 0.0 {
@@ -173,7 +192,8 @@ impl RISMDriver {
                                 if k_coord[2] == 0.0 {
                                     d1z[i] = 1.0
                                 } else {
-                                    d1z[i] = ((k_coord[2].sin() / k_coord[2]) - k_coord[2].cos()) / k_coord[2];
+                                    d1z[i] = ((k_coord[2].sin() / k_coord[2]) - k_coord[2].cos())
+                                        / k_coord[2];
                                 }
 
                                 i += 1;
@@ -182,16 +202,12 @@ impl RISMDriver {
 
                         for i in 0..self.data.nsv {
                             for j in 0..self.data.nsv {
-                                chi[[ki, i, j]] = d0x[i] * d0y[i] * d1z[i] * d0x[j] * d0y[j] * d1z[j] * hck[ki];
+                                chi[[ki, i, j]] =
+                                    d0x[i] * d0y[i] * d1z[i] * d0x[j] * d0y[j] * d1z[j] * hck[ki];
                             }
                         }
                     }
-
-                    
-
                 };
-
-                
 
                 dielectric = Some(DielectricData::new(
                     drism_damping,
@@ -201,7 +217,7 @@ impl RISMDriver {
             }
             _ => dielectric = None,
         }
-        
+
         let interactions = Interactions::new(self.data.npts, self.data.nsv, self.data.nsv);
         let correlations = Correlations::new(self.data.npts, self.data.nsv, self.data.nsv);
 
