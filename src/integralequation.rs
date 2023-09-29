@@ -75,8 +75,6 @@ pub fn xrism_vv(problem: &mut DataRs, plan: &mut R2RPlan64) {
 
 pub fn drism_vv(problem: &mut DataRs, plan: &mut R2RPlan64) {
     let nsv = problem.data_a.sites.len();
-    let hck = Array::zeros(problem.grid.npts);
-
     (problem.correlations.hk, problem.correlations.tr) = rism_vv_equation_impl(
         nsv,
         problem.grid.npts,
@@ -90,7 +88,7 @@ pub fn drism_vv(problem: &mut DataRs, plan: &mut R2RPlan64) {
         problem.system.beta,
         problem.interactions.uk_lr.view(),
         problem.interactions.ur_lr.view(),
-        Array::zeros((problem.grid.npts, nsv, nsv)).view(),
+        problem.dielectrics.unwrap().chi.view(),
         plan,
     );
 }
