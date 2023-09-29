@@ -88,7 +88,7 @@ pub fn drism_vv(problem: &mut DataRs, plan: &mut R2RPlan64) {
         problem.system.beta,
         problem.interactions.uk_lr.view(),
         problem.interactions.ur_lr.view(),
-        problem.dielectrics.unwrap().chi.view(),
+        problem.dielectrics.as_ref().unwrap().chi.view(),
         plan,
     );
 }
@@ -142,10 +142,12 @@ fn rism_vv_equation_impl(
     Zip::from(hk.outer_iter_mut())
         .and(wk.outer_iter())
         .and(ck.outer_iter())
-        .par_for_each(|mut hk_matrix, wk_matrix, ck_matrix| {
-            let iwcp = &identity - wk_matrix.dot(&ck_matrix.dot(&p));
+        .and(chi.outer_iter())
+        .par_for_each(|mut hk_matrix, wk_matrix, ck_matrix, chi_matrix| {
+            let w_bar = wk_matrix.to_owned() + p.dot(&chi_matrix);
+            let iwcp = &identity - w_bar.dot(&ck_matrix.dot(&p));
             let inverted_iwcp = (iwcp).inv().expect("could not invert matrix: {iwcp}");
-            let wcw = wk_matrix.dot(&ck_matrix.dot(&wk_matrix));
+            let wcw = w_bar.dot(&ck_matrix.dot(&w_bar));
             hk_matrix.assign(&inverted_iwcp.dot(&wcw));
         });
 
