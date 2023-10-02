@@ -2,7 +2,7 @@ build:
     pip install -e . -v
 
 test:
-    cargo test
+    cargo test -- --nocapture
 
 run:
     cat pyrism/data/cSPCE_XRISM.toml
