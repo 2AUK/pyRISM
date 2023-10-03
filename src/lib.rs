@@ -4,14 +4,15 @@ use pyo3::prelude::*;
 
 pub mod closure;
 pub mod data;
+pub mod dipole;
 pub mod driver;
 pub mod integralequation;
 pub mod mdiis;
 pub mod operator;
 pub mod potential;
+pub mod quaternion;
 pub mod solver;
 pub mod transforms;
-pub mod quaternion;
 
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
