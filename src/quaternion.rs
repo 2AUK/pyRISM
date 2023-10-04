@@ -93,7 +93,7 @@ impl Quaternion {
         term1 + term2 + term3
     }
 
-    pub fn from_axis_angle(angle: f64, axis: Array1<f64>) -> Self {
+    pub fn from_axis_angle(angle: f64, axis: &Array1<f64>) -> Self {
         let magnitude = axis.mapv(|x| x.powf(2.0)).sum().sqrt();
         let scalar_w = (angle / 2.0).cos();
         match magnitude < 1e-9 {
@@ -106,7 +106,7 @@ impl Quaternion {
     }
 }
 
-fn cross_product(a: &Array1<f64>, b: &Array1<f64>) -> Array1<f64> {
+pub fn cross_product(a: &Array1<f64>, b: &Array1<f64>) -> Array1<f64> {
     let mut out_arr = Array::zeros(3);
     out_arr[[0]] = a[[1]] * b[[2]] - a[[2]] * b[[1]];
     out_arr[[1]] = a[[2]] * b[[0]] - a[[0]] * b[[2]];

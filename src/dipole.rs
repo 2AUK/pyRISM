@@ -1,6 +1,16 @@
 use crate::data::{Site, Species};
-use crate::quaternion::Quaternion;
-use ndarray::{Array, Array1};
+use crate::quaternion::{cross_product, Quaternion};
+use ndarray::{arr1, Array, Array1};
+use std::fmt;
+
+#[derive(Debug, Clone)]
+pub struct DipoleError;
+
+impl fmt::Display for DipoleError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "0 dipole moment for current system")
+    }
+}
 
 pub fn total_charge(species: &[Species]) -> f64 {
     species.iter().fold(0.0, |acc, x| {
@@ -34,7 +44,7 @@ pub fn translate(species: &mut [Species], coords: &Array1<f64>) {
     }
 }
 
-pub fn dipole_moment(species: &[Species]) -> Option<(Array1<f64>, f64)> {
+pub fn dipole_moment(species: &[Species]) -> Result<(Array1<f64>, f64), DipoleError> {
     let dmvec = species.iter().fold(Array::zeros(3), |acc: Array1<f64>, x| {
         acc + x
             .atom_sites
@@ -47,9 +57,27 @@ pub fn dipole_moment(species: &[Species]) -> Option<(Array1<f64>, f64)> {
     });
     let dm = dmvec.mapv(|x| x.powf(2.0)).sum().sqrt();
     match dm < 1e-16 {
-        true => None,
-        _ => Some((dmvec, dm)),
+        true => Err(DipoleError),
+        _ => Ok((dmvec, dm)),
     }
+}
+
+pub fn reorient(species: &mut [Species]) -> Result<(), DipoleError> {
+    let (dmvec, dm) = dipole_moment(species)?;
+    let rdmdm = &dmvec / dm;
+    let zaxis = arr1(&[0.0, 0.0, 1.0]);
+    let rotvec = cross_product(&zaxis, &rdmdm);
+    let checkvec = cross_product(&rotvec, &rdmdm);
+    let angle = rdmdm.dot(&zaxis).acos().copysign(checkvec.dot(&zaxis));
+    let quat = Quaternion::from_axis_angle(angle, &rotvec);
+    for elem in species.iter_mut() {
+        for site in elem.atom_sites.iter_mut() {
+            let site_coords = Array::from_iter(site.coords.clone().into_iter());
+            let new_coords = quat.rotate(&site_coords);
+            site.coords = new_coords.to_vec();
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
