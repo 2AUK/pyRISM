@@ -51,7 +51,7 @@ impl ClosureKind {
             ClosureKind::HyperNettedChain => hyper_netted_chain,
             ClosureKind::KovalenkoHirata => kovalenko_hirata,
             ClosureKind::PercusYevick => percus_yevick,
-            ClosureKind::PartialSeriesExpansion(x) => partial_series_expansion,
+            ClosureKind::PartialSeriesExpansion(_) => partial_series_expansion,
         }
     }
 }
@@ -66,12 +66,12 @@ pub fn hyper_netted_chain(problem: &DataRs) -> Array3<f64> {
         - &problem.correlations.tr
 }
 
-pub fn kovalenko_hirata(problem: &DataRs) -> Array3<f64> {
+pub fn kovalenko_hirata(_problem: &DataRs) -> Array3<f64> {
     todo!()
 }
-pub fn percus_yevick(problem: &DataRs) -> Array3<f64> {
+pub fn percus_yevick(_problem: &DataRs) -> Array3<f64> {
     todo!()
 }
-pub fn partial_series_expansion(problem: &DataRs) -> Array3<f64> {
+pub fn partial_series_expansion(_problem: &DataRs) -> Array3<f64> {
     todo!()
 }

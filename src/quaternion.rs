@@ -1,4 +1,4 @@
-use ndarray::{arr1, Array, Array1};
+use ndarray::{Array, Array1};
 
 macro_rules! op_quat_quat {
     ($($path:ident)::+, $fn:ident) => {
@@ -180,6 +180,7 @@ impl std::ops::Mul<Quaternion> for &Quaternion {
 #[cfg(test)]
 mod test {
     use super::*;
+    use ndarray::arr1;
 
     #[test]
     fn test_quat() {

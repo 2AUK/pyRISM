@@ -1,6 +1,6 @@
 use crate::data::{
-    Correlations, DataConfig, DataRs, DielectricData, Grid, Interactions, SingleData, Site,
-    Species, SystemState,
+    Correlations, DataConfig, DataRs, DielectricData, Grid, Interactions, SingleData, Species,
+    SystemState,
 };
 use crate::integralequation::IntegralEquationKind;
 use crate::operator::{Operator, OperatorConfig};
@@ -166,7 +166,7 @@ impl RISMDriver {
                 let hc0 = (((diel - 1.0) / y) - 3.0) / total_density;
                 let hck = hc0 * k_exp_term;
 
-                let chi = {
+                let _chi = {
                     let mut d0x = Array::zeros(self.data.nsv);
                     let mut d0y = Array::zeros(self.data.nsv);
                     let mut d1z = Array::zeros(self.data.nsv);
@@ -343,7 +343,7 @@ impl RISMDriver {
         k: &Array1<f64>,
         out_array: &mut Array3<f64>,
     ) {
-        let (npts, num_sites_a, num_sites_b) = out_array.dim();
+        let (npts, _, _) = out_array.dim();
         let one = Array::ones(npts);
         let zero = Array::zeros(npts);
 
