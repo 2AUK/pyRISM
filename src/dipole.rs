@@ -1,4 +1,4 @@
-use crate::data::{Site, Species};
+use crate::data::Species;
 use crate::quaternion::{cross_product, Quaternion};
 use ndarray::{arr1, Array, Array1};
 use std::fmt;
@@ -83,6 +83,7 @@ pub fn reorient(species: &mut [Species]) -> Result<(), DipoleError> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::data::Site;
 
     #[test]
     fn test_total_charge() {

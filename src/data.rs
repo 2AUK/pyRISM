@@ -1,7 +1,7 @@
 use ndarray::{Array, Array1, Array2, Array3};
 use numpy::{PyArray1, PyArray2, PyArray3};
 use pyo3::prelude::*;
-use std::{f64::consts::PI, fmt};
+use std::f64::consts::PI;
 
 #[derive(FromPyObject, Debug, Clone, PartialEq)]
 pub struct Site {

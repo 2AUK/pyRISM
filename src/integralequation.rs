@@ -49,7 +49,7 @@ impl IntegralEquationKind {
     }
 }
 
-pub fn rism_uv(data: &mut DataRs, plan: &mut R2RPlan64) {
+pub fn rism_uv(_data: &mut DataRs, _plan: &mut R2RPlan64) {
     todo!()
 }
 

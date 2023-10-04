@@ -1,6 +1,4 @@
-use crate::closure::hyper_netted_chain;
 use crate::data::DataRs;
-use crate::integralequation::xrism_vv;
 use crate::operator::Operator;
 use crate::solver::{Solver, SolverError, SolverSettings};
 use fftw::plan::*;
