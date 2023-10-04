@@ -1,6 +1,6 @@
-use crate::data::Species;
+use crate::data::{Site, Species};
 use crate::quaternion::{cross_product, Quaternion};
-use ndarray::{arr1, Array, Array1};
+use ndarray::{arr1, Array, Array1, Array2};
 use std::fmt;
 
 #[derive(Debug, Clone)]
@@ -80,6 +80,33 @@ pub fn reorient(species: &mut [Species]) -> Result<(), DipoleError> {
     Ok(())
 }
 
+fn moment_of_inertia(species: &[Species]) -> Array2<f64> {
+    let mut out_arr = Array::zeros((3, 3));
+    let atoms: Vec<Site> = species.iter().flat_map(|x| x.atom_sites.clone()).collect();
+    let charges = Array::from_shape_vec(
+        atoms.len(),
+        atoms
+            .iter()
+            .map(|atom| atom.params.last().unwrap())
+            .collect(),
+    )
+    .unwrap();
+    for (i, iat) in atoms.iter().enumerate() {
+        let ci = *charges[[i]];
+        out_arr[[0, 0]] += ci * iat.coords[1] * iat.coords[1] + iat.coords[2] * iat.coords[2];
+        out_arr[[1, 1]] += ci * iat.coords[0] * iat.coords[0] + iat.coords[2] * iat.coords[2];
+        out_arr[[2, 2]] += ci * iat.coords[1] * iat.coords[1] + iat.coords[0] * iat.coords[0];
+        out_arr[[0, 1]] -= ci * iat.coords[0] * iat.coords[1];
+        out_arr[[0, 2]] -= ci * iat.coords[0] * iat.coords[2];
+        out_arr[[1, 2]] -= ci * iat.coords[1] * iat.coords[2];
+    }
+
+    out_arr[[1, 0]] = out_arr[[0, 1]];
+    out_arr[[2, 0]] = out_arr[[0, 2]];
+    out_arr[[2, 1]] = out_arr[[2, 1]];
+    out_arr
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -141,5 +168,7 @@ mod test {
         translate(&mut species, &coc);
 
         println!("Translated species: {:?}", species);
+
+        println!("{:?}", moment_of_inertia(&species));
     }
 }
