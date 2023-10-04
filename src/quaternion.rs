@@ -16,9 +16,9 @@ macro_rules! op_quat_quat {
             type Output = Quaternion;
 
             fn $fn(self, other: &Quaternion) -> Self::Output {
-                Quaternion([self.0[0].$fn(other.0[0]),
+Quaternion([self.0[0].$fn(other.0[0]),
                             self.0[1].$fn(other.0[1]),
-                            self.0[2].$fn(other.0[2]),
+    self.0[2].$fn(other.0[2]),
                             self.0[3].$fn(other.0[3])])
             }
         }
