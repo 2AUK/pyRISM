@@ -121,13 +121,36 @@ pub fn reorient(species: &mut [Species]) -> Result<(), DipoleError> {
             site.coords = new_coords.to_vec();
         }
     }
-
-    principal_axes
-        .slice_mut(s![0..3, 0])
-        .assign(&pa_x_quat.rotate(&x_pa));
-    println!("PA: {:?}", principal_axes);
+    for i in 0..3 {
+        let pa_slice = principal_axes.slice(s![0..3, i]).clone().to_owned();
+        principal_axes
+            .slice_mut(s![0..3, i])
+            .assign(&pa_x_quat.rotate(&pa_slice));
+    }
 
     // Orient the second (and third) principal axis to the y-axis
+    let y_pa: Array1<f64> = principal_axes.slice(s![0..3, 2]).to_owned();
+    let mut y_angle = (f64::min(1.0, f64::max(-1.0, y_pa.dot(&yaxis)))).acos();
+    let y_checkvec = cross_product(&xaxis, &y_pa);
+
+    if y_checkvec.dot(&yaxis).is_sign_negative() {
+        y_angle = -y_angle;
+    }
+
+    let pa_y_quat = Quaternion::from_axis_angle(y_angle, &xaxis);
+    for elem in species.iter_mut() {
+        for site in elem.atom_sites.iter_mut() {
+            let site_coords = Array::from_iter(site.coords.clone().into_iter());
+            let new_coords = pa_y_quat.rotate(&site_coords);
+            site.coords = new_coords.to_vec();
+        }
+    }
+    for i in 0..3 {
+        let pa_slice = principal_axes.slice(s![0..3, i]).clone().to_owned();
+        principal_axes
+            .slice_mut(s![0..3, i])
+            .assign(&pa_y_quat.rotate(&pa_slice));
+    }
     Ok(())
 }
 
@@ -211,18 +234,24 @@ mod test {
         };
         let mut species = vec![water, sodium_ion, chlorine_ion];
 
-        println!("Total charge: {}", total_charge(&species));
+        println!(
+            "Dipole moment vector pre-alignment:\n{:?}",
+            dipole_moment(&species).unwrap()
+        );
 
-        println!("Centre of charge: {}", centre_of_charge(&species));
+        let tot_charge = total_charge(&species);
+        let mut coc = centre_of_charge(&species);
+        println!("total: {}\ncentre: {}", tot_charge, coc);
 
-        let coc = centre_of_charge(&species);
+        coc /= tot_charge;
 
         translate(&mut species, &coc);
 
-        println!("Translated species: {:?}", species);
-
-        println!("{:?}", moment_of_inertia(&species));
-
         reorient(&mut species);
+
+        println!(
+            "Dipole moment vector post-alignment:\n{:?}",
+            dipole_moment(&species).unwrap()
+        );
     }
 }
