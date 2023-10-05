@@ -96,7 +96,7 @@ impl Quaternion {
     pub fn from_axis_angle(angle: f64, axis: &Array1<f64>) -> Self {
         let magnitude = axis.mapv(|x| x.powf(2.0)).sum().sqrt();
         let scalar_w = (angle / 2.0).cos();
-        match magnitude < 1e-9 {
+        match magnitude < 1e-16 {
             true => Quaternion([scalar_w, 0.0, 0.0, 0.0]),
             _ => {
                 let quat1to3 = axis / magnitude * (angle / 2.0).sin();

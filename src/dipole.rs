@@ -1,6 +1,9 @@
 use crate::data::{Site, Species};
 use crate::quaternion::{cross_product, Quaternion};
-use ndarray::{arr1, Array, Array1, Array2};
+use ndarray::{arr1, s, Array, Array1, Array2, Slice};
+use ndarray_linalg::{Eigh, IntoTriangular, UPLO};
+use std::cmp::{max, min};
+use std::f64::consts::PI;
 use std::fmt;
 
 #[derive(Debug, Clone)]
@@ -21,6 +24,7 @@ pub fn total_charge(species: &[Species]) -> f64 {
     })
 }
 
+#[inline(always)]
 pub fn centre_of_charge(species: &[Species]) -> Array1<f64> {
     species.iter().fold(Array::zeros(3), |acc: Array1<f64>, x| {
         acc + x
@@ -34,6 +38,7 @@ pub fn centre_of_charge(species: &[Species]) -> Array1<f64> {
     })
 }
 
+#[inline(always)]
 pub fn translate(species: &mut [Species], coords: &Array1<f64>) {
     for elem in species.iter_mut() {
         for site in elem.atom_sites.iter_mut() {
@@ -63,13 +68,20 @@ pub fn dipole_moment(species: &[Species]) -> Result<(Array1<f64>, f64), DipoleEr
 }
 
 pub fn reorient(species: &mut [Species]) -> Result<(), DipoleError> {
+    // Compute dipole moment and corrresponding vector
     let (dmvec, dm) = dipole_moment(species)?;
     let rdmdm = &dmvec / dm;
+    let xaxis = arr1(&[1.0, 0.0, 0.0]);
+    let yaxis = arr1(&[0.0, 1.0, 0.0]);
     let zaxis = arr1(&[0.0, 0.0, 1.0]);
+
+    // Find quaternion to rotate molecule by
     let rotvec = cross_product(&zaxis, &rdmdm);
     let checkvec = cross_product(&rotvec, &rdmdm);
     let angle = rdmdm.dot(&zaxis).acos().copysign(checkvec.dot(&zaxis));
     let quat = Quaternion::from_axis_angle(angle, &rotvec);
+
+    // Perform rotation of dipole to z-axis
     for elem in species.iter_mut() {
         for site in elem.atom_sites.iter_mut() {
             let site_coords = Array::from_iter(site.coords.clone().into_iter());
@@ -77,9 +89,49 @@ pub fn reorient(species: &mut [Species]) -> Result<(), DipoleError> {
             site.coords = new_coords.to_vec();
         }
     }
+
+    // Compute moment of inertia matrix based on charges
+    let moi_matrix = moment_of_inertia(species);
+
+    // Find the principal axes
+    let (_, mut principal_axes) = moi_matrix
+        .into_triangular(UPLO::Upper)
+        .eigh(UPLO::Upper)
+        .expect("eigendecomposition of moment of inertia matrix");
+
+    // Orient the first principal axis to the x-axis
+    let x_pa: Array1<f64> = principal_axes.slice(s![0..3, 0]).to_owned();
+    let mut x_angle = (f64::min(1.0, f64::max(-1.0, x_pa.dot(&xaxis)))).acos();
+    let dir: Array1<f64>;
+    if x_angle < PI - 1e-6 && x_angle > -PI + 1e-6 {
+        dir = cross_product(&x_pa, &xaxis);
+    } else {
+        dir = yaxis.clone();
+    }
+    let x_checkvec = cross_product(&dir, &x_pa);
+    if x_checkvec.dot(&xaxis).is_sign_negative() {
+        x_angle = -x_angle;
+    }
+    let pa_x_quat = Quaternion::from_axis_angle(x_angle, &dir);
+
+    for elem in species.iter_mut() {
+        for site in elem.atom_sites.iter_mut() {
+            let site_coords = Array::from_iter(site.coords.clone().into_iter());
+            let new_coords = pa_x_quat.rotate(&site_coords);
+            site.coords = new_coords.to_vec();
+        }
+    }
+
+    principal_axes
+        .slice_mut(s![0..3, 0])
+        .assign(&pa_x_quat.rotate(&x_pa));
+    println!("PA: {:?}", principal_axes);
+
+    // Orient the second (and third) principal axis to the y-axis
     Ok(())
 }
 
+#[inline(always)]
 fn moment_of_inertia(species: &[Species]) -> Array2<f64> {
     let mut out_arr = Array::zeros((3, 3));
     let atoms: Vec<Site> = species.iter().flat_map(|x| x.atom_sites.clone()).collect();
@@ -170,5 +222,7 @@ mod test {
         println!("Translated species: {:?}", species);
 
         println!("{:?}", moment_of_inertia(&species));
+
+        reorient(&mut species);
     }
 }
