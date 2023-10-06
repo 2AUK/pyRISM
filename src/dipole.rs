@@ -28,10 +28,9 @@ pub fn total_charge_species(species: &[Species]) -> f64 {
 pub fn total_charge(atoms: &[Site]) -> f64 {
     atoms
         .iter()
-        .fold(0.0, |acc, x| acc + x.params.last().unwrap())
+        .fold(0.0, |acc, x| acc + x.params.last().unwrap().abs())
 }
 
-#[inline(always)]
 pub fn centre_of_charge_species(species: &[Species]) -> Array1<f64> {
     species.iter().fold(Array::zeros(3), |acc: Array1<f64>, x| {
         acc + x
@@ -66,8 +65,7 @@ pub fn dipole_moment(atoms: &[Site]) -> Result<(Array1<f64>, f64), DipoleError> 
         .iter()
         .fold(Array::zeros(3), |acc_inner: Array1<f64>, y| {
             acc_inner
-                + (Array::from_shape_vec(3, y.coords.clone()).unwrap()
-                    * y.params.last().unwrap().abs())
+                + (Array::from_shape_vec(3, y.coords.clone()).unwrap() * *y.params.last().unwrap())
         });
     let dm = dmvec.mapv(|x| x.powf(2.0)).sum().sqrt();
     match dm < 1e-16 {
@@ -110,7 +108,7 @@ pub fn reorient(atoms: &mut [Site]) -> Result<(), DipoleError> {
     let x_pa: Array1<f64> = principal_axes.slice(s![0..3, 0]).to_owned();
     let mut x_angle = (f64::min(1.0, f64::max(-1.0, x_pa.dot(&xaxis)))).acos();
     let dir: Array1<f64>;
-    if x_angle < PI - 1e-6 && x_angle > -PI + 1e-6 {
+    if x_angle < (PI - 1e-6) && x_angle > (-PI + 1e-6) {
         dir = cross_product(&x_pa, &xaxis);
     } else {
         dir = yaxis.clone();
@@ -137,7 +135,7 @@ pub fn reorient(atoms: &mut [Site]) -> Result<(), DipoleError> {
     let y_pa: Array1<f64> = principal_axes.slice(s![0..3, 2]).to_owned();
     let mut y_angle = (f64::min(1.0, f64::max(-1.0, y_pa.dot(&yaxis)))).acos();
     let y_checkvec = cross_product(&xaxis, &y_pa);
-
+    println!("{}", y_angle);
     if y_checkvec.dot(&yaxis).is_sign_negative() {
         y_angle = -y_angle;
     }
@@ -169,7 +167,7 @@ fn moment_of_inertia(atoms: &[Site]) -> Array2<f64> {
     )
     .unwrap();
     for (i, iat) in atoms.iter().enumerate() {
-        let ci = *charges[[i]];
+        let ci = charges[[i]].abs();
         out_arr[[0, 0]] += ci * iat.coords[1] * iat.coords[1] + iat.coords[2] * iat.coords[2];
         out_arr[[1, 1]] += ci * iat.coords[0] * iat.coords[0] + iat.coords[2] * iat.coords[2];
         out_arr[[2, 2]] += ci * iat.coords[1] * iat.coords[1] + iat.coords[0] * iat.coords[0];
@@ -193,18 +191,18 @@ mod test {
     fn test_total_charge() {
         let ow = Site {
             atom_type: "Ow".to_string(),
-            params: vec![0.0, 0.0, -1.0],
+            params: vec![0.0, 0.0, -0.8476000010975563],
             coords: vec![0.0, 0.0, 0.0],
         };
         let h1w = Site {
             atom_type: "H1w".to_string(),
-            params: vec![0.0, 0.0, 0.5],
-            coords: vec![0.0, 1.0, 0.0],
+            params: vec![0.0, 0.0, 0.4238],
+            coords: vec![1.0, 0.0, 0.0],
         };
         let h2w = Site {
             atom_type: "H2w".to_string(),
-            params: vec![0.0, 0.0, 0.5],
-            coords: vec![0.0, 0.0, 1.0],
+            params: vec![0.0, 0.0, 0.4238],
+            coords: vec![-3.33314000e-01, 9.42816000e-01, 0.00000000e+00],
         };
         let na = Site {
             atom_type: "Na".to_string(),
@@ -235,25 +233,54 @@ mod test {
             atom_sites: vec![cl],
         };
         let mut species = vec![water, sodium_ion, chlorine_ion];
-
-        println!(
-            "Dipole moment vector pre-alignment:\n{:?}",
-            dipole_moment(&species).unwrap()
-        );
-
-        let tot_charge = total_charge(&species);
-        let mut coc = centre_of_charge(&species);
-        println!("total: {}\ncentre: {}", tot_charge, coc);
-
-        coc /= tot_charge;
-
-        translate(&mut species, &coc);
-
-        reorient(&mut species);
-
-        println!(
-            "Dipole moment vector post-alignment:\n{:?}",
-            dipole_moment(&species).unwrap()
-        );
+        for spec in species.iter_mut() {
+            match dipole_moment(&spec.atom_sites) {
+                Ok((vec, _)) => {
+                    let coords: Vec<Vec<f64>> =
+                        spec.atom_sites.iter().map(|x| x.coords.clone()).collect();
+                    println!("Coords initial: {:#?}", coords);
+                    println!("Dipole moment vector pre-alignment:\n{:?}", vec);
+                    let tot_charge = total_charge(&spec.atom_sites);
+                    let mut coc = centre_of_charge(&spec.atom_sites);
+                    coc /= tot_charge;
+                    translate(&mut spec.atom_sites, &coc);
+                    let coords: Vec<Vec<f64>> =
+                        spec.atom_sites.iter().map(|x| x.coords.clone()).collect();
+                    println!("Coords after translation: {:#?}", coords);
+                    println!(
+                        "Dipole moment vector post-translation:\n{:?}",
+                        dipole_moment(&spec.atom_sites).unwrap()
+                    );
+                    reorient(&mut spec.atom_sites).unwrap();
+                    let coords: Vec<Vec<f64>> =
+                        spec.atom_sites.iter().map(|x| x.coords.clone()).collect();
+                    println!("Coords after rotation: {:#?}", coords);
+                    println!(
+                        "Dipole moment vector post-alignment:\n{:?}",
+                        dipole_moment(&spec.atom_sites).unwrap()
+                    );
+                }
+                Err(_) => println!("{} has no dipole moment", spec.species_name),
+            }
+        }
+        // println!(
+        //     "Dipole moment vector pre-alignment:\n{:?}",
+        //     dipole_moment(&species).unwrap()
+        // );
+        //
+        // let tot_charge = total_charge(&species);
+        // let mut coc = centre_of_charge(&species);
+        // println!("total: {}\ncentre: {}", tot_charge, coc);
+        //
+        // coc /= tot_charge;
+        //
+        // translate(&mut species, &coc);
+        //
+        // reorient(&mut species);
+        //
+        // println!(
+        //     "Dipole moment vector post-alignment:\n{:?}",
+        //     dipole_moment(&species).unwrap()
+        // );
     }
 }
