@@ -121,15 +121,12 @@ impl Solver for MDIIS {
         self.rms_res.clear();
         let shape = problem.correlations.cr.dim();
         let (npts, ns1, ns2) = shape;
-        let mut r2r: R2RPlan64 =
-            R2RPlan::aligned(&[problem.grid.npts], R2RKind::FFTW_RODFT11, Flag::ESTIMATE)
-                .expect("could not execute FFTW plan");
         let mut i = 0;
 
         let result = loop {
             //println!("Iteration: {}", i);
             let c_prev = problem.correlations.cr.clone();
-            (operator.eq)(problem, &mut r2r);
+            (operator.eq)(problem);
             let c_a = (operator.closure)(&problem);
             let mut c_next;
 

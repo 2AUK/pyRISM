@@ -1,7 +1,6 @@
 use crate::closure::ClosureKind;
 use crate::data::DataRs;
 use crate::integralequation::IntegralEquationKind;
-use fftw::plan::*;
 use ndarray::Array3;
 use pyo3::prelude::*;
 use std::fmt;
@@ -28,7 +27,7 @@ impl fmt::Display for OperatorConfig {
 }
 
 pub struct Operator {
-    pub eq: fn(&mut DataRs, &mut R2RPlan64),
+    pub eq: fn(&mut DataRs),
     pub closure: fn(&DataRs) -> Array3<f64>,
 }
 

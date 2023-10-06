@@ -40,7 +40,7 @@ impl fmt::Display for IntegralEquationKind {
 }
 
 impl IntegralEquationKind {
-    pub fn set(&self) -> fn(&mut DataRs, &mut R2RPlan64) {
+    pub fn set(&self) -> fn(&mut DataRs) {
         match self {
             IntegralEquationKind::XRISM => xrism_vv,
             IntegralEquationKind::DRISM => drism_vv,
@@ -49,11 +49,11 @@ impl IntegralEquationKind {
     }
 }
 
-pub fn rism_uv(_data: &mut DataRs, _plan: &mut R2RPlan64) {
+pub fn rism_uv(_data: &mut DataRs) {
     todo!()
 }
 
-pub fn xrism_vv(problem: &mut DataRs, plan: &mut R2RPlan64) {
+pub fn xrism_vv(problem: &mut DataRs) {
     let nsv = problem.data_a.sites.len();
     (problem.correlations.hk, problem.correlations.tr) = rism_vv_equation_impl(
         nsv,
@@ -69,11 +69,10 @@ pub fn xrism_vv(problem: &mut DataRs, plan: &mut R2RPlan64) {
         problem.interactions.uk_lr.view(),
         problem.interactions.ur_lr.view(),
         Array::zeros((problem.grid.npts, nsv, nsv)).view(),
-        plan,
     );
 }
 
-pub fn drism_vv(problem: &mut DataRs, plan: &mut R2RPlan64) {
+pub fn drism_vv(problem: &mut DataRs) {
     let nsv = problem.data_a.sites.len();
     (problem.correlations.hk, problem.correlations.tr) = rism_vv_equation_impl(
         nsv,
@@ -89,7 +88,6 @@ pub fn drism_vv(problem: &mut DataRs, plan: &mut R2RPlan64) {
         problem.interactions.uk_lr.view(),
         problem.interactions.ur_lr.view(),
         problem.dielectrics.as_ref().unwrap().chi.view(),
-        plan,
     );
 }
 
@@ -107,7 +105,6 @@ fn rism_vv_equation_impl(
     uk_lr: ArrayView3<f64>,
     ur_lr: ArrayView3<f64>,
     chi: ArrayView3<f64>,
-    plan: &mut R2RPlan64,
 ) -> (Array3<f64>, Array3<f64>) {
     // Setting up prefactors for Fourier-Bessel transforms
     let rtok = 2.0 * PI * dr;
@@ -125,13 +122,12 @@ fn rism_vv_equation_impl(
     // Transforming c(r) -> c(k)
     Zip::from(cr.lanes(Axis(0)))
         .and(ck.lanes_mut(Axis(0)))
-        .for_each(|cr_lane, mut ck_lane| {
+        .par_for_each(|cr_lane, mut ck_lane| {
             ck_lane.assign(&fourier_bessel_transform_fftw(
                 rtok,
                 &r,
                 &k,
                 &cr_lane.to_owned(),
-                plan,
             ));
         });
     // Adding long-range component back in
@@ -157,13 +153,12 @@ fn rism_vv_equation_impl(
     // Transform t(k) -> t(r)
     Zip::from(tk.lanes(Axis(0)))
         .and(tr.lanes_mut(Axis(0)))
-        .for_each(|tk_lane, mut tr_lane| {
+        .par_for_each(|tk_lane, mut tr_lane| {
             tr_lane.assign(&fourier_bessel_transform_fftw(
                 ktor,
                 &k,
                 &r,
                 &tk_lane.to_owned(),
-                plan,
             ));
         });
 
