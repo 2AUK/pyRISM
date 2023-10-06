@@ -1,6 +1,6 @@
 use crate::data::{Site, Species};
 use crate::quaternion::{cross_product, Quaternion};
-use ndarray::{arr1, s, Array, Array1, Array2, Slice};
+use ndarray::{arr1, s, Array, Array1, Array2};
 use ndarray_linalg::{Eigh, IntoTriangular, UPLO};
 use std::cmp::{max, min};
 use std::f64::consts::PI;
@@ -15,7 +15,7 @@ impl fmt::Display for DipoleError {
     }
 }
 
-pub fn total_charge(species: &[Species]) -> f64 {
+pub fn total_charge_species(species: &[Species]) -> f64 {
     species.iter().fold(0.0, |acc, x| {
         acc + x
             .atom_sites
@@ -25,7 +25,14 @@ pub fn total_charge(species: &[Species]) -> f64 {
 }
 
 #[inline(always)]
-pub fn centre_of_charge(species: &[Species]) -> Array1<f64> {
+pub fn total_charge(atoms: &[Site]) -> f64 {
+    atoms
+        .iter()
+        .fold(0.0, |acc, x| acc + x.params.last().unwrap())
+}
+
+#[inline(always)]
+pub fn centre_of_charge_species(species: &[Species]) -> Array1<f64> {
     species.iter().fold(Array::zeros(3), |acc: Array1<f64>, x| {
         acc + x
             .atom_sites
@@ -39,27 +46,29 @@ pub fn centre_of_charge(species: &[Species]) -> Array1<f64> {
 }
 
 #[inline(always)]
-pub fn translate(species: &mut [Species], coords: &Array1<f64>) {
-    for elem in species.iter_mut() {
-        for site in elem.atom_sites.iter_mut() {
-            let site_coords = Array::from_iter(site.coords.clone().into_iter());
-            let new_coords = site_coords - coords;
-            site.coords = new_coords.to_vec();
-        }
+pub fn centre_of_charge(atoms: &[Site]) -> Array1<f64> {
+    atoms.iter().fold(Array::zeros(3), |acc, x| {
+        acc + (Array::from_shape_vec(3, x.coords.clone()).unwrap() * x.params.last().unwrap().abs())
+    })
+}
+
+#[inline(always)]
+pub fn translate(atoms: &mut [Site], coords: &Array1<f64>) {
+    for site in atoms.iter_mut() {
+        let site_coords = Array::from_iter(site.coords.clone().into_iter());
+        let new_coords = site_coords - coords;
+        site.coords = new_coords.to_vec();
     }
 }
 
-pub fn dipole_moment(species: &[Species]) -> Result<(Array1<f64>, f64), DipoleError> {
-    let dmvec = species.iter().fold(Array::zeros(3), |acc: Array1<f64>, x| {
-        acc + x
-            .atom_sites
-            .iter()
-            .fold(Array::zeros(3), |acc_inner: Array1<f64>, y| {
-                acc_inner
-                    + (Array::from_shape_vec(3, y.coords.clone()).unwrap()
-                        * y.params.last().unwrap().abs())
-            })
-    });
+pub fn dipole_moment(atoms: &[Site]) -> Result<(Array1<f64>, f64), DipoleError> {
+    let dmvec = atoms
+        .iter()
+        .fold(Array::zeros(3), |acc_inner: Array1<f64>, y| {
+            acc_inner
+                + (Array::from_shape_vec(3, y.coords.clone()).unwrap()
+                    * y.params.last().unwrap().abs())
+        });
     let dm = dmvec.mapv(|x| x.powf(2.0)).sum().sqrt();
     match dm < 1e-16 {
         true => Err(DipoleError),
@@ -67,9 +76,9 @@ pub fn dipole_moment(species: &[Species]) -> Result<(Array1<f64>, f64), DipoleEr
     }
 }
 
-pub fn reorient(species: &mut [Species]) -> Result<(), DipoleError> {
+pub fn reorient(atoms: &mut [Site]) -> Result<(), DipoleError> {
     // Compute dipole moment and corrresponding vector
-    let (dmvec, dm) = dipole_moment(species)?;
+    let (dmvec, dm) = dipole_moment(atoms)?;
     let rdmdm = &dmvec / dm;
     let xaxis = arr1(&[1.0, 0.0, 0.0]);
     let yaxis = arr1(&[0.0, 1.0, 0.0]);
@@ -82,16 +91,14 @@ pub fn reorient(species: &mut [Species]) -> Result<(), DipoleError> {
     let quat = Quaternion::from_axis_angle(angle, &rotvec);
 
     // Perform rotation of dipole to z-axis
-    for elem in species.iter_mut() {
-        for site in elem.atom_sites.iter_mut() {
-            let site_coords = Array::from_iter(site.coords.clone().into_iter());
-            let new_coords = quat.rotate(&site_coords);
-            site.coords = new_coords.to_vec();
-        }
+    for site in atoms.iter_mut() {
+        let site_coords = Array::from_iter(site.coords.clone().into_iter());
+        let new_coords = quat.rotate(&site_coords);
+        site.coords = new_coords.to_vec();
     }
 
     // Compute moment of inertia matrix based on charges
-    let moi_matrix = moment_of_inertia(species);
+    let moi_matrix = moment_of_inertia(atoms);
 
     // Find the principal axes
     let (_, mut principal_axes) = moi_matrix
@@ -114,12 +121,10 @@ pub fn reorient(species: &mut [Species]) -> Result<(), DipoleError> {
     }
     let pa_x_quat = Quaternion::from_axis_angle(x_angle, &dir);
 
-    for elem in species.iter_mut() {
-        for site in elem.atom_sites.iter_mut() {
-            let site_coords = Array::from_iter(site.coords.clone().into_iter());
-            let new_coords = pa_x_quat.rotate(&site_coords);
-            site.coords = new_coords.to_vec();
-        }
+    for site in atoms.iter_mut() {
+        let site_coords = Array::from_iter(site.coords.clone().into_iter());
+        let new_coords = pa_x_quat.rotate(&site_coords);
+        site.coords = new_coords.to_vec();
     }
     for i in 0..3 {
         let pa_slice = principal_axes.slice(s![0..3, i]).clone().to_owned();
@@ -138,12 +143,10 @@ pub fn reorient(species: &mut [Species]) -> Result<(), DipoleError> {
     }
 
     let pa_y_quat = Quaternion::from_axis_angle(y_angle, &xaxis);
-    for elem in species.iter_mut() {
-        for site in elem.atom_sites.iter_mut() {
-            let site_coords = Array::from_iter(site.coords.clone().into_iter());
-            let new_coords = pa_y_quat.rotate(&site_coords);
-            site.coords = new_coords.to_vec();
-        }
+    for site in atoms.iter_mut() {
+        let site_coords = Array::from_iter(site.coords.clone().into_iter());
+        let new_coords = pa_y_quat.rotate(&site_coords);
+        site.coords = new_coords.to_vec();
     }
     for i in 0..3 {
         let pa_slice = principal_axes.slice(s![0..3, i]).clone().to_owned();
@@ -155,9 +158,8 @@ pub fn reorient(species: &mut [Species]) -> Result<(), DipoleError> {
 }
 
 #[inline(always)]
-fn moment_of_inertia(species: &[Species]) -> Array2<f64> {
+fn moment_of_inertia(atoms: &[Site]) -> Array2<f64> {
     let mut out_arr = Array::zeros((3, 3));
-    let atoms: Vec<Site> = species.iter().flat_map(|x| x.atom_sites.clone()).collect();
     let charges = Array::from_shape_vec(
         atoms.len(),
         atoms
