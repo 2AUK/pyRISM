@@ -180,13 +180,10 @@ impl std::ops::Mul<Quaternion> for &Quaternion {
 #[cfg(test)]
 mod test {
     use super::*;
+    use approx::assert_relative_eq;
     use ndarray::arr1;
 
-    #[test]
-    fn test_quat() {
-        let quat = Quaternion::new([1.0, 2.0, 3.0, 4.0]);
-        println!("Print: {:?}", quat);
-    }
+    const PRECISION: f64 = f64::EPSILON;
 
     #[test]
     fn test_rotation() {
@@ -195,11 +192,17 @@ mod test {
         // Rotation matrix performing same operation
         let rot_mat = Array::from_diag(&arr1(&[1.0, -1.0, -1.0]));
         // Input vec
-        let vec = Array::from_vec(vec![1.0, 1.0, 1.0]);
+        let vec = Array::from_vec(vec![1.0, 0.5, 0.5]);
 
         // Expect output -> [1.0, -1.0, -1.0]
-        println!("Rotation Matrix: {:?}", rot_mat.dot(&vec));
-        println!("Quaternion: {:?}", quat.rotate(&vec));
+        let known_result = arr1(&[1.0, -0.5, -0.5]);
+        let calculated_result = quat.rotate(&vec);
+        assert_relative_eq!(
+            known_result,
+            calculated_result,
+            max_relative = PRECISION,
+            epsilon = PRECISION
+        );
     }
 }
 //
