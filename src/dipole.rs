@@ -95,8 +95,15 @@ pub fn reorient(atoms: &mut [Site]) -> Result<(), DipoleError> {
         site.coords = new_coords.to_vec();
     }
 
+    let mut temp_atoms = atoms.to_owned().clone();
+
+    // zero the z-axis, so that only the x and y axes are aligned
+    for site in temp_atoms.iter_mut() {
+        site.coords = vec![site.coords[0], site.coords[1], 0.0];
+    }
+
     // Compute moment of inertia matrix based on charges
-    let moi_matrix = moment_of_inertia(atoms);
+    let moi_matrix = moment_of_inertia(&temp_atoms);
 
     // Find the principal axes
     let (_, mut principal_axes) = moi_matrix
@@ -119,7 +126,7 @@ pub fn reorient(atoms: &mut [Site]) -> Result<(), DipoleError> {
     }
     let pa_x_quat = Quaternion::from_axis_angle(x_angle, &dir);
 
-    for site in atoms.iter_mut() {
+    for site in temp_atoms.iter_mut() {
         let site_coords = Array::from_iter(site.coords.clone().into_iter());
         let new_coords = pa_x_quat.rotate(&site_coords);
         site.coords = new_coords.to_vec();
@@ -135,13 +142,12 @@ pub fn reorient(atoms: &mut [Site]) -> Result<(), DipoleError> {
     let y_pa: Array1<f64> = principal_axes.slice(s![0..3, 2]).to_owned();
     let mut y_angle = (f64::min(1.0, f64::max(-1.0, y_pa.dot(&yaxis)))).acos();
     let y_checkvec = cross_product(&xaxis, &y_pa);
-    println!("{}", y_angle);
     if y_checkvec.dot(&yaxis).is_sign_negative() {
         y_angle = -y_angle;
     }
 
     let pa_y_quat = Quaternion::from_axis_angle(y_angle, &xaxis);
-    for site in atoms.iter_mut() {
+    for site in temp_atoms.iter_mut() {
         let site_coords = Array::from_iter(site.coords.clone().into_iter());
         let new_coords = pa_y_quat.rotate(&site_coords);
         site.coords = new_coords.to_vec();
@@ -151,6 +157,12 @@ pub fn reorient(atoms: &mut [Site]) -> Result<(), DipoleError> {
         principal_axes
             .slice_mut(s![0..3, i])
             .assign(&pa_y_quat.rotate(&pa_slice));
+    }
+
+    // Set the original atom struct coordinates to the new ones
+    for (origin_site, temp_site) in atoms.iter_mut().zip(temp_atoms.iter()) {
+        origin_site.coords[0] = temp_site.coords[0];
+        origin_site.coords[1] = temp_site.coords[1];
     }
     Ok(())
 }
@@ -182,10 +194,17 @@ fn moment_of_inertia(atoms: &[Site]) -> Array2<f64> {
     out_arr
 }
 
+pub fn dmtodebye(dm: f64) -> f64 {
+    dm * 1.60217663e-29 * 2.997924581780902e29
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::data::Site;
+    use approx::assert_relative_eq;
+
+    const PRECISION: f64 = 1e-8;
 
     #[test]
     fn test_total_charge() {
@@ -233,36 +252,30 @@ mod test {
             atom_sites: vec![cl],
         };
         let mut species = vec![water, sodium_ion, chlorine_ion];
+        let mut calculated_result = arr1(&[0.0, 0.0, 0.0]);
         for spec in species.iter_mut() {
             match dipole_moment(&spec.atom_sites) {
-                Ok((vec, _)) => {
-                    let coords: Vec<Vec<f64>> =
-                        spec.atom_sites.iter().map(|x| x.coords.clone()).collect();
-                    println!("Coords initial: {:#?}", coords);
-                    println!("Dipole moment vector pre-alignment:\n{:?}", vec);
+                Ok(_) => {
                     let tot_charge = total_charge(&spec.atom_sites);
                     let mut coc = centre_of_charge(&spec.atom_sites);
                     coc /= tot_charge;
                     translate(&mut spec.atom_sites, &coc);
-                    let coords: Vec<Vec<f64>> =
-                        spec.atom_sites.iter().map(|x| x.coords.clone()).collect();
-                    println!("Coords after translation: {:#?}", coords);
-                    println!(
-                        "Dipole moment vector post-translation:\n{:?}",
-                        dipole_moment(&spec.atom_sites).unwrap()
-                    );
                     reorient(&mut spec.atom_sites).unwrap();
-                    let coords: Vec<Vec<f64>> =
-                        spec.atom_sites.iter().map(|x| x.coords.clone()).collect();
-                    println!("Coords after rotation: {:#?}", coords);
-                    println!(
-                        "Dipole moment vector post-alignment:\n{:?}",
-                        dipole_moment(&spec.atom_sites).unwrap()
-                    );
+                    (calculated_result, _) = dipole_moment(&spec.atom_sites).unwrap();
                 }
-                Err(_) => println!("{} has no dipole moment", spec.species_name),
+                Err(_) => {
+                    println!("{} has no dipole moment", spec.species_name);
+                }
             }
         }
+        let known_result = arr1(&[0.0, 0.0, 0.4893692265207899]);
+        assert_relative_eq!(
+            known_result,
+            calculated_result,
+            max_relative = PRECISION,
+            epsilon = PRECISION
+        );
+
         // println!(
         //     "Dipole moment vector pre-alignment:\n{:?}",
         //     dipole_moment(&species).unwrap()
