@@ -84,11 +84,11 @@ impl Quaternion {
     pub fn rotate(&self, vec: &Array1<f64>) -> Array1<f64> {
         let w = self.0[0];
         let u_raw = self.0[1..4].to_vec();
-        let vec = vec.to_owned();
+        let v = vec.to_owned();
         let u: Array1<f64> = Array::from_iter(u_raw.into_iter());
-        let term1: Array1<f64> = 2.0 * u.dot(&vec) * &u;
-        let term2: Array1<f64> = w * w - u.dot(&u) * &vec;
-        let term3: Array1<f64> = 2.0 * w * cross_product(&u, &vec);
+        let term1: Array1<f64> = 2.0 * u.dot(&v) * &u;
+        let term2: Array1<f64> = w * w - u.dot(&u) * &v;
+        let term3: Array1<f64> = 2.0 * w * cross_product(&u, &v);
 
         term1 + term2 + term3
     }
@@ -188,7 +188,7 @@ mod test {
     #[test]
     fn test_rotation() {
         // Quaternion representing reflection in y & z axes
-        let quat = Quaternion::new([0.0, 1.0, 0.0, 0.0]);
+        let quat = Quaternion::new([0.0, 0.5, 0.0, 0.0]);
         // Rotation matrix performing same operation
         let rot_mat = Array::from_diag(&arr1(&[1.0, -1.0, -1.0]));
         // Input vec
