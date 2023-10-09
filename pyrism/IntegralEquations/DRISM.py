@@ -113,7 +113,7 @@ class DRISM(object):
         self.kappa = np.sqrt(4.0 * np.pi * kap_denom / self.diel)
         ptxv = self.data_vv.species[0].dens / total_density
         self.y = 4.0 * np.pi * dmdensity / 9.0
-        self.h_c0 = (((self.diel - 1.0) / self.y) - 3.0) / (total_density * ptxv)
+        self.h_c0 = (((self.diel - 1.0) / self.y) - 3.0) / (total_density)
 
     def D_matrix(self):
         d0x = np.zeros((self.data_vv.ns1), dtype=np.float64)

@@ -1,5 +1,5 @@
 use crate::data::DataRs;
-use ndarray::Array3;
+use ndarray::{par_azip, Array, Array3};
 use pyo3::{prelude::*, types::PyString};
 use std::fmt;
 
@@ -66,8 +66,16 @@ pub fn hyper_netted_chain(problem: &DataRs) -> Array3<f64> {
         - &problem.correlations.tr
 }
 
-pub fn kovalenko_hirata(_problem: &DataRs) -> Array3<f64> {
-    todo!()
+pub fn kovalenko_hirata(problem: &DataRs) -> Array3<f64> {
+    let mut out = Array::zeros(problem.correlations.tr.raw_dim());
+    par_azip!((a in &mut out, &b in &(-problem.system.beta * &problem.interactions.u_sr + &problem.correlations.tr), &c in &problem.correlations.tr)    {
+        if b < 0.0 {
+            *a = b.exp()
+        } else {
+            *a = b + c
+        }
+    });
+    out
 }
 pub fn percus_yevick(_problem: &DataRs) -> Array3<f64> {
     todo!()
