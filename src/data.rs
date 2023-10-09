@@ -157,11 +157,11 @@ pub struct DielectricData {
 }
 
 impl DielectricData {
-    pub fn new(drism_damping: f64, diel: f64, shape: (usize, usize, usize)) -> Self {
+    pub fn new(drism_damping: f64, diel: f64, chi: Array3<f64>) -> Self {
         DielectricData {
             drism_damping,
             diel,
-            chi: Array::zeros(shape),
+            chi,
         }
     }
 }

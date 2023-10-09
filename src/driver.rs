@@ -2,14 +2,16 @@ use crate::data::{
     Correlations, DataConfig, DataRs, DielectricData, Grid, Interactions, SingleData, Species,
     SystemState,
 };
+use crate::dipole::*;
 use crate::integralequation::IntegralEquationKind;
 use crate::operator::{Operator, OperatorConfig};
 use crate::potential::{Potential, PotentialConfig};
 use crate::solver::Solver;
 use crate::solver::SolverConfig;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use ndarray::{Array, Array1, Array2, Array3, Axis, Zip};
 use pyo3::prelude::*;
+use std::f64::consts::PI;
 
 pub enum Verbosity {
     Quiet,
@@ -108,7 +110,7 @@ impl RISMDriver {
             None => info!("No solute-solvent problem"),
             Some(mut uv) => match solver.solve(&mut uv, &operator_uv) {
                 Ok(()) => info!("Finished"),
-                Err(e) => error!("{}", e),
+                Err(e) => panic!("{}", e),
             },
         }
     }
@@ -146,6 +148,33 @@ impl RISMDriver {
             self.data.amph,
             self.data.nlambda,
         );
+        info!("Checking for dipole moment");
+        let mut dm_vec = Vec::new();
+        for species in self.solvent.species.iter() {
+            dm_vec.push(dipole_moment(&species.atom_sites));
+        }
+        let (dm, _): (Vec<_>, Vec<_>) = dm_vec.into_iter().partition(Result::is_ok);
+        if dm.is_empty() {
+            warn!("No dipole moment found!")
+        } else if dm.is_empty() && self.operator.integral_equation == IntegralEquationKind::DRISM {
+            warn!("No dipole moment found! Switch from DRISM to XRISM");
+            self.operator.integral_equation = IntegralEquationKind::XRISM;
+        } else {
+            info!("Aligning dipole moment to z-axis");
+            for species in self.solvent.species.iter_mut() {
+                let tot_charge = total_charge(&species.atom_sites);
+                let mut coc = centre_of_charge(&species.atom_sites);
+                coc /= tot_charge;
+                translate(&mut species.atom_sites, &coc);
+                match reorient(&mut species.atom_sites) {
+                    Ok(_) => (),
+                    Err(e) => panic!(
+                        "{}; there should be a dipole moment present for this step, something has gone FATALLY wrong",
+                        e
+                    ),
+                }
+            }
+        }
         let dielectric;
         match self.operator.integral_equation {
             IntegralEquationKind::DRISM => {
@@ -162,17 +191,25 @@ impl RISMDriver {
                     .expect("damping parameter for DRISM set");
                 let diel = self.data.dielec.expect("dielectric constant set");
                 k_exp_term.par_mapv_inplace(|x| (-1.0 * (drism_damping * x / 2.0).powf(2.0)).exp());
-                let y = 0.0;
+                let dipole_density = self.solvent.species.iter().fold(0.0, |acc, species| {
+                    match dipole_moment(&species.atom_sites) {
+                        Ok((_, dm)) => acc + species.dens * dm * dm,
+                        _ => acc + 0.0,
+                    }
+                });
+                let y = 4.0 * PI * dipole_density / 9.0;
                 let hc0 = (((diel - 1.0) / y) - 3.0) / total_density;
                 let hck = hc0 * k_exp_term;
+                debug!("y: {}", y);
+                debug!("h_c(0): {}", hc0);
 
-                let _chi = {
+                let chi = {
                     let mut d0x = Array::zeros(self.data.nsv);
                     let mut d0y = Array::zeros(self.data.nsv);
                     let mut d1z = Array::zeros(self.data.nsv);
                     let mut chi = Array::zeros((self.data.npts, self.data.nsv, self.data.nsv));
-                    let mut i = 0;
                     for (ki, k) in grid.kgrid.iter().enumerate() {
+                        let mut i = 0;
                         for species in self.solvent.species.iter() {
                             for atm in species.atom_sites.iter() {
                                 let k_coord = *k * Array::from_vec(atm.coords.clone());
@@ -207,13 +244,9 @@ impl RISMDriver {
                             }
                         }
                     }
+                    chi
                 };
-
-                dielectric = Some(DielectricData::new(
-                    drism_damping,
-                    diel,
-                    (self.data.npts, self.data.nsv, self.data.nsv),
-                ));
+                dielectric = Some(DielectricData::new(drism_damping, diel, chi));
             }
             _ => dielectric = None,
         }
@@ -243,7 +276,9 @@ impl RISMDriver {
             }
             Some(solute) => {
                 info!("Solute data found");
-                warn!("pyRISM only tested for infinite dilution - setting non-zero solute density may not work");
+                warn!(
+                    "pyRISM only tested for infinite dilution; setting non-zero solute density may not work"
+                );
                 let interactions =
                     Interactions::new(self.data.npts, self.data.nsu.unwrap(), self.data.nsv);
                 let correlations =

@@ -7,7 +7,7 @@ use pyo3::{prelude::*, types::PyString};
 use std::f64::consts::PI;
 use std::fmt;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum IntegralEquationKind {
     XRISM,
     DRISM,
@@ -142,9 +142,9 @@ fn rism_vv_equation_impl(
         .par_for_each(|mut hk_matrix, wk_matrix, ck_matrix, chi_matrix| {
             let w_bar = wk_matrix.to_owned() + p.dot(&chi_matrix);
             let iwcp = &identity - w_bar.dot(&ck_matrix.dot(&p));
-            let inverted_iwcp = (iwcp).inv().expect("could not invert matrix: {iwcp}");
+            let inverted_iwcp = (iwcp).inv().expect("matrix inversion of:\n{iwcp}");
             let wcw = w_bar.dot(&ck_matrix.dot(&w_bar));
-            hk_matrix.assign(&inverted_iwcp.dot(&wcw));
+            hk_matrix.assign(&(inverted_iwcp.dot(&wcw) + chi_matrix));
         });
 
     // Compute t(k) = h(k) - c(k)
