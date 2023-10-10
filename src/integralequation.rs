@@ -146,7 +146,6 @@ fn rism_vv_equation_impl(
             let wcw = w_bar.dot(&ck_matrix.dot(&w_bar));
             hk_matrix.assign(&(inverted_iwcp.dot(&wcw) + chi_matrix));
         });
-    println!("{:#?}", hk);
 
     // Compute t(k) = h(k) - c(k)
     let tk = &hk - ck;
