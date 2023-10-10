@@ -29,6 +29,7 @@ class MDIIS(SolverObject):
     def step_Picard(self, curr, prev):
         self.fr.append(curr.flatten())
         self.res.append((curr - prev).flatten())
+        print(self.damp_picard)
         return prev + self.damp_picard * (curr - prev)
 
     def step_MDIIS(self, curr, prev, gr):
@@ -72,6 +73,7 @@ class MDIIS(SolverObject):
                     * np.power((c_A - c_prev).sum(), 2)
                 )
                 self.RMS_res.append(RMS)
+                print(self.RMS_res)
             else:
                 c_next = self.step_MDIIS(c_A, c_prev, self.data_vv.t + c_A)
                 c_next = np.reshape(c_next, c_prev.shape)
@@ -81,6 +83,7 @@ class MDIIS(SolverObject):
                     / self.data_vv.grid.npts
                     * np.power((c_A - c_prev).sum(), 2)
                 )
+                print(min(self.RMS_res))
                 if RMS > 10 * min(self.RMS_res):
                     print("Restarting MDIIS")
                     min_index = self.RMS_res.index(min(self.RMS_res))
