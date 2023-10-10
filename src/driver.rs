@@ -236,7 +236,6 @@ impl RISMDriver {
                                 i += 1;
                             }
                         }
-
                         for i in 0..self.data.nsv {
                             for j in 0..self.data.nsv {
                                 chi[[ki, i, j]] =
