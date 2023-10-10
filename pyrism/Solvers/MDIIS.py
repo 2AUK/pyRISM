@@ -64,7 +64,6 @@ class MDIIS(SolverObject):
                 print("diff: {diff}".format(diff=(c_A - c_prev).min()))
                 raise e
             if len(self.fr) < self.m:
-                print("Picard Step")
                 c_next = self.step_Picard(c_A, c_prev)
                 RMS = np.sqrt(
                     1
@@ -72,14 +71,8 @@ class MDIIS(SolverObject):
                     / self.data_vv.grid.npts
                     * np.power((c_A - c_prev).sum(), 2)
                 )
-                print(
-                    "Iteration: {i}\nRMS: {RMS}\nDiff: {diff}".format(
-                        i=i, RMS=RMS, diff=(c_A - c_prev).min()
-                    )
-                )
                 self.RMS_res.append(RMS)
             else:
-                print("MDIIS Step")
                 c_next = self.step_MDIIS(c_A, c_prev, self.data_vv.t + c_A)
                 c_next = np.reshape(c_next, c_prev.shape)
                 RMS = np.sqrt(
@@ -87,11 +80,6 @@ class MDIIS(SolverObject):
                     / self.data_vv.ns1
                     / self.data_vv.grid.npts
                     * np.power((c_A - c_prev).sum(), 2)
-                )
-                print(
-                    "Iteration: {i}\nRMS: {RMS}\nDiff: {diff}".format(
-                        i=i, RMS=RMS, diff=(c_A - c_prev).min()
-                    )
                 )
                 if RMS > 10 * min(self.RMS_res):
                     print("Restarting MDIIS")
@@ -102,6 +90,12 @@ class MDIIS(SolverObject):
                     self.RMS_res.clear()
                 self.RMS_res.append(RMS)
                 self.RMS_res.pop(0)
+            self.converged(c_next, c_prev) 
+            print(
+                    "Iteration: {i} Convergence RMS: {RMS}\nDiff: {diff}".format(
+                        i=i, RMS=self.rms, diff=(c_next - c_prev).min()
+                    )
+                )
 
             # print(c_next)
             self.data_vv.c = c_next

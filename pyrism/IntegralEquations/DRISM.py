@@ -41,6 +41,7 @@ class DRISM(object):
             self.data_vv.p,
             self.chi,
         )
+        print(self.data_vv.h)
         self.data_vv.t = (
             self.data_vv.grid.idht(self.data_vv.h - ck)
             - self.data_vv.B * self.data_vv.ur_lr
@@ -121,10 +122,9 @@ class DRISM(object):
         d1z = np.zeros((self.data_vv.ns1), dtype=np.float64)
         for ki, k in enumerate(self.data_vv.grid.ki):
             hck = self.h_c0 * np.exp(-np.power((self.adbcor * k / 2.0), 2.0))
-            i = -1
+            i = 0 
             for isp in self.data_vv.species:
                 for iat in isp.atom_sites:
-                    i += 1
                     k_coord = k * iat.coords
                     if k_coord[0] == 0.0:
                         d0x[i] = 1.0
@@ -138,6 +138,7 @@ class DRISM(object):
                         d1z[i] = 0.0
                     else:
                         d1z[i] = Util.j1(k_coord[2])
+                    i+=1
             for i, j in np.ndindex((self.data_vv.ns1, self.data_vv.ns2)):
                 self.chi[ki, i, j] = (
                     d0x[i] * d0y[i] * d1z[i] * d0x[j] * d0y[j] * d1z[j] * hck

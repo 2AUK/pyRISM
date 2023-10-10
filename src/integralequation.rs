@@ -134,7 +134,7 @@ fn rism_vv_equation_impl(
     ck = ck - b * uk_lr.to_owned();
 
     // Perform integral equation calculation in k-space
-    // H = (I - W * C * P)^-1 * (W * C * W)
+    // H = (I - W * C * P * Χ)^-1 * (W * C * W) + Χ
     Zip::from(hk.outer_iter_mut())
         .and(wk.outer_iter())
         .and(ck.outer_iter())
@@ -146,6 +146,7 @@ fn rism_vv_equation_impl(
             let wcw = w_bar.dot(&ck_matrix.dot(&w_bar));
             hk_matrix.assign(&(inverted_iwcp.dot(&wcw) + chi_matrix));
         });
+    println!("{:#?}", hk);
 
     // Compute t(k) = h(k) - c(k)
     let tk = &hk - ck;
