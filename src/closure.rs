@@ -70,9 +70,9 @@ pub fn kovalenko_hirata(problem: &DataRs) -> Array3<f64> {
     let mut out = Array::zeros(problem.correlations.tr.raw_dim());
     par_azip!((a in &mut out, &b in &(-problem.system.beta * &problem.interactions.u_sr + &problem.correlations.tr), &c in &problem.correlations.tr)    {
         if b < 0.0 {
-            *a = b.exp()
+            *a = b.exp() - 1.0 - c
         } else {
-            *a = b + c
+            *a = b - c
         }
     });
     out

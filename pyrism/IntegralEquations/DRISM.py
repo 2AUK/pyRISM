@@ -41,7 +41,6 @@ class DRISM(object):
             self.data_vv.p,
             self.chi,
         )
-        print(self.data_vv.h)
         self.data_vv.t = (
             self.data_vv.grid.idht(self.data_vv.h - ck)
             - self.data_vv.B * self.data_vv.ur_lr
