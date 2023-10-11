@@ -169,7 +169,7 @@ impl Solver for MDIIS {
 
             println!("Iteration: {}\tConvergence RMSE: {:E}", i, rmse);
 
-            if rmse < self.tolerance {
+            if rmse <= self.tolerance {
                 break Ok(());
             }
 

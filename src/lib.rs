@@ -18,7 +18,7 @@ pub mod transforms;
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
 #[pymodule]
-fn rust_helpers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+fn librism(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<RISMDriver>()?;
     Ok(())
 }
