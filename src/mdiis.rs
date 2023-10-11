@@ -39,7 +39,12 @@ impl MDIIS {
         }
     }
 
-    fn step_picard(&mut self, curr: &Array3<f64>, prev: &Array3<f64>) -> Array3<f64> {
+    fn step_picard(
+        &mut self,
+        curr: &Array3<f64>,
+        prev: &Array3<f64>,
+        res: &Array3<f64>,
+    ) -> Array3<f64> {
         // calculate difference between current and previous solutions from RISM equation
         let diff = curr.clone() - prev.clone();
 
@@ -49,7 +54,7 @@ impl MDIIS {
 
         // push flattened difference into residual array
         self.res
-            .push_back(Array::from_iter(diff.clone().into_iter()));
+            .push_back(Array::from_iter(res.clone().into_iter()));
 
         // return Picard iteration step
         println!("{}", self.picard_damping);
@@ -60,6 +65,7 @@ impl MDIIS {
         &mut self,
         curr: &Array3<f64>,
         prev: &Array3<f64>,
+        res: &Array3<f64>,
         gr: &Array3<f64>,
     ) -> Array1<f64> {
         let mut a = Array2::zeros((self.m + 1, self.m + 1));
@@ -103,7 +109,7 @@ impl MDIIS {
 
         // push flattened difference into residual array
         self.res
-            .push_back(Array::from_iter(diff.clone().into_iter()));
+            .push_back(Array::from_iter(res.clone().into_iter()));
 
         self.fr.pop_front();
         self.res.pop_front();
@@ -127,20 +133,21 @@ impl Solver for MDIIS {
             let c_prev = problem.correlations.cr.clone();
             (operator.eq)(problem);
             let c_a = (operator.closure)(&problem);
+            let g_a = &c_a + 1.0 + &problem.correlations.tr;
             let mut c_next;
 
             if self.fr.len() < self.m {
                 //println!("Picard Step");
-                c_next = self.step_picard(&c_a, &c_prev);
+                c_next = self.step_picard(&c_a, &c_prev, &(&g_a - 1.0 - &problem.correlations.hr));
                 let rmse = compute_rmse(ns1, ns2, npts, &c_a, &c_prev);
                 //println!("\tMDIIS RMSE: {}", rmse);
                 self.rms_res.push_back(rmse);
                 debug!("RMS Vector:\n{:#?}", self.rms_res);
             } else {
                 //println!("MDIIS Step");
-                let gr = &problem.correlations.tr + &c_a;
+                let gr = &problem.correlations.tr + &c_a + 1.0;
                 c_next = self
-                    .step_mdiis(&c_a, &c_prev, &gr)
+                    .step_mdiis(&c_a, &c_prev, &(&g_a - 1.0 - &problem.correlations.hr), &gr)
                     .into_shape(shape)
                     .expect("could not reshape array into original shape");
                 let rmse = compute_rmse(ns1, ns2, npts, &c_a, &c_prev);
