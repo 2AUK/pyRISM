@@ -3,6 +3,27 @@ use ndarray::{par_azip, Array, Array3};
 use pyo3::{prelude::*, types::PyString};
 use std::fmt;
 
+#[macro_export]
+macro_rules! pse_n {
+    ($name:ident, $n:expr)  => {
+        pub fn $name(problem: &DataRs) -> Array3<f64> {
+            let mut out = Array::zeros(problem.correlations.tr.raw_dim());
+            let mut t_fac = Array::zeros(problem.correlations.tr.raw_dim());
+            for i in 0..$n {
+                t_fac += (-problem.system.beta * &problem.interactions.u_sr).mapv(|a| a.powf(i as f64)) / factorial(i);
+            }
+            par_azip!((a in &mut out, &b in &(-problem.system.beta * &problem.interactions.u_sr + &problem.correlations.tr), &c in &problem.correlations.tr)    {
+            if b <= 0.0 {
+                *a = b.exp() - 1.0 - c
+            } else {
+                *a = t_fac - 1.0 - c
+            }
+            });
+            out
+        }
+    };
+}
+
 #[derive(Debug, Clone)]
 pub enum ClosureKind {
     HyperNettedChain,
@@ -51,7 +72,11 @@ impl ClosureKind {
             ClosureKind::HyperNettedChain => hyper_netted_chain,
             ClosureKind::KovalenkoHirata => kovalenko_hirata,
             ClosureKind::PercusYevick => percus_yevick,
-            ClosureKind::PartialSeriesExpansion(_) => partial_series_expansion,
+            ClosureKind::PartialSeriesExpansion(x) => {
+                let n = x.to_owned();
+                let func = pse_n!("smelly", n);
+                func
+            }
         }
     }
 }
@@ -77,9 +102,13 @@ pub fn kovalenko_hirata(problem: &DataRs) -> Array3<f64> {
     });
     out
 }
-pub fn percus_yevick(_problem: &DataRs) -> Array3<f64> {
-    todo!()
+pub fn percus_yevick(problem: &DataRs) -> Array3<f64> {
+    (-problem.system.beta * &problem.interactions.u_sr).mapv(|a| a.exp())
+        * (1.0 + &problem.correlations.tr)
+        - 1.0
+        - &problem.correlations.tr
 }
-pub fn partial_series_expansion(_problem: &DataRs) -> Array3<f64> {
-    todo!()
+
+pub fn factorial(num: u128) -> u128 {
+    (1..=num).product()
 }
