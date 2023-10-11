@@ -1,9 +1,7 @@
 use crate::data::DataRs;
 use crate::operator::Operator;
 use crate::solver::{Solver, SolverError, SolverSettings};
-use fftw::plan::*;
-use fftw::types::*;
-use log::warn;
+use log::{info, trace, warn};
 use ndarray_linalg::Solve;
 use numpy::ndarray::{Array, Array1, Array2, Array3};
 use std::collections::VecDeque;
@@ -115,7 +113,7 @@ impl MDIIS {
 
 impl Solver for MDIIS {
     fn solve(&mut self, problem: &mut DataRs, operator: &Operator) -> Result<(), SolverError> {
-        println! {"Solving solvent-solvent RISM equation"};
+        info! {"Solving solvent-solvent RISM equation"};
         self.fr.clear();
         self.res.clear();
         self.rms_res.clear();
@@ -167,7 +165,7 @@ impl Solver for MDIIS {
             problem.correlations.cr = c_next.clone();
             let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &c_next, &c_prev);
 
-            println!("Iteration: {}\tConvergence RMSE: {:E}", i, rmse);
+            trace!("Iteration: {}\tConvergence RMSE: {:E}", i, rmse);
 
             if rmse <= self.tolerance {
                 break Ok(());

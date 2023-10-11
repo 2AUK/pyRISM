@@ -72,18 +72,10 @@ impl ClosureKind {
             ClosureKind::HyperNettedChain => hyper_netted_chain,
             ClosureKind::KovalenkoHirata => kovalenko_hirata,
             ClosureKind::PercusYevick => percus_yevick,
-            ClosureKind::PartialSeriesExpansion(x) => {
-                let n = x.to_owned();
-                let func = pse_n!("smelly", n);
-                func
-            }
+            ClosureKind::PartialSeriesExpansion(_) => partial_series_expansion,
         }
     }
 }
-
-// pub fn hyper_netted_chain(b: f64, u: ArrayView3<f64>, t: ArrayView3<f64>) -> Array3<f64> {
-//     (-b * u.to_owned() + t).mapv(|a| a.exp()) - 1.0 - t
-// }
 
 pub fn hyper_netted_chain(problem: &DataRs) -> Array3<f64> {
     (-problem.system.beta * &problem.interactions.u_sr + &problem.correlations.tr).mapv(|a| a.exp())
@@ -107,6 +99,10 @@ pub fn percus_yevick(problem: &DataRs) -> Array3<f64> {
         * (1.0 + &problem.correlations.tr)
         - 1.0
         - &problem.correlations.tr
+}
+
+pub fn partial_series_expansion(_problem: &DataRs) -> Array3<f64> {
+    todo!()
 }
 
 pub fn factorial(num: u128) -> u128 {

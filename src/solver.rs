@@ -1,6 +1,7 @@
 use crate::data::DataRs;
 use crate::mdiis::MDIIS;
 use crate::operator::Operator;
+use crate::picard::Picard;
 use pyo3::{prelude::*, types::PyString};
 use std::fmt::{self, Debug, Display};
 
@@ -94,9 +95,10 @@ impl<'source> FromPyObject<'source> for SolverKind {
 }
 
 impl SolverKind {
-    pub fn set(&self, settings: &SolverSettings) -> impl Solver {
+    pub fn set(&self, settings: &SolverSettings) -> Box<dyn Solver> {
         match self {
-            SolverKind::MDIIS => MDIIS::new(settings),
+            SolverKind::Picard => Box::new(Picard::new(settings)),
+            SolverKind::MDIIS => Box::new(MDIIS::new(settings)),
             _ => panic!("solver unimplemented"),
         }
     }
