@@ -213,6 +213,6 @@ fn conv_rmse(
     curr: &Array3<f64>,
     prev: &Array3<f64>,
 ) -> f64 {
-    let denom = ns1 as f64 * ns2 as f64 * npts as f64;
-    (dr * (curr - prev).mapv(|x| x.powf(2.0)).sum() / denom).sqrt()
+    let denom = 1.0 / ns1 as f64 / ns2 as f64 / npts as f64;
+    (dr * (curr - prev).mapv(|x| x.powf(2.0)).sum() * denom).sqrt()
 }
