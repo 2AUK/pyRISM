@@ -1,5 +1,6 @@
 use crate::data::DataRs;
 use crate::mdiis::MDIIS;
+use crate::ng::Ng;
 use crate::operator::Operator;
 use crate::picard::Picard;
 use pyo3::{prelude::*, types::PyString};
@@ -99,6 +100,7 @@ impl SolverKind {
         match self {
             SolverKind::Picard => Box::new(Picard::new(settings)),
             SolverKind::MDIIS => Box::new(MDIIS::new(settings)),
+            SolverKind::Ng => Box::new(Ng::new(settings)),
             _ => panic!("solver unimplemented"),
         }
     }
