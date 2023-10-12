@@ -7,6 +7,15 @@ use pyo3::{prelude::*, types::PyString};
 use std::fmt::{self, Debug, Display};
 
 #[derive(Debug)]
+pub struct SolverSuccess(pub usize, pub f64);
+
+impl Display for SolverSuccess {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Finished! Iteration: {} RMSE: {:.6E}", self.0, self.1)
+    }
+}
+
+#[derive(Debug)]
 pub enum SolverError {
     ConvergenceError(usize),
     MaxIterationError(usize),
@@ -24,7 +33,11 @@ impl Display for SolverError {
 impl std::error::Error for SolverError {}
 
 pub trait Solver: Debug {
-    fn solve(&mut self, data: &mut DataRs, operator: &Operator) -> Result<(), SolverError>;
+    fn solve(
+        &mut self,
+        data: &mut DataRs,
+        operator: &Operator,
+    ) -> Result<SolverSuccess, SolverError>;
 }
 
 #[derive(FromPyObject, Debug, Clone)]

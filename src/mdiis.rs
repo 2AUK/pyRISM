@@ -1,6 +1,6 @@
 use crate::data::DataRs;
 use crate::operator::Operator;
-use crate::solver::{Solver, SolverError, SolverSettings};
+use crate::solver::{Solver, SolverError, SolverSettings, SolverSuccess};
 use log::{info, trace, warn};
 use ndarray_linalg::Solve;
 use numpy::ndarray::{Array, Array1, Array2, Array3};
@@ -112,7 +112,11 @@ impl MDIIS {
 }
 
 impl Solver for MDIIS {
-    fn solve(&mut self, problem: &mut DataRs, operator: &Operator) -> Result<(), SolverError> {
+    fn solve(
+        &mut self,
+        problem: &mut DataRs,
+        operator: &Operator,
+    ) -> Result<SolverSuccess, SolverError> {
         info! {"Solving solvent-solvent RISM equation"};
         self.fr.clear();
         self.res.clear();
@@ -165,10 +169,10 @@ impl Solver for MDIIS {
             problem.correlations.cr = c_next.clone();
             let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &c_next, &c_prev);
 
-            trace!("Iteration: {}\tConvergence RMSE: {:E}", i, rmse);
+            trace!("Iteration: {} Convergence RMSE: {:.6E}", i, rmse);
 
             if rmse <= self.tolerance {
-                break Ok(());
+                break Ok(SolverSuccess(i, rmse));
             }
 
             if rmse == std::f64::NAN || rmse == std::f64::INFINITY {

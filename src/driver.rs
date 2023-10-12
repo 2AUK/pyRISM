@@ -102,14 +102,14 @@ impl RISMDriver {
         let mut solver = self.solver.solver.set(&self.solver.settings);
 
         match solver.solve(&mut vv, &operator) {
-            Ok(()) => info!("Finished!"),
+            Ok(s) => info!("{}", s),
             Err(e) => error!("{}", e),
         }
 
         match uv {
             None => info!("No solute-solvent problem"),
             Some(mut uv) => match solver.solve(&mut uv, &operator_uv) {
-                Ok(()) => info!("Finished"),
+                Ok(s) => info!("{}", s),
                 Err(e) => panic!("{}", e),
             },
         }
