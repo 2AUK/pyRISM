@@ -1,6 +1,6 @@
 use crate::data::DataRs;
 use crate::operator::Operator;
-use crate::solver::{Solver, SolverError, SolverSettings};
+use crate::solver::{Solver, SolverError, SolverSettings, SolverSuccess};
 use log::{info, trace};
 use ndarray_linalg::Solve;
 use numpy::ndarray::{Array, Array1, Array3};
@@ -78,7 +78,11 @@ impl Ng {
 }
 
 impl Solver for Ng {
-    fn solve(&mut self, problem: &mut DataRs, operator: &Operator) -> Result<(), SolverError> {
+    fn solve(
+        &mut self,
+        problem: &mut DataRs,
+        operator: &Operator,
+    ) -> Result<SolverSuccess, SolverError> {
         info! {"Solving solvent-solvent RISM equation"};
         let shape = problem.correlations.cr.dim();
         let (npts, ns1, ns2) = shape;
@@ -101,10 +105,10 @@ impl Solver for Ng {
             problem.correlations.cr = c_next.clone();
             let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &c_next, &c_prev);
 
-            trace!("Iteration: {}\tConvergence RMSE: {:E}", i, rmse);
+            trace!("Iteration: {} Convergence RMSE: {:.6E}", i, rmse);
 
             if rmse <= self.tolerance {
-                break Ok(());
+                break Ok(SolverSuccess(i, rmse));
             }
 
             if rmse == std::f64::NAN || rmse == std::f64::INFINITY {
