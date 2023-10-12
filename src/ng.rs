@@ -1,7 +1,8 @@
 use crate::data::DataRs;
 use crate::operator::Operator;
 use crate::solver::{Solver, SolverError, SolverSettings};
-use numpy::ndarray::Array3;
+use numpy::ndarray::{Array1, Array3};
+use std::collections::VecDeque;
 
 #[derive(Clone, Debug)]
 pub struct Ng {
@@ -9,6 +10,10 @@ pub struct Ng {
     pub picard_damping: f64,
     pub max_iter: usize,
     pub tolerance: f64,
+
+    // Vectors containing 3 previous solutions
+    pub fr: VecDeque<Array1<f64>>,
+    pub gr: VecDeque<Array1<f64>>,
 }
 
 impl Ng {
@@ -17,6 +22,8 @@ impl Ng {
             picard_damping: settings.picard_damping,
             max_iter: settings.max_iter,
             tolerance: settings.tolerance,
+            fr: VecDeque::new(),
+            gr: VecDeque::new(),
         }
     }
 
