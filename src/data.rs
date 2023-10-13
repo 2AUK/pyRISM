@@ -1,3 +1,4 @@
+use crate::solution::*;
 use ndarray::{Array, Array1, Array2, Array3};
 use numpy::{PyArray1, PyArray2, PyArray3};
 use pyo3::prelude::*;
@@ -187,6 +188,7 @@ pub struct DataRs {
     pub interactions: Interactions,
     pub correlations: Correlations,
     pub dielectrics: Option<DielectricData>,
+    pub solution: Option<SolvedData>,
 }
 
 impl DataRs {
@@ -198,7 +200,7 @@ impl DataRs {
         interactions: Interactions,
         correlations: Correlations,
         dielectrics: Option<DielectricData>,
-    ) -> Self {
+    ) -> DataRs {
         DataRs {
             system,
             data_a,
@@ -207,6 +209,7 @@ impl DataRs {
             interactions,
             correlations,
             dielectrics,
+            solution: None,
         }
     }
 }

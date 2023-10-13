@@ -13,6 +13,7 @@ pub mod operator;
 pub mod picard;
 pub mod potential;
 pub mod quaternion;
+pub mod solution;
 pub mod solver;
 pub mod transforms;
 
