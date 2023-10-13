@@ -6,6 +6,7 @@ use crate::dipole::*;
 use crate::integralequation::IntegralEquationKind;
 use crate::operator::{Operator, OperatorConfig};
 use crate::potential::{Potential, PotentialConfig};
+use crate::solution::SolvedData;
 use crate::solver::Solver;
 use crate::solver::SolverConfig;
 use log::{debug, error, info, warn};
@@ -106,12 +107,23 @@ impl RISMDriver {
             Err(e) => error!("{}", e),
         }
 
+        let vv_solution = SolvedData::new(
+            self.solver.clone(),
+            self.potential.clone(),
+            self.operator.clone(),
+            vv.interactions.clone(),
+            vv.correlations.clone(),
+        );
+
         match uv {
             None => info!("No solute-solvent problem"),
-            Some(mut uv) => match solver.solve(&mut uv, &operator_uv) {
-                Ok(s) => info!("{}", s),
-                Err(e) => panic!("{}", e),
-            },
+            Some(mut uv) => {
+                uv.solution = Some(vv_solution);
+                match solver.solve(&mut uv, &operator_uv) {
+                    Ok(s) => info!("{}", s),
+                    Err(e) => panic!("{}", e),
+                }
+            }
         }
     }
 

@@ -69,7 +69,7 @@ class DRISM(object):
                 self.data_uv.w,
                 self.data_vv.w,
                 self.data_uv.p,
-                self.data_vv.h,
+                self.data_vv.h_k,
             )
 
             self.data_uv.t = (
