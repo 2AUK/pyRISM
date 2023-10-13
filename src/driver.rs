@@ -28,9 +28,7 @@ fn plot(x: &Array1<f64>, y: &Array1<f64>) {
     let y_vec = y.to_vec();
     let mut fg = Figure::new();
     fg.axes2d()
-        .lines(&x_vec, &y_vec, &[LineWidth(1.5), Color("black")])
-        .set_y_range(Fix(-50.0), Fix(1.0))
-        .set_x_range(Fix(0.0), Fix(10.0));
+        .lines(&x_vec, &y_vec, &[LineWidth(1.5), Color("black")]);
     fg.show().unwrap();
 }
 
@@ -149,10 +147,14 @@ impl RISMDriver {
             uv.clone().unwrap().interactions,
             uv.clone().unwrap().correlations,
         );
-    }
 
-    fn do_rism(&mut self) {
-        todo!()
+        let gr_uv =
+            &uv.clone().unwrap().correlations.cr + &uv.clone().unwrap().correlations.tr + 1.0;
+
+        plot(
+            &uv.clone().unwrap().grid.rgrid,
+            &gr_uv.slice(s![.., 4, 0]).to_owned(),
+        );
     }
 
     // pub fn extract<'py>(
