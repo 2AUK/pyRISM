@@ -9,8 +9,9 @@ use crate::potential::{Potential, PotentialConfig};
 use crate::solution::SolvedData;
 use crate::solver::Solver;
 use crate::solver::SolverConfig;
+use gnuplot::{AxesCommon, Caption, Color, Figure, Fix, LineWidth};
 use log::{debug, error, info, warn};
-use ndarray::{Array, Array1, Array2, Array3, Axis, Zip};
+use ndarray::{s, Array, Array1, Array2, Array3, Axis, Slice, Zip};
 use pyo3::prelude::*;
 use std::f64::consts::PI;
 
@@ -20,6 +21,17 @@ pub enum Verbosity {
     Info,
     Debug,
     Trace,
+}
+
+fn plot(x: &Array1<f64>, y: &Array1<f64>) {
+    let x_vec = x.to_vec();
+    let y_vec = y.to_vec();
+    let mut fg = Figure::new();
+    fg.axes2d()
+        .lines(&x_vec, &y_vec, &[LineWidth(1.5), Color("black")])
+        .set_y_range(Fix(-50.0), Fix(1.0))
+        .set_x_range(Fix(0.0), Fix(10.0));
+    fg.show().unwrap();
 }
 
 #[pyclass]
@@ -98,7 +110,7 @@ impl RISMDriver {
             ..self.operator.clone()
         });
 
-        let (mut vv, uv) = self.problem_setup();
+        let (mut vv, mut uv) = self.problem_setup();
 
         let mut solver = self.solver.solver.set(&self.solver.settings);
 
@@ -115,16 +127,28 @@ impl RISMDriver {
             vv.correlations.clone(),
         );
 
+        let gr = &vv.correlations.cr + &vv.correlations.tr + 1.0;
+
+        plot(&vv.grid.rgrid, &gr.slice(s![.., 0, 0]).to_owned());
+
         match uv {
             None => info!("No solute-solvent problem"),
-            Some(mut uv) => {
+            Some(ref mut uv) => {
                 uv.solution = Some(vv_solution);
-                match solver.solve(&mut uv, &operator_uv) {
+                match solver.solve(uv, &operator_uv) {
                     Ok(s) => info!("{}", s),
                     Err(e) => panic!("{}", e),
                 }
             }
         }
+
+        let uv_solution = SolvedData::new(
+            self.solver.clone(),
+            self.potential.clone(),
+            self.operator.clone(),
+            uv.clone().unwrap().interactions,
+            uv.clone().unwrap().correlations,
+        );
     }
 
     fn do_rism(&mut self) {
