@@ -131,7 +131,7 @@ impl RISMDriver {
         match uv {
             None => info!("No solute-solvent problem"),
             Some(ref mut uv) => {
-                uv.solution = Some(vv_solution);
+                uv.solution = Some(vv_solution.clone());
                 match solver.solve(uv, &operator_uv) {
                     Ok(s) => info!("{}", s),
                     Err(e) => panic!("{}", e),
@@ -150,6 +150,9 @@ impl RISMDriver {
 
         let gr_uv =
             &uv.clone().unwrap().correlations.cr + &uv.clone().unwrap().correlations.tr + 1.0;
+
+        let encoded_vv: Vec<u8> =
+            bincode::serialize(&vv_solution).expect("encode solvent-solvent results to binary");
 
         Ok(PyCorrelations::new(
             uv.clone().unwrap().correlations.cr,

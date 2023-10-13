@@ -16,7 +16,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 fftw = { version = "0.8.0", features = ["system"] }
-ndarray = { version = "0.15.6", features = ["approx-0_5", "rayon", "blas"] }
+ndarray = { version = "0.15.6", features = ["approx-0_5", "rayon", "blas", "serde"] }
 blas-src = { version = "0.8" }
 openblas-src = { version = "0.10", features = ["cblas", "system"] }
 ndarray-linalg = { version = "0.16.0", features = ["openblas-system"] }
@@ -32,6 +32,8 @@ approx = "0.5.1"
 simple_logger = "4.2.0"
 gnuplot = "0.0.39"
 serde = { version = "1.0.189", features = ["derive"] }
+bincode = "1.3.3"
+toml = "0.8.2"
 
 [package.metadata.maturin]
 python-source = "pyrism"

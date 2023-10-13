@@ -4,10 +4,11 @@ use fftw::plan::*;
 use ndarray::{Array, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis, Zip};
 use ndarray_linalg::Inverse;
 use pyo3::{prelude::*, types::PyString};
+use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 use std::fmt;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum IntegralEquationKind {
     XRISM,
     DRISM,

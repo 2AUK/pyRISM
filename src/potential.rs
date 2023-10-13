@@ -3,10 +3,11 @@ use errorfunctions::RealErrorFunctions;
 use itertools::Itertools;
 use ndarray::{s, Array1, Array3};
 use pyo3::{prelude::*, types::PyString};
+use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 use std::fmt;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PotentialKind {
     LennardJones,
     HardSpheres,
@@ -59,7 +60,7 @@ impl PotentialKind {
     }
 }
 
-#[derive(FromPyObject, Debug, Clone)]
+#[derive(FromPyObject, Debug, Clone, Serialize, Deserialize)]
 pub struct PotentialConfig {
     pub nonbonded: PotentialKind,
     pub coulombic: PotentialKind,

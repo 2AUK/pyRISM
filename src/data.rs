@@ -2,16 +2,17 @@ use crate::solution::*;
 use ndarray::{Array, Array1, Array2, Array3};
 use numpy::{PyArray1, PyArray2, PyArray3};
 use pyo3::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 
-#[derive(FromPyObject, Debug, Clone, PartialEq)]
+#[derive(FromPyObject, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Site {
     pub atom_type: String,
     pub params: Vec<f64>,
     pub coords: Vec<f64>,
 }
 
-#[derive(FromPyObject, Debug, Clone, PartialEq)]
+#[derive(FromPyObject, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Species {
     pub species_name: String,
     pub dens: f64,
@@ -19,7 +20,7 @@ pub struct Species {
     pub atom_sites: Vec<Site>,
 }
 
-#[derive(FromPyObject, Debug, Clone)]
+#[derive(FromPyObject, Debug, Clone, Serialize, Deserialize)]
 pub struct DataConfig {
     pub temp: f64,
     pub kt: f64,
@@ -122,7 +123,7 @@ impl SingleData {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Interactions {
     pub ur: Array3<f64>,
     pub u_sr: Array3<f64>,
@@ -142,7 +143,7 @@ impl Interactions {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Correlations {
     pub cr: Array3<f64>,
     pub tr: Array3<f64>,

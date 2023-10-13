@@ -4,6 +4,7 @@ use crate::ng::Ng;
 use crate::operator::Operator;
 use crate::picard::Picard;
 use pyo3::{prelude::*, types::PyString};
+use serde::{Deserialize, Serialize};
 use std::fmt::{self, Debug, Display};
 
 #[derive(Debug)]
@@ -40,18 +41,18 @@ pub trait Solver: Debug {
     ) -> Result<SolverSuccess, SolverError>;
 }
 
-#[derive(FromPyObject, Debug, Clone)]
+#[derive(FromPyObject, Debug, Clone, Serialize, Deserialize)]
 pub struct MDIISSettings {
     pub depth: usize,
     pub damping: f64,
 }
 
-#[derive(FromPyObject, Debug, Clone)]
+#[derive(FromPyObject, Debug, Clone, Serialize, Deserialize)]
 pub struct GillanSettings {
     pub nbasis: usize,
 }
 
-#[derive(FromPyObject, Debug, Clone)]
+#[derive(FromPyObject, Debug, Clone, Serialize, Deserialize)]
 pub struct SolverSettings {
     pub picard_damping: f64,
     pub max_iter: usize,
@@ -60,7 +61,7 @@ pub struct SolverSettings {
     pub mdiis_settings: Option<MDIISSettings>,
 }
 
-#[derive(FromPyObject, Debug, Clone)]
+#[derive(FromPyObject, Debug, Clone, Serialize, Deserialize)]
 pub struct SolverConfig {
     pub solver: SolverKind,
     pub settings: SolverSettings,
@@ -72,7 +73,7 @@ impl fmt::Display for SolverConfig {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SolverKind {
     Picard,
     Ng,
