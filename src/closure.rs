@@ -1,6 +1,7 @@
 use crate::data::DataRs;
 use ndarray::{par_azip, Array, Array3};
 use pyo3::{prelude::*, types::PyString};
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 #[macro_export]
@@ -24,7 +25,7 @@ macro_rules! pse_n {
     };
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ClosureKind {
     HyperNettedChain,
     KovalenkoHirata,

@@ -3,6 +3,7 @@ use crate::data::DataRs;
 use crate::integralequation::IntegralEquationKind;
 use ndarray::Array3;
 use pyo3::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 pub enum CycleOrder {
@@ -10,7 +11,7 @@ pub enum CycleOrder {
     T2C2T,
 }
 
-#[derive(FromPyObject, Debug, Clone)]
+#[derive(FromPyObject, Debug, Clone, Serialize, Deserialize)]
 pub struct OperatorConfig {
     pub integral_equation: IntegralEquationKind,
     pub closure: ClosureKind,

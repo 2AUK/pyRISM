@@ -6,6 +6,7 @@ pub mod closure;
 pub mod data;
 pub mod dipole;
 pub mod driver;
+pub mod input;
 pub mod integralequation;
 pub mod mdiis;
 pub mod ng;
