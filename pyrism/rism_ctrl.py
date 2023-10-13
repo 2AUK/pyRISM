@@ -239,7 +239,9 @@ class RismController:
         rism_job = RISMDriver(
             data_config, operator_config, potential_config, solver_config
         )
-        rism_job.execute()
+        vv = rism_job.execute()
+
+        print(vv)
 
         self.name = os.path.basename(self.fname).split(sep=".")[0]
         if "solvent" not in inp:
