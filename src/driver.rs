@@ -6,7 +6,7 @@ use crate::dipole::*;
 use crate::integralequation::IntegralEquationKind;
 use crate::operator::{Operator, OperatorConfig};
 use crate::potential::{Potential, PotentialConfig};
-use crate::solution::SolvedData;
+use crate::solution::*;
 use crate::solver::Solver;
 use crate::solver::SolverConfig;
 use gnuplot::{AxesCommon, Caption, Color, Figure, Fix, LineWidth};
@@ -97,7 +97,7 @@ impl RISMDriver {
         })
     }
 
-    pub fn execute(&mut self) {
+    pub fn execute<'py>(&'py mut self, py: Python<'py>) -> PyResult<Py<PyAny>> {
         self.print_header();
         simple_logger::init_with_env().unwrap();
         // set up operator(RISM equation and Closure)
@@ -118,6 +118,7 @@ impl RISMDriver {
         }
 
         let vv_solution = SolvedData::new(
+            self.data.clone(),
             self.solver.clone(),
             self.potential.clone(),
             self.operator.clone(),
@@ -126,8 +127,6 @@ impl RISMDriver {
         );
 
         let gr = &vv.correlations.cr + &vv.correlations.tr + 1.0;
-
-        plot(&vv.grid.rgrid, &gr.slice(s![.., 0, 0]).to_owned());
 
         match uv {
             None => info!("No solute-solvent problem"),
@@ -141,6 +140,7 @@ impl RISMDriver {
         }
 
         let uv_solution = SolvedData::new(
+            self.data.clone(),
             self.solver.clone(),
             self.potential.clone(),
             self.operator.clone(),
@@ -151,10 +151,14 @@ impl RISMDriver {
         let gr_uv =
             &uv.clone().unwrap().correlations.cr + &uv.clone().unwrap().correlations.tr + 1.0;
 
-        plot(
-            &uv.clone().unwrap().grid.rgrid,
-            &gr_uv.slice(s![.., 4, 0]).to_owned(),
-        );
+        Ok(PyCorrelations::new(
+            uv.clone().unwrap().correlations.cr,
+            uv.clone().unwrap().correlations.tr,
+            uv.clone().unwrap().correlations.hr,
+            gr_uv,
+            py,
+        )
+        .into_py(py))
     }
 
     // pub fn extract<'py>(
