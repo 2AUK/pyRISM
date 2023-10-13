@@ -16,6 +16,7 @@ pub mod potential;
 pub mod quaternion;
 pub mod solution;
 pub mod solver;
+pub mod thermo;
 pub mod transforms;
 
 /// A Python module implemented in Rust. The name of this function must match
