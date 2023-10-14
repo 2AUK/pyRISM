@@ -27,9 +27,13 @@ macro_rules! pse_n {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ClosureKind {
+    #[serde(rename = "HNC")]
     HyperNettedChain,
+    #[serde(rename = "KH")]
     KovalenkoHirata,
+    #[serde(rename = "PY")]
     PercusYevick,
+    #[serde(rename = "PSE")]
     PartialSeriesExpansion(i8),
 }
 

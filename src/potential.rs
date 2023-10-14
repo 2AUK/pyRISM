@@ -9,7 +9,9 @@ use std::fmt;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PotentialKind {
+    #[serde(rename = "LJ")]
     LennardJones,
+    #[serde(rename = "HS")]
     HardSpheres,
     Coulomb,
     NgRenormalisationReal,
