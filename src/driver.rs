@@ -7,13 +7,16 @@ use crate::integralequation::IntegralEquationKind;
 use crate::operator::{Operator, OperatorConfig};
 use crate::potential::{Potential, PotentialConfig};
 use crate::solution::*;
-use crate::solver::Solver;
 use crate::solver::SolverConfig;
+use bzip2::read::{BzDecoder, BzEncoder};
+use bzip2::Compression;
 use gnuplot::{AxesCommon, Caption, Color, Figure, Fix, LineWidth};
 use log::{debug, error, info, warn};
 use ndarray::{s, Array, Array1, Array2, Array3, Axis, Slice, Zip};
 use pyo3::prelude::*;
 use std::f64::consts::PI;
+use std::fs;
+use std::io::prelude::*;
 
 pub enum Verbosity {
     Quiet,
@@ -153,6 +156,7 @@ impl RISMDriver {
 
         let encoded_vv: Vec<u8> =
             bincode::serialize(&vv_solution).expect("encode solvent-solvent results to binary");
+        let compressor = BzEncoder::new(encoded_vv.as_slice(), Compression::best());
 
         Ok(PyCorrelations::new(
             uv.clone().unwrap().correlations.cr,
