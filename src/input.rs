@@ -1,6 +1,6 @@
 use log::info;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::path::PathBuf;
 
@@ -261,7 +261,7 @@ pub struct Params {
 pub enum ProblemInfo {
     Preconverged(String),
     Length(usize),
-    Data(HashMap<String, SpeciesInfo>),
+    Data(BTreeMap<String, SpeciesInfo>),
 }
 
 impl ProblemInfo {}

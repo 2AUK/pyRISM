@@ -32,6 +32,7 @@ fn main() -> Result<(), lexopt::Error> {
     let args = parse_args()?;
     println!("{}", args.verbosity);
     println!("{}", args.input_file.display());
-
+    let mut driver = RISMDriver::from_toml(args.input_file);
+    driver.execute();
     Ok(())
 }
