@@ -47,11 +47,26 @@ pub struct MDIISSettings {
     pub damping: f64,
 }
 
+impl Display for MDIISSettings {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "├Depth: {}\n└MDIIS Damping: {}",
+            self.depth, self.damping
+        )
+    }
+}
+
 #[derive(FromPyObject, Debug, Clone, Serialize, Deserialize)]
 pub struct GillanSettings {
     pub nbasis: usize,
 }
 
+impl Display for GillanSettings {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "└Num. Basis: {}", self.nbasis)
+    }
+}
 #[derive(FromPyObject, Debug, Clone, Serialize, Deserialize)]
 pub struct SolverSettings {
     pub picard_damping: f64,
