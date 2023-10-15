@@ -3,6 +3,7 @@ use crate::data::{
     SystemState,
 };
 use crate::dipole::*;
+use crate::input::{Configuration, InputTOMLHandler};
 use crate::integralequation::IntegralEquationKind;
 use crate::operator::{Operator, OperatorConfig};
 use crate::potential::{Potential, PotentialConfig};
@@ -17,6 +18,7 @@ use pyo3::prelude::*;
 use std::f64::consts::PI;
 use std::fs;
 use std::io::prelude::*;
+use std::path::PathBuf;
 
 pub enum Verbosity {
     Quiet,
@@ -98,7 +100,39 @@ impl RISMDriver {
         })
     }
 
-    pub fn execute<'py>(&'py mut self, py: Python<'py>) -> PyResult<Py<PyAny>> {
+    pub fn do_rism<'py>(&'py mut self, py: Python<'py>) {
+        // -> PyResult<Py<PyAny>> {
+        self.execute();
+        // Ok(PyCorrelations::new(
+        //     uv.clone().unwrap().correlations.cr,
+        //     uv.clone().unwrap().correlations.tr,
+        //     uv.clone().unwrap().correlations.hr,
+        //     gr_uv,
+        //     py,
+        // )
+        // .into_py(py))
+    }
+
+    // pub fn extract<'py>(
+    //     &'py self,
+    //     py: Python<'py>,
+    // ) -> PyResult<(
+    //     &PyArray3<f64>,
+    //     &PyArray3<f64>,
+    //     &PyArray3<f64>,
+    //     &PyArray3<f64>,
+    // )> {
+    //     Ok((
+    //         self.data.cr.clone().into_pyarray(py),
+    //         self.data.tr.clone().into_pyarray(py),
+    //         self.data.hr.clone().into_pyarray(py),
+    //         self.data.hk.clone().into_pyarray(py),
+    //     ))
+    // }
+}
+
+impl RISMDriver {
+    pub fn execute(&mut self) {
         self.print_header();
         simple_logger::init_with_env().unwrap();
         // set up operator(RISM equation and Closure)
@@ -108,6 +142,11 @@ impl RISMDriver {
             integral_equation: IntegralEquationKind::UV,
             ..self.operator.clone()
         });
+
+        println!(
+            "{:#?}\n\n{:#?}\n\n{:#?}\n\n{:#?}",
+            self.data, self.operator, self.solver, self.potential
+        );
 
         let (mut vv, mut uv) = self.problem_setup();
 
@@ -155,36 +194,53 @@ impl RISMDriver {
         let encoded_vv: Vec<u8> =
             bincode::serialize(&vv_solution).expect("encode solvent-solvent results to binary");
         let compressor = BzEncoder::new(encoded_vv.as_slice(), Compression::best());
-
-        Ok(PyCorrelations::new(
-            uv.clone().unwrap().correlations.cr,
-            uv.clone().unwrap().correlations.tr,
-            uv.clone().unwrap().correlations.hr,
-            gr_uv,
-            py,
-        )
-        .into_py(py))
     }
 
-    // pub fn extract<'py>(
-    //     &'py self,
-    //     py: Python<'py>,
-    // ) -> PyResult<(
-    //     &PyArray3<f64>,
-    //     &PyArray3<f64>,
-    //     &PyArray3<f64>,
-    //     &PyArray3<f64>,
-    // )> {
-    //     Ok((
-    //         self.data.cr.clone().into_pyarray(py),
-    //         self.data.tr.clone().into_pyarray(py),
-    //         self.data.hr.clone().into_pyarray(py),
-    //         self.data.hk.clone().into_pyarray(py),
-    //     ))
-    // }
-}
+    pub fn from_toml(fname: PathBuf) -> Self {
+        let config: Configuration = InputTOMLHandler::construct_configuration(&fname);
+        let data = config.data_config;
+        let (solvent, solute);
+        let shape = (data.npts, data.nsv, data.nsv);
 
-impl RISMDriver {
+        // Construct the solvent-solvent problem
+        solvent = SingleData::new(
+            data.solvent_atoms.clone(),
+            data.solvent_species.clone(),
+            shape,
+        );
+
+        // Check if a solute-solvent problem exists
+        match data.nsu {
+            None => solute = None,
+            _ => {
+                let shape = (data.npts, data.nsu.unwrap(), data.nsu.unwrap());
+                // Construct the solute-solvent problem
+                solute = Some(SingleData::new(
+                    data.solute_atoms.as_ref().unwrap().clone(),
+                    data.solute_species.as_ref().unwrap().clone(),
+                    shape,
+                ));
+            }
+        }
+
+        // Extract operator information
+        let operator: OperatorConfig = config.operator_config;
+
+        // Extract potential information
+        let potential: PotentialConfig = config.potential_config;
+
+        // Extract solver information
+        let solver: SolverConfig = config.solver_config;
+
+        RISMDriver {
+            solvent,
+            solute,
+            data,
+            operator,
+            potential,
+            solver,
+        }
+    }
     fn problem_setup(&mut self) -> (DataRs, Option<DataRs>) {
         let (mut vv_problem, uv_problem);
         info!("Defining solvent-solvent problem");
