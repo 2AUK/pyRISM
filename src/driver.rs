@@ -143,11 +143,6 @@ impl RISMDriver {
             ..self.operator.clone()
         });
 
-        println!(
-            "{:#?}\n\n{:#?}\n\n{:#?}\n\n{:#?}",
-            self.data, self.operator, self.solver, self.potential
-        );
-
         let (mut vv, mut uv) = self.problem_setup();
 
         let mut solver = self.solver.solver.set(&self.solver.settings);
