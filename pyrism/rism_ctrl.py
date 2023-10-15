@@ -71,6 +71,7 @@ class DataConfig:
     npts: int
     radius: float
     nlambda: int
+    preconverged: str
     solvent_atoms: list = field(default_factory=list)
     solute_atoms: list = field(default_factory=list)
     solvent_species: list = field(default_factory=list)
@@ -175,6 +176,9 @@ class RismController:
         npts = inp["system"]["npts"]
         radius = inp["system"]["radius"]
         lam = inp["system"]["lam"]
+        preconv = None
+        if "preconverged" in inp["solvent"]:
+            preconv = inp["solvent"]["preconverged"]
         solv_atoms, solv_species = self.add_species_to_list(
             list(
                 {
@@ -210,6 +214,7 @@ class RismController:
             npts,
             radius,
             lam,
+            preconv,
             solv_atoms,
             solu_atoms,
             solv_species,

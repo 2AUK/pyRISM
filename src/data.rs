@@ -4,6 +4,7 @@ use numpy::{PyArray1, PyArray2, PyArray3};
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
+use std::path::PathBuf;
 
 #[derive(FromPyObject, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Site {
@@ -35,6 +36,7 @@ pub struct DataConfig {
     pub npts: usize,
     pub radius: f64,
     pub nlambda: usize,
+    pub preconverged: Option<PathBuf>,
     pub solvent_atoms: Vec<Site>,
     pub solute_atoms: Option<Vec<Site>>,
     pub solvent_species: Vec<Species>,
