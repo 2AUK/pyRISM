@@ -20,21 +20,19 @@ use std::io::prelude::*;
 
 pub enum Verbosity {
     Quiet,
-    Warning,
-    Info,
-    Debug,
-    Trace,
+    Verbose,
+    VeryVerbose,
 }
 
-fn plot(x: &Array1<f64>, y: &Array1<f64>) {
-    let x_vec = x.to_vec();
-    let y_vec = y.to_vec();
-    let mut fg = Figure::new();
-    fg.axes2d()
-        .lines(&x_vec, &y_vec, &[LineWidth(1.5), Color("black")]);
-    fg.show().unwrap();
-}
-
+// fn plot(x: &Array1<f64>, y: &Array1<f64>) {
+//     let x_vec = x.to_vec();
+//     let y_vec = y.to_vec();
+//     let mut fg = Figure::new();
+//     fg.axes2d()
+//         .lines(&x_vec, &y_vec, &[LineWidth(1.5), Color("red")]);
+//     fg.show().unwrap();
+// }
+//
 #[pyclass]
 #[derive(Clone, Debug)]
 pub struct RISMDriver {
