@@ -147,6 +147,7 @@ impl RISMDriver {
             }
             Verbosity::VeryVerbose => {
                 self.print_header();
+                self.print_job_details();
                 simple_logger::init_with_level(log::Level::Trace).unwrap();
             }
         }
@@ -428,6 +429,33 @@ impl RISMDriver {
 
 "
         );
+    }
+
+    fn print_job_details(&self) {
+        println!("System\n┬─────");
+        println!("├Temperature: {} K", self.data.temp);
+        println!("├Num. Points: {}", self.data.npts);
+        println!("└Radius: {} Å", self.data.radius);
+
+        println!("\nOperator\n┬─────");
+        println!("├Integral Equation: {}", self.operator.integral_equation);
+        println!("└Closure: {}", self.operator.closure);
+
+        println!("\nPotential\n┬─────");
+        println!("└Non-Bonded: {}", self.potential.nonbonded);
+
+        println!("\nSolver\n┬─────");
+        println!("├Solver: {}", self.solver.solver);
+        println!("├Max Iteration: {}", self.solver.settings.max_iter);
+        println!("├Tolerance: {:E}", self.solver.settings.tolerance);
+        match &self.solver.settings.mdiis_settings {
+            Some(settings) => println!("{}\n", settings),
+            None => println!("\n"),
+        }
+        match &self.solver.settings.gillan_settings {
+            Some(settings) => println!("{}\n", settings),
+            None => println!("\n"),
+        }
     }
 
     fn build_potential(&mut self, problem: &mut DataRs) {
