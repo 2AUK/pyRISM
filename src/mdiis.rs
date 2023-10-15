@@ -154,7 +154,7 @@ impl Solver for MDIIS {
                     .position(|x| *x == rmse_min)
                     .expect("could not find index of minimum in rms_res");
                 if rmse > 10.0 * rmse_min {
-                    warn!("MDIIS restarting");
+                    trace!("MDIIS restarting");
                     c_next = self.fr[min_index]
                         .clone()
                         .into_shape(shape)

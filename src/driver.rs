@@ -11,8 +11,8 @@ use crate::solution::*;
 use crate::solver::SolverConfig;
 use bzip2::read::{BzDecoder, BzEncoder};
 use bzip2::Compression;
-use gnuplot::{AxesCommon, Caption, Color, Figure, Fix, LineWidth};
-use log::{debug, error, info, warn};
+// use gnuplot::{AxesCommon, Caption, Color, Figure, Fix, LineWidth};
+use log::{debug, info, trace, warn};
 use ndarray::{s, Array, Array1, Array2, Array3, Axis, Slice, Zip};
 use pyo3::prelude::*;
 use std::f64::consts::PI;
@@ -100,9 +100,15 @@ impl RISMDriver {
         })
     }
 
-    pub fn do_rism<'py>(&'py mut self, py: Python<'py>) {
+    pub fn do_rism<'py>(&'py mut self, verbosity: String, compress: bool, _py: Python<'py>) {
         // -> PyResult<Py<PyAny>> {
-        self.execute();
+        let verbosity = match verbosity.as_str() {
+            "quiet" => Verbosity::Quiet,
+            "verbose" => Verbosity::Verbose,
+            "verbosity" => Verbosity::VeryVerbose,
+            _ => panic!("not a valid verbosity flag"),
+        };
+        self.execute(verbosity, compress);
         // Ok(PyCorrelations::new(
         //     uv.clone().unwrap().correlations.cr,
         //     uv.clone().unwrap().correlations.tr,
@@ -132,11 +138,20 @@ impl RISMDriver {
 }
 
 impl RISMDriver {
-    pub fn execute(&mut self) {
-        self.print_header();
-        simple_logger::init_with_env().unwrap();
+    pub fn execute(&mut self, verbosity: Verbosity, compress: bool) {
+        match verbosity {
+            Verbosity::Quiet => (),
+            Verbosity::Verbose => {
+                self.print_header();
+                simple_logger::init_with_level(log::Level::Info).unwrap();
+            }
+            Verbosity::VeryVerbose => {
+                self.print_header();
+                simple_logger::init_with_level(log::Level::Trace).unwrap();
+            }
+        }
         // set up operator(RISM equation and Closure)
-        info!("Defining operator");
+        trace!("Defining operator");
         let operator = Operator::new(&self.operator);
         let operator_uv = Operator::new(&OperatorConfig {
             integral_equation: IntegralEquationKind::UV,
@@ -149,7 +164,7 @@ impl RISMDriver {
 
         match solver.solve(&mut vv, &operator) {
             Ok(s) => info!("{}", s),
-            Err(e) => error!("{}", e),
+            Err(e) => panic!("{}", e),
         }
 
         let vv_solution = SolvedData::new(
@@ -238,7 +253,7 @@ impl RISMDriver {
     }
     fn problem_setup(&mut self) -> (DataRs, Option<DataRs>) {
         let (mut vv_problem, uv_problem);
-        info!("Defining solvent-solvent problem");
+        trace!("Defining solvent-solvent problem");
         let grid = Grid::new(self.data.npts, self.data.radius);
         let system = SystemState::new(
             self.data.temp,
@@ -246,7 +261,7 @@ impl RISMDriver {
             self.data.amph,
             self.data.nlambda,
         );
-        info!("Checking for dipole moment");
+        trace!("Checking for dipole moment");
         let mut dm_vec = Vec::new();
         for species in self.solvent.species.iter() {
             dm_vec.push(dipole_moment(&species.atom_sites));
@@ -258,7 +273,7 @@ impl RISMDriver {
             warn!("No dipole moment found! Switch from DRISM to XRISM");
             self.operator.integral_equation = IntegralEquationKind::XRISM;
         } else {
-            info!("Aligning dipole moment to z-axis");
+            trace!("Aligning dipole moment to z-axis");
             for species in self.solvent.species.iter_mut() {
                 let tot_charge = total_charge(&species.atom_sites);
                 let mut coc = centre_of_charge(&species.atom_sites);
@@ -276,7 +291,7 @@ impl RISMDriver {
         let dielectric;
         match self.operator.integral_equation {
             IntegralEquationKind::DRISM => {
-                info!("Calculating dielectric asymptotics for DRISM");
+                trace!("Calculating dielectric asymptotics for DRISM");
                 let mut k_exp_term = grid.kgrid.clone();
                 let total_density = self
                     .solvent
@@ -361,10 +376,10 @@ impl RISMDriver {
             dielectric.clone(),
         );
 
-        info!("Tabulating solvent-solvent potentials");
+        trace!("Tabulating solvent-solvent potentials");
         self.build_potential(&mut vv_problem);
 
-        info!("Tabulating solvent intramolecular correlation functions");
+        trace!("Tabulating solvent intramolecular correlation functions");
         self.build_intramolecular_correlation(&mut vv_problem);
         match &self.solute {
             None => {
@@ -389,10 +404,10 @@ impl RISMDriver {
                     correlations,
                     dielectric.clone(),
                 );
-                info!("Tabulating solute-solvent potentials");
+                trace!("Tabulating solute-solvent potentials");
                 self.build_potential(&mut uv);
 
-                info!("Tabulating solute intramolecular correlation functions");
+                trace!("Tabulating solute intramolecular correlation functions");
                 self.build_intramolecular_correlation(&mut uv);
 
                 uv_problem = Some(uv)
