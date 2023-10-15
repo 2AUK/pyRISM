@@ -37,10 +37,6 @@ impl InputTOMLHandler {
     pub fn construct_configuration(fname: &PathBuf) -> Configuration {
         let input_toml_string = fs::read_to_string(fname).expect("input .toml file in string form");
         let input_toml = InputTOMLHandler::from_toml_string(&input_toml_string);
-        info!(
-            "Reading input .toml file: {}",
-            fname.clone().to_str().expect("converting PathBuf to &str")
-        );
         // Extract operator details
         let operator_config = OperatorConfig {
             integral_equation: input_toml.params.integral_equation,
