@@ -244,9 +244,10 @@ class RismController:
         rism_job = RISMDriver(
             data_config, operator_config, potential_config, solver_config
         )
-        vv = rism_job.do_rism()
+        solutions = rism_job.do_rism("verbose", False)
 
-        print(vv)
+        print(solutions.vv.correlations.gr)
+        print(solutions.uv.correlations.gr)
 
         self.name = os.path.basename(self.fname).split(sep=".")[0]
         if "solvent" not in inp:
