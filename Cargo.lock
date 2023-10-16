@@ -89,6 +89,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitcode"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fab8eb922a99ab601facde7ae07200e811cdc2ae1df604ffd6c2b7c976dd3fff"
+dependencies = [
+ "bitcode_derive",
+ "bytemuck",
+ "from_bytes_or_zeroed",
+ "residua-zigzag",
+ "serde",
+]
+
+[[package]]
+name = "bitcode_derive"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2ab471e684e2f6f3c3071361e2c30e41d7543f505658daae3ceb89c202d933e"
+dependencies = [
+ "packagemerge",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.29",
+]
+
+[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -114,6 +139,12 @@ checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
 dependencies = [
  "generic-array",
 ]
+
+[[package]]
+name = "bytemuck"
+version = "1.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "374d28ec25809ee0e23827c2ab573d729e293f281dfe393500e7ad618baa61c6"
 
 [[package]]
 name = "byteorder"
@@ -455,9 +486,9 @@ dependencies = [
 
 [[package]]
 name = "flate2"
-version = "1.0.27"
+version = "1.0.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6c98ee8095e9d1dcbf2fcc6d95acccb90d1c81db1e44725c6a984b1dbdfb010"
+checksum = "46303f565772937ffe1d394a4fac6f411c6013172fadde9dcdb1e147a086940e"
 dependencies = [
  "crc32fast",
  "miniz_oxide",
@@ -486,6 +517,12 @@ checksum = "a62bc1cf6f830c2ec14a513a9fb124d0a213a629668a4186f329db21fe045652"
 dependencies = [
  "percent-encoding",
 ]
+
+[[package]]
+name = "from_bytes_or_zeroed"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d25934a78435889223e575c7b0fc36a290c5a312e7a7ae901f10587792e142a"
 
 [[package]]
 name = "fs_extra"
@@ -606,6 +643,12 @@ dependencies = [
  "rustix",
  "windows-sys 0.48.0",
 ]
+
+[[package]]
+name = "itertools"
+version = "0.4.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4a9b56eb56058f43dc66e58f40a214b2ccbc9f3df51861b63d51dec7b65bc3f"
 
 [[package]]
 name = "itertools"
@@ -1035,6 +1078,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "packagemerge"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0efcf6ee55f8f7a24333bc8d1dd0e541a6cedf903dbc07ae6479d7f8ff32ed08"
+dependencies = [
+ "itertools 0.4.19",
+]
+
+[[package]]
 name = "parking_lot"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1182,13 +1234,15 @@ version = "0.2.0"
 dependencies = [
  "approx 0.5.1",
  "bincode",
+ "bitcode",
  "blas-src",
  "bzip2",
  "env_logger",
  "errorfunctions",
  "fftw",
+ "flate2",
  "gnuplot",
- "itertools",
+ "itertools 0.11.0",
  "lexopt",
  "log",
  "ndarray",
@@ -1198,6 +1252,7 @@ dependencies = [
  "openblas-src",
  "pyo3",
  "rustdct",
+ "savefile-derive",
  "serde",
  "simple_logger",
  "toml",
@@ -1358,6 +1413,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
 
 [[package]]
+name = "residua-zigzag"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b37805477eee599a61753230f511ae94d737f69b536e468e294723ad5f1b75f"
+
+[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1428,6 +1489,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "savefile-derive"
+version = "0.16.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21b5a6a54ef698a3a6851a881ab15cd90273b335c6c9e382254f6738eb343481"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]

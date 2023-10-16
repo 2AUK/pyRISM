@@ -9,15 +9,19 @@ use crate::operator::{Operator, OperatorConfig};
 use crate::potential::{Potential, PotentialConfig};
 use crate::solution::*;
 use crate::solver::SolverConfig;
-use bzip2::read::{BzDecoder, BzEncoder};
-use bzip2::Compression;
+// use bzip2::read::BzDecoder;
+// use bzip2::write::BzEncoder;
+// use bzip2::Compression;
+use flate2::read::DeflateDecoder;
+use flate2::write::DeflateEncoder;
+use flate2::Compression;
 // use gnuplot::{AxesCommon, Caption, Color, Figure, Fix, LineWidth};
 use log::{debug, info, trace, warn};
 use ndarray::{s, Array, Array1, Array2, Array3, Axis, Slice, Zip};
 use pyo3::prelude::*;
 use std::f64::consts::PI;
 use std::fs;
-use std::io::prelude::*;
+use std::io::{prelude::*, BufReader};
 use std::path::PathBuf;
 
 pub enum Verbosity {
@@ -163,19 +167,54 @@ impl RISMDriver {
 
         let mut solver = self.solver.solver.set(&self.solver.settings);
 
-        match solver.solve(&mut vv, &operator) {
-            Ok(s) => info!("{}", s),
-            Err(e) => panic!("{}", e),
-        }
+        let vv_solution = match &self.data.preconverged {
+            None => {
+                match solver.solve(&mut vv, &operator) {
+                    Ok(s) => info!("{}", s),
+                    Err(e) => panic!("{}", e),
+                };
 
-        let vv_solution = SolvedData::new(
-            self.data.clone(),
-            self.solver.clone(),
-            self.potential.clone(),
-            self.operator.clone(),
-            vv.interactions.clone(),
-            vv.correlations.clone(),
-        );
+                SolvedData::new(
+                    self.data.clone(),
+                    self.solver.clone(),
+                    self.potential.clone(),
+                    self.operator.clone(),
+                    vv.interactions.clone(),
+                    vv.correlations.clone(),
+                )
+            }
+            Some(path) => {
+                trace!(
+                    "Deserializing solvent-solvent data from file: {}",
+                    path.display()
+                );
+
+                println!("{}", fs::canonicalize(path).unwrap().display());
+                let mut input_bin = fs::File::open(path).unwrap();
+                let mut uncompressed_vv_bin: Vec<u8> = Vec::new();
+                input_bin
+                    .read_to_end(&mut uncompressed_vv_bin)
+                    .expect("reading input binary to Vec<u8>");
+                // let mut decompressor = DeflateDecoder::new(&compressed_vv_bin[..]);
+                // let mut uncompressed_vv_bin: Vec<u8> = Vec::new();
+                // decompressor
+                //     .read_to_end(&mut uncompressed_vv_bin)
+                //     .expect("trying to read uncompressed stream from BzDecoder");
+                // // 906831, 32768
+                // println!("{}, {}", decompressor.total_in(), decompressor.total_out());
+                let vv_solution: SolvedData = bincode::deserialize(&uncompressed_vv_bin[..])
+                    .expect("deserialized SolvedData struct from binary");
+                self.data.nsv = vv_solution.data_config.nsv;
+                self.data.nspv = vv_solution.data_config.nspv;
+                self.data.solvent_atoms = vv_solution.data_config.solvent_atoms.clone();
+                self.data.solvent_species = vv_solution.data_config.solvent_species.clone();
+                vv_solution
+            }
+        };
+
+        println!("{:#?}", self.data);
+
+        println!("{:#?}", vv_solution);
 
         let gr = &vv.correlations.cr + &vv.correlations.tr + 1.0;
 
@@ -183,6 +222,7 @@ impl RISMDriver {
             None => info!("No solute-solvent problem"),
             Some(ref mut uv) => {
                 uv.solution = Some(vv_solution.clone());
+                println!("{:#?}", uv);
                 match solver.solve(uv, &operator_uv) {
                     Ok(s) => info!("{}", s),
                     Err(e) => panic!("{}", e),
@@ -202,9 +242,18 @@ impl RISMDriver {
         let gr_uv =
             &uv.clone().unwrap().correlations.cr + &uv.clone().unwrap().correlations.tr + 1.0;
 
-        let encoded_vv: Vec<u8> =
-            bincode::serialize(&vv_solution).expect("encode solvent-solvent results to binary");
-        let compressor = BzEncoder::new(encoded_vv.as_slice(), Compression::best());
+        if compress {
+            trace!("Compressing solvent-solvent data");
+            let encoded_vv: Vec<u8> =
+                bincode::serialize(&vv_solution).expect("encode solvent-solvent results to binary");
+            let mut file = fs::File::create("uncompressed.bin").unwrap();
+            file.write_all(&encoded_vv[..]);
+            // let compression_level = Compression::best();
+            // let mut file_compressed = fs::File::create("test_compressed.bin").unwrap();
+            // let mut compressor = DeflateEncoder::new(file_compressed, compression_level);
+            // compressor.write(&encoded_vv[..]);
+            // println!("{}, {}", compressor.total_in(), compressor.total_out());
+        }
     }
 
     pub fn from_toml(fname: PathBuf) -> Self {
