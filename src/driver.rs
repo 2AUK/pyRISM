@@ -144,7 +144,7 @@ impl RISMDriver {
 }
 
 impl RISMDriver {
-    pub fn execute(&mut self, verbosity: Verbosity, compress: bool) {
+    pub fn execute(&mut self, verbosity: Verbosity, compress: bool) -> Solutions {
         match verbosity {
             Verbosity::Quiet => (),
             Verbosity::Verbose => {
@@ -256,9 +256,13 @@ impl RISMDriver {
             }
         };
 
-        let gr_uv = &uv_solution.clone().unwrap().correlations.cr
-            + &uv_solution.clone().unwrap().correlations.tr
-            + 1.0;
+        // let gr_uv = &uv_solution.clone().unwrap().correlations.cr
+        //     + &uv_solution.clone().unwrap().correlations.tr
+        //     + 1.0;
+        Solutions {
+            vv: vv_solution,
+            uv: uv_solution,
+        }
     }
 
     fn load_preconv_data(path: &Option<PathBuf>) -> Option<SolvedData> {

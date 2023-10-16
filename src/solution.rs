@@ -7,6 +7,11 @@ use numpy::{IntoPyArray, PyArray3};
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
+pub struct Solutions {
+    pub vv: SolvedData,
+    pub uv: Option<SolvedData>,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SolvedData {
     pub data_config: DataConfig,
@@ -38,6 +43,7 @@ impl SolvedData {
 }
 
 #[pyclass]
+#[derive(Clone)]
 pub struct PyCorrelations {
     #[pyo3(get, set)]
     pub cr: Py<PyArray3<f64>>,
@@ -67,6 +73,38 @@ impl PyCorrelations {
 }
 
 #[pyclass]
-pub struct PyInteractions {}
+#[derive(Clone)]
+pub struct PyInteractions {
+    #[pyo3(get, set)]
+    pub ur: Py<PyArray3<f64>>,
+    #[pyo3(get, set)]
+    pub u_sr: Py<PyArray3<f64>>,
+    #[pyo3(get, set)]
+    pub ur_lr: Py<PyArray3<f64>>,
+    #[pyo3(get, set)]
+    pub uk_lr: Py<PyArray3<f64>>,
+}
 
-pub struct PySolvedData {}
+impl PyInteractions {
+    pub fn new<'py>(
+        ur: Array3<f64>,
+        u_sr: Array3<f64>,
+        ur_lr: Array3<f64>,
+        uk_lr: Array3<f64>,
+        py: Python<'py>,
+    ) -> Self {
+        PyInteractions {
+            ur: ur.into_pyarray(py).into(),
+            u_sr: u_sr.into_pyarray(py).into(),
+            ur_lr: ur_lr.into_pyarray(py).into(),
+            uk_lr: uk_lr.into_pyarray(py).into(),
+        }
+    }
+}
+#[pyclass]
+pub struct PySolvedData {
+    #[pyo3(get, set)]
+    pub interactions: PyInteractions,
+    #[pyo3(get, set)]
+    pub correlations: PyCorrelations,
+}
