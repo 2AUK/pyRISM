@@ -70,6 +70,11 @@ impl PyCorrelations {
             gr: gr.into_pyarray(py).into(),
         }
     }
+
+    pub fn from_correlations<'py>(corr: Correlations, py: Python<'py>) -> Self {
+        let gr = 1.0 + &corr.cr + &corr.tr;
+        Self::new(corr.cr, corr.tr, corr.hr, gr, py)
+    }
 }
 
 #[pyclass]
@@ -100,11 +105,24 @@ impl PyInteractions {
             uk_lr: uk_lr.into_pyarray(py).into(),
         }
     }
+
+    pub fn from_interactions<'py>(inter: Interactions, py: Python<'py>) -> Self {
+        Self::new(inter.ur, inter.u_sr, inter.ur_lr, inter.uk_lr, py)
+    }
 }
 #[pyclass]
+#[derive(Clone)]
 pub struct PySolvedData {
     #[pyo3(get, set)]
     pub interactions: PyInteractions,
     #[pyo3(get, set)]
     pub correlations: PyCorrelations,
+}
+
+#[pyclass]
+pub struct PySolution {
+    #[pyo3(get, set)]
+    pub vv: PySolvedData,
+    #[pyo3(get, set)]
+    pub uv: Option<PySolvedData>,
 }

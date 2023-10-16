@@ -106,7 +106,12 @@ impl RISMDriver {
         })
     }
 
-    pub fn do_rism<'py>(&'py mut self, verbosity: String, compress: bool, _py: Python<'py>) {
+    pub fn do_rism<'py>(
+        &'py mut self,
+        verbosity: String,
+        compress: bool,
+        py: Python<'py>,
+    ) -> PyResult<PySolution> {
         // -> PyResult<Py<PyAny>> {
         let verbosity = match verbosity.as_str() {
             "quiet" => Verbosity::Quiet,
@@ -114,7 +119,29 @@ impl RISMDriver {
             "verbosity" => Verbosity::VeryVerbose,
             _ => panic!("not a valid verbosity flag"),
         };
-        self.execute(verbosity, compress);
+        let solutions = self.execute(verbosity, compress);
+        let py_cor_vv = PyCorrelations::from_correlations(solutions.vv.correlations, py);
+        let py_inter_vv = PyInteractions::from_interactions(solutions.vv.interactions, py);
+        let vv = PySolvedData {
+            correlations: py_cor_vv,
+            interactions: py_inter_vv,
+        };
+
+        let uv = match solutions.uv {
+            None => None,
+            Some(data) => {
+                let py_cor_uv = PyCorrelations::from_correlations(data.correlations, py);
+                let py_inter_uv = PyInteractions::from_interactions(data.interactions, py);
+                let uv = PySolvedData {
+                    correlations: py_cor_uv,
+                    interactions: py_inter_uv,
+                };
+                Some(uv)
+            }
+        };
+
+        Ok(PySolution { vv, uv })
+
         // Ok(PyCorrelations::new(
         //     uv.clone().unwrap().correlations.cr,
         //     uv.clone().unwrap().correlations.tr,
