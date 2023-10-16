@@ -12,8 +12,8 @@ use crate::solver::SolverConfig;
 // use bzip2::read::BzDecoder;
 // use bzip2::write::BzEncoder;
 // use bzip2::Compression;
-use flate2::read::DeflateDecoder;
-use flate2::write::DeflateEncoder;
+use flate2::read::GzDecoder;
+use flate2::write::GzEncoder;
 use flate2::Compression;
 // use gnuplot::{AxesCommon, Caption, Color, Figure, Fix, LineWidth};
 use log::{debug, info, trace, warn};
@@ -196,7 +196,7 @@ impl RISMDriver {
 
         let mut solver = self.solver.solver.set(&self.solver.settings);
 
-        let vv_solution = match &self.data.preconverged {
+        let vv_solution = match self._preconv {
             None => {
                 info!("Starting solvent-solvent solver");
                 match solver.solve(&mut vv, &operator) {
@@ -218,41 +218,21 @@ impl RISMDriver {
                         .expect("encode solvent-solvent results to binary");
                     let mut file = fs::File::create("uncompressed.bin").unwrap();
                     file.write_all(&encoded_vv[..]);
-                    // let compression_level = Compression::best();
-                    // let mut file_compressed = fs::File::create("test_compressed.bin").unwrap();
-                    // let mut compressor = DeflateEncoder::new(file_compressed, compression_level);
-                    // compressor.write(&encoded_vv[..]);
+                    let compression_level = Compression::best();
+                    let mut file_compressed = fs::File::create("test_compressed.bin").unwrap();
+                    let mut compressor = GzEncoder::new(file_compressed, compression_level);
+                    compressor.write_all(&encoded_vv[..]);
                     // println!("{}, {}", compressor.total_in(), compressor.total_out());
                 }
                 vv_solution
             }
-            Some(path) => {
-                info!("Loading solvent-solvent data from file");
-                trace!(
-                    "Deserializing solvent-solvent data from file: {}",
-                    path.display()
-                );
-
-                let mut input_bin = fs::File::open(path).unwrap();
-                let mut uncompressed_vv_bin: Vec<u8> = Vec::new();
-                input_bin
-                    .read_to_end(&mut uncompressed_vv_bin)
-                    .expect("reading input binary to Vec<u8>");
-                // let mut decompressor = DeflateDecoder::new(&compressed_vv_bin[..]);
-                // let mut uncompressed_vv_bin: Vec<u8> = Vec::new();
-                // decompressor
-                //     .read_to_end(&mut uncompressed_vv_bin)
-                //     .expect("trying to read uncompressed stream from BzDecoder");
-                // // 906831, 32768
-                // println!("{}, {}", decompressor.total_in(), decompressor.total_out());
-                let vv_solution: SolvedData = bincode::deserialize(&uncompressed_vv_bin[..])
-                    .expect("deserialized SolvedData struct from binary");
+            Some(ref x) => {
                 if compress {
                     warn!(
                         "Already loading saved solution! Skipping solvent-solvent compression..."
                     );
                 }
-                vv_solution
+                x.clone()
             }
         };
 
@@ -296,21 +276,28 @@ impl RISMDriver {
         match path {
             None => None,
             Some(path) => {
-                println!("{}", fs::canonicalize(path).unwrap().display());
+                info!("Loading solvent-solvent data from file");
+                trace!(
+                    "Deserializing solvent-solvent data from file: {}",
+                    path.display()
+                );
+
                 let mut input_bin = fs::File::open(path).unwrap();
-                let mut uncompressed_vv_bin: Vec<u8> = Vec::new();
+                let mut compressed_vv_bin: Vec<u8> = Vec::new();
                 input_bin
-                    .read_to_end(&mut uncompressed_vv_bin)
+                    .read_to_end(&mut compressed_vv_bin)
                     .expect("reading input binary to Vec<u8>");
-                // let mut decompressor = DeflateDecoder::new(&compressed_vv_bin[..]);
-                // let mut uncompressed_vv_bin: Vec<u8> = Vec::new();
-                // decompressor
-                //     .read_to_end(&mut uncompressed_vv_bin)
-                //     .expect("trying to read uncompressed stream from BzDecoder");
-                // // 906831, 32768
+                let mut decompressor = GzDecoder::new(&compressed_vv_bin[..]);
+                let mut uncompressed_vv_bin: Vec<u8> = Vec::new();
+                decompressor
+                    .read_to_end(&mut uncompressed_vv_bin)
+                    .expect("trying to read uncompressed stream from BzDecoder");
+                // 906831, 32768
                 // println!("{}, {}", decompressor.total_in(), decompressor.total_out());
-                let vv_solution: SolvedData = bincode::deserialize(&uncompressed_vv_bin[..])
-                    .expect("deserialized SolvedData struct from binary");
+                let vv_solution: SolvedData = match bincode::deserialize(&uncompressed_vv_bin[..]) {
+                    Ok(x) => x,
+                    Err(e) => panic!("{}", e),
+                };
                 Some(vv_solution)
             }
         }
