@@ -35,6 +35,6 @@ fn parse_args() -> Result<Args, lexopt::Error> {
 fn main() -> Result<(), lexopt::Error> {
     let args = parse_args()?;
     let mut driver = RISMDriver::from_toml(args.input_file);
-    driver.execute(args.verbosity, args.compress);
+    let solutions = driver.execute(args.verbosity, args.compress);
     Ok(())
 }
