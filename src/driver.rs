@@ -212,8 +212,6 @@ impl RISMDriver {
             }
         };
 
-        println!("{:#?}", self.data);
-
         println!("{:#?}", vv_solution);
 
         let gr = &vv.correlations.cr + &vv.correlations.tr + 1.0;
