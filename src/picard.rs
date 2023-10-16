@@ -36,7 +36,7 @@ impl Solver for Picard {
         problem: &mut DataRs,
         operator: &Operator,
     ) -> Result<SolverSuccess, SolverError> {
-        info! {"Solving solvent-solvent RISM equation"};
+        info! {"Solving RISM equation"};
         let shape = problem.correlations.cr.dim();
         let (npts, ns1, ns2) = shape;
         let mut i = 0;
