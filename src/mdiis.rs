@@ -117,7 +117,7 @@ impl Solver for MDIIS {
         problem: &mut DataRs,
         operator: &Operator,
     ) -> Result<SolverSuccess, SolverError> {
-        info! {"Solving solvent-solvent RISM equation"};
+        info! {"Solving RISM equation"};
         self.fr.clear();
         self.res.clear();
         self.rms_res.clear();

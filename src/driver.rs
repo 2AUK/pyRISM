@@ -48,6 +48,7 @@ pub struct RISMDriver {
     pub operator: OperatorConfig,
     pub potential: PotentialConfig,
     pub solver: SolverConfig,
+    _preconv: Option<SolvedData>,
 }
 
 #[pymethods]
@@ -63,7 +64,7 @@ impl RISMDriver {
         let data: DataConfig = data_config.extract()?;
         let (solvent, solute);
         let shape = (data.npts, data.nsv, data.nsv);
-
+        let vv_solution = Self::load_preconv_data(&data.preconverged);
         // Construct the solvent-solvent problem
         solvent = SingleData::new(
             data.solvent_atoms.clone(),
@@ -101,6 +102,7 @@ impl RISMDriver {
             operator,
             potential,
             solver,
+            _preconv: vv_solution,
         })
     }
 
@@ -169,26 +171,100 @@ impl RISMDriver {
 
         let vv_solution = match &self.data.preconverged {
             None => {
+                info!("Starting solvent-solvent solver");
                 match solver.solve(&mut vv, &operator) {
                     Ok(s) => info!("{}", s),
                     Err(e) => panic!("{}", e),
                 };
 
-                SolvedData::new(
+                let vv_solution = SolvedData::new(
                     self.data.clone(),
                     self.solver.clone(),
                     self.potential.clone(),
                     self.operator.clone(),
                     vv.interactions.clone(),
                     vv.correlations.clone(),
-                )
+                );
+                if compress {
+                    trace!("Compressing solvent-solvent data");
+                    let encoded_vv: Vec<u8> = bincode::serialize(&vv_solution)
+                        .expect("encode solvent-solvent results to binary");
+                    let mut file = fs::File::create("uncompressed.bin").unwrap();
+                    file.write_all(&encoded_vv[..]);
+                    // let compression_level = Compression::best();
+                    // let mut file_compressed = fs::File::create("test_compressed.bin").unwrap();
+                    // let mut compressor = DeflateEncoder::new(file_compressed, compression_level);
+                    // compressor.write(&encoded_vv[..]);
+                    // println!("{}, {}", compressor.total_in(), compressor.total_out());
+                }
+                vv_solution
             }
             Some(path) => {
+                info!("Loading solvent-solvent data from file");
                 trace!(
                     "Deserializing solvent-solvent data from file: {}",
                     path.display()
                 );
 
+                let mut input_bin = fs::File::open(path).unwrap();
+                let mut uncompressed_vv_bin: Vec<u8> = Vec::new();
+                input_bin
+                    .read_to_end(&mut uncompressed_vv_bin)
+                    .expect("reading input binary to Vec<u8>");
+                // let mut decompressor = DeflateDecoder::new(&compressed_vv_bin[..]);
+                // let mut uncompressed_vv_bin: Vec<u8> = Vec::new();
+                // decompressor
+                //     .read_to_end(&mut uncompressed_vv_bin)
+                //     .expect("trying to read uncompressed stream from BzDecoder");
+                // // 906831, 32768
+                // println!("{}, {}", decompressor.total_in(), decompressor.total_out());
+                let vv_solution: SolvedData = bincode::deserialize(&uncompressed_vv_bin[..])
+                    .expect("deserialized SolvedData struct from binary");
+                if compress {
+                    warn!(
+                        "Already loading saved solution! Skipping solvent-solvent compression..."
+                    );
+                }
+                vv_solution
+            }
+        };
+
+        let gr = &vv_solution.correlations.cr + &vv_solution.correlations.tr + 1.0;
+
+        let uv_solution = match uv {
+            None => {
+                info!("No solute-solvent problem");
+                None
+            }
+            Some(ref mut uv) => {
+                info!("Starting solute-solvent solver");
+                uv.solution = Some(vv_solution.clone());
+                match solver.solve(uv, &operator_uv) {
+                    Ok(s) => info!("{}", s),
+                    Err(e) => panic!("{}", e),
+                }
+
+                let uv_solution = SolvedData::new(
+                    self.data.clone(),
+                    self.solver.clone(),
+                    self.potential.clone(),
+                    self.operator.clone(),
+                    uv.interactions.clone(),
+                    uv.correlations.clone(),
+                );
+                Some(uv_solution)
+            }
+        };
+
+        let gr_uv = &uv_solution.clone().unwrap().correlations.cr
+            + &uv_solution.clone().unwrap().correlations.tr
+            + 1.0;
+    }
+
+    fn load_preconv_data(path: &Option<PathBuf>) -> Option<SolvedData> {
+        match path {
+            None => None,
+            Some(path) => {
                 println!("{}", fs::canonicalize(path).unwrap().display());
                 let mut input_bin = fs::File::open(path).unwrap();
                 let mut uncompressed_vv_bin: Vec<u8> = Vec::new();
@@ -204,53 +280,8 @@ impl RISMDriver {
                 // println!("{}, {}", decompressor.total_in(), decompressor.total_out());
                 let vv_solution: SolvedData = bincode::deserialize(&uncompressed_vv_bin[..])
                     .expect("deserialized SolvedData struct from binary");
-                self.data.nsv = vv_solution.data_config.nsv;
-                self.data.nspv = vv_solution.data_config.nspv;
-                self.data.solvent_atoms = vv_solution.data_config.solvent_atoms.clone();
-                self.data.solvent_species = vv_solution.data_config.solvent_species.clone();
-                vv_solution
+                Some(vv_solution)
             }
-        };
-
-        println!("{:#?}", vv_solution);
-
-        let gr = &vv.correlations.cr + &vv.correlations.tr + 1.0;
-
-        match uv {
-            None => info!("No solute-solvent problem"),
-            Some(ref mut uv) => {
-                uv.solution = Some(vv_solution.clone());
-                println!("{:#?}", uv);
-                match solver.solve(uv, &operator_uv) {
-                    Ok(s) => info!("{}", s),
-                    Err(e) => panic!("{}", e),
-                }
-            }
-        }
-
-        let uv_solution = SolvedData::new(
-            self.data.clone(),
-            self.solver.clone(),
-            self.potential.clone(),
-            self.operator.clone(),
-            uv.clone().unwrap().interactions,
-            uv.clone().unwrap().correlations,
-        );
-
-        let gr_uv =
-            &uv.clone().unwrap().correlations.cr + &uv.clone().unwrap().correlations.tr + 1.0;
-
-        if compress {
-            trace!("Compressing solvent-solvent data");
-            let encoded_vv: Vec<u8> =
-                bincode::serialize(&vv_solution).expect("encode solvent-solvent results to binary");
-            let mut file = fs::File::create("uncompressed.bin").unwrap();
-            file.write_all(&encoded_vv[..]);
-            // let compression_level = Compression::best();
-            // let mut file_compressed = fs::File::create("test_compressed.bin").unwrap();
-            // let mut compressor = DeflateEncoder::new(file_compressed, compression_level);
-            // compressor.write(&encoded_vv[..]);
-            // println!("{}, {}", compressor.total_in(), compressor.total_out());
         }
     }
 
@@ -258,6 +289,7 @@ impl RISMDriver {
         let config: Configuration = InputTOMLHandler::construct_configuration(&fname);
         let data = config.data_config;
         let (solvent, solute);
+        let vv_solution = Self::load_preconv_data(&data.preconverged);
         let shape = (data.npts, data.nsv, data.nsv);
 
         // Construct the solvent-solvent problem
@@ -297,6 +329,7 @@ impl RISMDriver {
             operator,
             potential,
             solver,
+            _preconv: vv_solution,
         }
     }
     fn problem_setup(&mut self) -> (DataRs, Option<DataRs>) {
@@ -309,6 +342,103 @@ impl RISMDriver {
             self.data.amph,
             self.data.nlambda,
         );
+
+        let interactions = Interactions::new(self.data.npts, self.data.nsv, self.data.nsv);
+        let correlations = Correlations::new(self.data.npts, self.data.nsv, self.data.nsv);
+
+        let vv_problem = match self._preconv.clone() {
+            None => {
+                let dielectric = self.compute_dielectrics(&grid);
+                vv_problem = DataRs::new(
+                    system.clone(),
+                    self.solvent.clone(),
+                    self.solvent.clone(),
+                    grid.clone(),
+                    interactions,
+                    correlations,
+                    dielectric.clone(),
+                );
+
+                trace!("Tabulating solvent-solvent potentials");
+                self.build_potential(&mut vv_problem);
+
+                trace!("Tabulating solvent intramolecular correlation functions");
+                self.build_intramolecular_correlation(&mut vv_problem);
+                vv_problem
+            }
+            Some(ref data) => {
+                trace!("Loading saved solution data");
+                self.data.nsv = data.data_config.nsv;
+                self.data.nspv = data.data_config.nspv;
+                self.solvent.sites = data.data_config.solvent_atoms.clone();
+                self.solvent.species = data.data_config.solvent_species.clone();
+                let new_shape = (
+                    data.data_config.npts,
+                    data.data_config.nsv,
+                    data.data_config.nsv,
+                );
+                self.solvent.density = {
+                    let mut dens_vec: Vec<f64> = Vec::new();
+                    for i in data.data_config.solvent_species.clone().into_iter() {
+                        for _j in i.atom_sites {
+                            dens_vec.push(i.dens);
+                        }
+                    }
+                    let density = Array2::from_diag(&Array::from_vec(dens_vec));
+                    density
+                };
+                self.solvent.wk = Array::zeros(new_shape);
+                let dielectric = self.compute_dielectrics(&grid);
+                vv_problem = DataRs::new(
+                    system.clone(),
+                    self.solvent.clone(),
+                    self.solvent.clone(),
+                    grid.clone(),
+                    data.interactions.clone(),
+                    data.correlations.clone(),
+                    dielectric.clone(),
+                );
+                trace!("Rebuilding solvent intramolecular correlation function");
+                self.build_intramolecular_correlation(&mut vv_problem);
+                vv_problem
+            }
+        };
+        match &self.solute {
+            None => {
+                info!("No solute data");
+                uv_problem = None
+            }
+            Some(solute) => {
+                info!("Solute data found");
+                warn!(
+                    "pyRISM only tested for infinite dilution; setting non-zero solute density may not work"
+                );
+                let interactions =
+                    Interactions::new(self.data.npts, self.data.nsu.unwrap(), self.data.nsv);
+                let correlations =
+                    Correlations::new(self.data.npts, self.data.nsu.unwrap(), self.data.nsv);
+                let mut uv = DataRs::new(
+                    system.clone(),
+                    solute.clone(),
+                    self.solvent.clone(),
+                    grid.clone(),
+                    interactions,
+                    correlations,
+                    None,
+                );
+                trace!("Tabulating solute-solvent potentials");
+                self.build_potential(&mut uv);
+
+                trace!("Tabulating solute intramolecular correlation functions");
+                self.build_intramolecular_correlation(&mut uv);
+
+                uv_problem = Some(uv)
+            }
+        }
+        (vv_problem, uv_problem)
+    }
+
+    fn compute_dielectrics(&mut self, grid: &Grid) -> Option<DielectricData> {
         trace!("Checking for dipole moment");
         let mut dm_vec = Vec::new();
         for species in self.solvent.species.iter() {
@@ -336,7 +466,6 @@ impl RISMDriver {
                 }
             }
         }
-        let dielectric;
         match self.operator.integral_equation {
             IntegralEquationKind::DRISM => {
                 trace!("Calculating dielectric asymptotics for DRISM");
@@ -406,62 +535,10 @@ impl RISMDriver {
                     }
                     chi
                 };
-                dielectric = Some(DielectricData::new(drism_damping, diel, chi));
+                Some(DielectricData::new(drism_damping, diel, chi))
             }
-            _ => dielectric = None,
+            _ => None,
         }
-
-        let interactions = Interactions::new(self.data.npts, self.data.nsv, self.data.nsv);
-        let correlations = Correlations::new(self.data.npts, self.data.nsv, self.data.nsv);
-
-        vv_problem = DataRs::new(
-            system.clone(),
-            self.solvent.clone(),
-            self.solvent.clone(),
-            grid.clone(),
-            interactions,
-            correlations,
-            dielectric.clone(),
-        );
-
-        trace!("Tabulating solvent-solvent potentials");
-        self.build_potential(&mut vv_problem);
-
-        trace!("Tabulating solvent intramolecular correlation functions");
-        self.build_intramolecular_correlation(&mut vv_problem);
-        match &self.solute {
-            None => {
-                info!("No solute data");
-                uv_problem = None
-            }
-            Some(solute) => {
-                info!("Solute data found");
-                warn!(
-                    "pyRISM only tested for infinite dilution; setting non-zero solute density may not work"
-                );
-                let interactions =
-                    Interactions::new(self.data.npts, self.data.nsu.unwrap(), self.data.nsv);
-                let correlations =
-                    Correlations::new(self.data.npts, self.data.nsu.unwrap(), self.data.nsv);
-                let mut uv = DataRs::new(
-                    system.clone(),
-                    solute.clone(),
-                    self.solvent.clone(),
-                    grid.clone(),
-                    interactions,
-                    correlations,
-                    dielectric.clone(),
-                );
-                trace!("Tabulating solute-solvent potentials");
-                self.build_potential(&mut uv);
-
-                trace!("Tabulating solute intramolecular correlation functions");
-                self.build_intramolecular_correlation(&mut uv);
-
-                uv_problem = Some(uv)
-            }
-        }
-        (vv_problem, uv_problem)
     }
 
     fn print_header(&self) {
