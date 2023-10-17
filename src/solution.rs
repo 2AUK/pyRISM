@@ -1,4 +1,5 @@
 use crate::data::{Correlations, DataConfig, Interactions};
+use crate::input::Configuration;
 use crate::operator::OperatorConfig;
 use crate::potential::PotentialConfig;
 use crate::solver::SolverConfig;
@@ -8,6 +9,7 @@ use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
 pub struct Solutions {
+    pub config: Configuration,
     pub vv: SolvedData,
     pub uv: Option<SolvedData>,
 }

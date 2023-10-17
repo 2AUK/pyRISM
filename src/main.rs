@@ -1,4 +1,7 @@
-use librism::driver::{RISMDriver, Verbosity};
+use librism::{
+    driver::{RISMDriver, Verbosity},
+    writer::RISMWriter,
+};
 use std::path::PathBuf;
 
 struct Args {
@@ -34,7 +37,18 @@ fn parse_args() -> Result<Args, lexopt::Error> {
 
 fn main() -> Result<(), lexopt::Error> {
     let args = parse_args()?;
-    let mut driver = RISMDriver::from_toml(args.input_file);
+    let mut driver = RISMDriver::from_toml(&args.input_file);
     let solutions = driver.execute(args.verbosity, args.compress);
+    let writer = RISMWriter::new(
+        &args
+            .input_file
+            .file_stem()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string(),
+        solutions,
+    );
+    writer.write();
     Ok(())
 }

@@ -285,10 +285,18 @@ impl RISMDriver {
             }
         };
 
+        let config = Configuration {
+            data_config: self.data.clone(),
+            operator_config: self.operator.clone(),
+            potential_config: self.potential.clone(),
+            solver_config: self.solver.clone(),
+        };
+
         // let gr_uv = &uv_solution.clone().unwrap().correlations.cr
         //     + &uv_solution.clone().unwrap().correlations.tr
         //     + 1.0;
         Solutions {
+            config,
             vv: vv_solution,
             uv: uv_solution,
         }
@@ -309,7 +317,7 @@ impl RISMDriver {
         }
     }
 
-    pub fn from_toml(fname: PathBuf) -> Self {
+    pub fn from_toml(fname: &PathBuf) -> Self {
         let config: Configuration = InputTOMLHandler::construct_configuration(&fname);
         let name = fname
             .file_stem()
