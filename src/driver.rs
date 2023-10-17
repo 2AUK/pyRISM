@@ -292,9 +292,6 @@ impl RISMDriver {
             solver_config: self.solver.clone(),
         };
 
-        // let gr_uv = &uv_solution.clone().unwrap().correlations.cr
-        //     + &uv_solution.clone().unwrap().correlations.tr
-        //     + 1.0;
         Solutions {
             config,
             vv: vv_solution,
