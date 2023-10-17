@@ -90,12 +90,12 @@ class MDIIS(SolverObject):
                     self.RMS_res.clear()
                 self.RMS_res.append(RMS)
                 self.RMS_res.pop(0)
-            self.converged(c_next, c_prev) 
+            self.converged(c_next, c_prev)
             print(
-                    "Iteration: {i} Convergence RMS: {RMS}\nDiff: {diff}".format(
-                        i=i, RMS=self.rms, diff=(c_next - c_prev).min()
-                    )
+                "Iteration: {i} Convergence RMS: {RMS}\nDiff: {diff}".format(
+                    i=i, RMS=self.rms, diff=(c_next - c_prev).min()
                 )
+            )
 
             # print(c_next)
             self.data_vv.c = c_next

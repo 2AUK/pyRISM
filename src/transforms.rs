@@ -1,23 +1,7 @@
 use fftw::plan::*;
 use fftw::types::*;
 use ndarray::{Array1, ArrayView1};
-use rustdct::TransformType4;
 use std::sync::Arc;
-
-type FFTPlan = Arc<dyn TransformType4<f64>>;
-
-pub fn fourier_bessel_transform(
-    prefac: f64,
-    grid1: &ArrayView1<f64>,
-    grid2: &ArrayView1<f64>,
-    func: &Array1<f64>,
-    plan: &FFTPlan,
-) -> Array1<f64> {
-    let mut buffer = (func * grid1).to_vec();
-    plan.process_dst4(&mut buffer);
-    let fac = grid2.mapv(|v| prefac / v);
-    fac * Array1::from_vec(buffer)
-}
 
 pub fn fourier_bessel_transform_fftw(
     prefac: f64,
