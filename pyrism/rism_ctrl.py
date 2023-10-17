@@ -6,10 +6,6 @@ Initialises and solves the specified RISM problem.
 """
 import os
 
-os.environ["MKL_CBWR"] = "AUTO"
-os.environ["MKL_DYNAMIC"] = "FALSE"
-os.environ["OMP_DYNAMIC"] = "FALSE"
-# os.environ['MKL_VERBOSE'] = '1'
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -34,14 +30,17 @@ np.seterr(over="raise")
 np.set_printoptions(precision=20)
 warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
+
 @dataclass
 class GillanSettings:
     nbasis: int
+
 
 @dataclass
 class MDIISSettings:
     depth: int
     damping: float
+
 
 @dataclass
 class SolverSettings:
@@ -51,10 +50,12 @@ class SolverSettings:
     gillan_settings: object = None
     mdiis_settings: object = None
 
+
 @dataclass
 class SolverConfig:
     solver: str
     settings: object
+
 
 @dataclass
 class DataConfig:
@@ -151,6 +152,47 @@ class RismController:
         else:
             self.solve(self.vv, dat2=None, verbose=verbose)
 
+    def write_csv_driver(self, df, fname, ext):
+        """Writes a dataframe to a .csv file with a header
+
+        Parameters
+        ----------
+        df: pd.DataFrame
+            Contains the functions to write to file
+        fname: str
+            Name of output file
+        ext: str
+            Extension of output file
+        p: float
+            Number density
+        T: float
+            Temperature"""
+        with open(fname + ext, "w") as ofile:
+            ofile.write("#\n")
+            df.to_csv(ofile, index=False, header=True, mode="a")
+
+    def write_sol(self, name, atoms1, atoms2, solution, r):
+        """Write solvent-solvent data to .csv file
+
+        Parameters
+        ----------
+        dat: Core.RISM_Obj
+            Dataclass containing correlation functions to output
+        """
+        all_sites = []
+        gr = pd.DataFrame(r, columns=["r"])
+        cr = pd.DataFrame(r, columns=["r"])
+        tr = pd.DataFrame(r, columns=["r"])
+        for i, j in np.ndindex(len(atoms1), len(atoms2)):
+            lbl1 = atoms1[i].atom_type
+            lbl2 = atoms2[j].atom_type
+            gr[lbl1 + "-" + lbl2] = solution.correlations.gr[:, i, j]
+            cr[lbl1 + "-" + lbl2] = solution.correlations.cr[:, i, j]
+            tr[lbl1 + "-" + lbl2] = solution.correlations.tr[:, i, j]
+        self.write_csv_driver(gr, name, ".gvv")
+        self.write_csv_driver(cr, name, ".cvv")
+        self.write_csv_driver(tr, name, ".tvv")
+
     def read_input(self):
         """Reads .toml input file, populates vv and uv dataclasses
         and properly initialises the appropriate potentials, solvers,
@@ -222,7 +264,9 @@ class RismController:
         )
         operator_config = OperatorConfig(inp["params"]["IE"], inp["params"]["closure"])
 
-        potential_config = PotentialConfig(inp["params"]["potential"], "COU", "NGR", "NGK")
+        potential_config = PotentialConfig(
+            inp["params"]["potential"], "COU", "NGR", "NGK"
+        )
 
         solver = inp["params"]["solver"]
         picard_damping = inp["params"]["picard_damping"]
@@ -231,23 +275,40 @@ class RismController:
         mdiis_settings = gillan_settings = None
         if solver == "MDIIS":
             if "mdiis_settings" not in inp["params"]:
-                mdiis_settings = MDIISSettings(inp["params"]["depth"], inp["params"]["picard_damping"])
+                mdiis_settings = MDIISSettings(
+                    inp["params"]["depth"], inp["params"]["picard_damping"]
+                )
             else:
-                mdiis_settings = MDIISSettings(inp["params"]["depth"], inp["params"]["mdiis_damping"])
+                mdiis_settings = MDIISSettings(
+                    inp["params"]["depth"], inp["params"]["mdiis_damping"]
+                )
         elif solver == "Gillan":
             gillan_settings = GillanSettings(inp["params"]["nbasis"])
 
-        settings = SolverSettings(picard_damping, max_iter, tolerance, gillan_settings=gillan_settings, mdiis_settings=mdiis_settings)
+        settings = SolverSettings(
+            picard_damping,
+            max_iter,
+            tolerance,
+            gillan_settings=gillan_settings,
+            mdiis_settings=mdiis_settings,
+        )
 
         solver_config = SolverConfig(solver, settings)
 
-        rism_job = RISMDriver(name,
-            data_config, operator_config, potential_config, solver_config
+        rism_job = RISMDriver(
+            name, data_config, operator_config, potential_config, solver_config
         )
-        solutions = rism_job.do_rism("verbose", True)
+        solutions = rism_job.do_rism("verbose", False)
 
-        print(solutions.vv.correlations.gr)
-        print(solutions.uv.correlations.gr)
+        grid = Core.Grid(data_config.npts, data_config.radius)
+
+        self.write_sol(
+            name,
+            data_config.solvent_atoms,
+            data_config.solvent_atoms,
+            solutions.vv,
+            grid.ri,
+        )
 
         self.name = os.path.basename(self.fname).split(sep=".")[0]
         if "solvent" not in inp:
@@ -1055,18 +1116,3 @@ def build_Ur_impl(
                 mixed = mix(i_sr_params, j_sr_params)
                 u[:, i, j] = sr_pot(r, mixed, lam) + cou(r, qi, qj, lam, charge_coeff)
         return u
-
-
-if __name__ == "__main__":
-    mol = RismController(sys.argv[1])
-    mol.initialise_controller()
-    if len(sys.argv) > 3:
-        mol.vv.T = float(sys.argv[3])
-        mol.vv.calculate_beta()
-        if mol.uv_check:
-            mol.uv.T = float(sys.argv[3])
-            mol.uv.calculate_beta()
-    mol.do_rism(verbose=True)
-    if len(sys.argv) > 2:
-        if bool(sys.argv[2]) == True:
-            mol.write_output(duv_only=True)
