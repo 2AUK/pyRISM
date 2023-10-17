@@ -12,17 +12,17 @@ use crate::solver::SolverConfig;
 // use bzip2::read::BzDecoder;
 // use bzip2::write::BzEncoder;
 // use bzip2::Compression;
-use flate2::read::GzDecoder;
-use flate2::write::GzEncoder;
-use flate2::Compression;
 // use gnuplot::{AxesCommon, Caption, Color, Figure, Fix, LineWidth};
+use flate2::{read, write, Compression};
 use log::{debug, info, trace, warn};
 use ndarray::{s, Array, Array1, Array2, Array3, Axis, Slice, Zip};
 use pyo3::prelude::*;
+use simple_logger::*;
 use std::f64::consts::PI;
 use std::fs;
 use std::io::{prelude::*, BufReader};
 use std::path::PathBuf;
+use time::macros::format_description;
 
 pub enum Verbosity {
     Quiet,
@@ -42,6 +42,7 @@ pub enum Verbosity {
 #[pyclass]
 #[derive(Clone, Debug)]
 pub struct RISMDriver {
+    pub name: String,
     pub solvent: SingleData,
     pub solute: Option<SingleData>,
     pub data: DataConfig,
@@ -55,6 +56,7 @@ pub struct RISMDriver {
 impl RISMDriver {
     #[new]
     fn new<'py>(
+        name: String,
         data_config: &PyAny,
         operator_config: &PyAny,
         potential_config: &PyAny,
@@ -96,6 +98,7 @@ impl RISMDriver {
         let solver: SolverConfig = solver_config.extract()?;
 
         Ok(RISMDriver {
+            name,
             solvent,
             solute,
             data,
@@ -176,12 +179,24 @@ impl RISMDriver {
             Verbosity::Quiet => (),
             Verbosity::Verbose => {
                 self.print_header();
-                simple_logger::init_with_level(log::Level::Info).unwrap();
+                simple_logger::SimpleLogger::new()
+                    .with_level(log::Level::Info.to_level_filter())
+                    .with_timestamp_format(time::macros::format_description!(
+                        "[hour]:[minute]:[second]"
+                    ))
+                    .init()
+                    .unwrap();
             }
             Verbosity::VeryVerbose => {
                 self.print_header();
                 self.print_job_details();
-                simple_logger::init_with_level(log::Level::Trace).unwrap();
+                simple_logger::SimpleLogger::new()
+                    .with_level(log::Level::Trace.to_level_filter())
+                    .with_timestamp_format(time::macros::format_description!(
+                        "[hour]:[minute]:[second]"
+                    ))
+                    .init()
+                    .unwrap();
             }
         }
         // set up operator(RISM equation and Closure)
@@ -214,15 +229,24 @@ impl RISMDriver {
                 );
                 if compress {
                     trace!("Compressing solvent-solvent data");
-                    let encoded_vv: Vec<u8> = bincode::serialize(&vv_solution)
-                        .expect("encode solvent-solvent results to binary");
-                    let mut file = fs::File::create("uncompressed.bin").unwrap();
-                    file.write_all(&encoded_vv[..]);
-                    let compression_level = Compression::best();
-                    let mut file_compressed = fs::File::create("test_compressed.bin").unwrap();
-                    let mut compressor = GzEncoder::new(file_compressed, compression_level);
-                    compressor.write_all(&encoded_vv[..]);
-                    // println!("{}, {}", compressor.total_in(), compressor.total_out());
+                    let inteq =
+                        str::replace(&self.operator.integral_equation.to_string(), " ", "_");
+                    let clos = str::replace(&self.operator.closure.to_string(), " ", "_");
+                    let temp = &self.data.temp;
+                    let name = format!("{}_{}_{}_{}K.bin", self.name, inteq, clos, temp);
+                    let file = fs::File::create(name).unwrap();
+                    let mut compressor = write::GzEncoder::new(file, Compression::best());
+                    println!("Compressing binary");
+                    bincode::serialize_into(&mut compressor, &vv_solution)
+                        .expect("encode solvent-solvent results to compressed binary");
+                    println!("Finishing up");
+                    compressor
+                        .finish()
+                        .expect("finish encoding solvent-solvent results");
+                    // let compression_level = Compression::best();
+                    // let mut file_compressed = fs::File::create("test_compressed.bin").unwrap();
+                    // let mut compressor = GzEncoder::new(file_compressed, compression_level);
+                    // compressor.write_all(&encoded_vv[..]);
                 }
                 vv_solution
             }
@@ -235,8 +259,6 @@ impl RISMDriver {
                 x.clone()
             }
         };
-
-        let gr = &vv_solution.correlations.cr + &vv_solution.correlations.tr + 1.0;
 
         let uv_solution = match uv {
             None => {
@@ -276,25 +298,9 @@ impl RISMDriver {
         match path {
             None => None,
             Some(path) => {
-                info!("Loading solvent-solvent data from file");
-                trace!(
-                    "Deserializing solvent-solvent data from file: {}",
-                    path.display()
-                );
-
-                let mut input_bin = fs::File::open(path).unwrap();
-                let mut compressed_vv_bin: Vec<u8> = Vec::new();
-                input_bin
-                    .read_to_end(&mut compressed_vv_bin)
-                    .expect("reading input binary to Vec<u8>");
-                let mut decompressor = GzDecoder::new(&compressed_vv_bin[..]);
-                let mut uncompressed_vv_bin: Vec<u8> = Vec::new();
-                decompressor
-                    .read_to_end(&mut uncompressed_vv_bin)
-                    .expect("trying to read uncompressed stream from BzDecoder");
-                // 906831, 32768
-                // println!("{}, {}", decompressor.total_in(), decompressor.total_out());
-                let vv_solution: SolvedData = match bincode::deserialize(&uncompressed_vv_bin[..]) {
+                let input_bin = fs::File::open(path).unwrap();
+                let mut decompressor = read::GzDecoder::new(input_bin);
+                let vv_solution: SolvedData = match bincode::deserialize_from(&mut decompressor) {
                     Ok(x) => x,
                     Err(e) => panic!("{}", e),
                 };
@@ -305,6 +311,12 @@ impl RISMDriver {
 
     pub fn from_toml(fname: PathBuf) -> Self {
         let config: Configuration = InputTOMLHandler::construct_configuration(&fname);
+        let name = fname
+            .file_stem()
+            .expect("extracting name of input job script")
+            .to_str()
+            .expect("converting to OsStr name to str")
+            .to_string();
         let data = config.data_config;
         let (solvent, solute);
         let vv_solution = Self::load_preconv_data(&data.preconverged);
@@ -341,6 +353,7 @@ impl RISMDriver {
         let solver: SolverConfig = config.solver_config;
 
         RISMDriver {
+            name,
             solvent,
             solute,
             data,
@@ -385,7 +398,12 @@ impl RISMDriver {
                 vv_problem
             }
             Some(ref data) => {
-                trace!("Loading saved solution data");
+                trace!(
+                    "Loading saved solution data from: {}",
+                    std::fs::canonicalize(self.data.preconverged.clone().unwrap())
+                        .expect("resolving path for binary")
+                        .display()
+                );
                 self.data.nsv = data.data_config.nsv;
                 self.data.nspv = data.data_config.nspv;
                 self.solvent.sites = data.data_config.solvent_atoms.clone();
@@ -421,6 +439,7 @@ impl RISMDriver {
                 vv_problem
             }
         };
+        trace!("Defining solute-solvent problem");
         match &self.solute {
             None => {
                 info!("No solute data");

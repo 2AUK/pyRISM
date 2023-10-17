@@ -241,10 +241,10 @@ class RismController:
 
         solver_config = SolverConfig(solver, settings)
 
-        rism_job = RISMDriver(
+        rism_job = RISMDriver(name,
             data_config, operator_config, potential_config, solver_config
         )
-        solutions = rism_job.do_rism("verbose", False)
+        solutions = rism_job.do_rism("verbose", True)
 
         print(solutions.vv.correlations.gr)
         print(solutions.uv.correlations.gr)
