@@ -19,6 +19,9 @@ name = "librism"
 # "cdylib" is necessary to produce a shared library for Python to import from.
 crate-type = ["lib", "cdylib"]
 
+[features]
+fftw-sys = ["fftw/system"]
+
 [dependencies]
 ndarray = { version = "0.15.6", features = ["approx-0_5", "rayon", "blas", "serde"] }
 blas-src = { version = "0.8" }
@@ -43,7 +46,7 @@ hdf5 = "0.8.1"
 [dependencies.fftw]
 version = "0.8.0"
 default-features = false
-features = ["system"]
+features = ["source"]
 
 [package.metadata.maturin]
 python-source = "pyrism"

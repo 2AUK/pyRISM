@@ -1,7 +1,6 @@
 use fftw::plan::*;
 use fftw::types::*;
 use ndarray::{Array1, ArrayView1};
-use std::sync::Arc;
 
 pub fn fourier_bessel_transform_fftw(
     prefac: f64,

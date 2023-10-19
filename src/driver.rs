@@ -96,6 +96,7 @@ impl RISMDriver {
 
         // Extract solver information
         let solver: SolverConfig = solver_config.extract()?;
+        println!("{:#?}", data);
 
         Ok(RISMDriver {
             name,
@@ -119,7 +120,7 @@ impl RISMDriver {
         let verbosity = match verbosity.as_str() {
             "quiet" => Verbosity::Quiet,
             "verbose" => Verbosity::Verbose,
-            "verbosity" => Verbosity::VeryVerbose,
+            "very verbose" => Verbosity::VeryVerbose,
             _ => panic!("not a valid verbosity flag"),
         };
         let solutions = self.execute(verbosity, compress);
@@ -174,6 +175,15 @@ impl RISMDriver {
 }
 
 impl RISMDriver {
+    fn restore_renormalised_functions(data: &mut SolvedData, beta: f64) {
+        let cr = data.correlations.cr.clone();
+        let tr = data.correlations.tr.clone();
+        let urlr = data.interactions.ur_lr.clone();
+
+        data.correlations.cr.assign(&(&cr - beta * &urlr));
+        data.correlations.tr.assign(&(&tr + beta * &urlr));
+        data.correlations.hr = &data.correlations.cr + &data.correlations.tr;
+    }
     pub fn execute(&mut self, verbosity: Verbosity, compress: bool) -> Solutions {
         match verbosity {
             Verbosity::Quiet => (),
@@ -211,7 +221,7 @@ impl RISMDriver {
 
         let mut solver = self.solver.solver.set(&self.solver.settings);
 
-        let vv_solution = match self._preconv {
+        let mut vv_solution = match self._preconv {
             None => {
                 info!("Starting solvent-solvent solver");
                 match solver.solve(&mut vv, &operator) {
@@ -272,8 +282,7 @@ impl RISMDriver {
                     Ok(s) => info!("{}", s),
                     Err(e) => panic!("{}", e),
                 }
-
-                let uv_solution = SolvedData::new(
+                let mut uv_solution = SolvedData::new(
                     self.data.clone(),
                     self.solver.clone(),
                     self.potential.clone(),
@@ -281,6 +290,7 @@ impl RISMDriver {
                     uv.interactions.clone(),
                     uv.correlations.clone(),
                 );
+                Self::restore_renormalised_functions(&mut uv_solution, uv.system.beta);
                 Some(uv_solution)
             }
         };
@@ -291,6 +301,8 @@ impl RISMDriver {
             potential_config: self.potential.clone(),
             solver_config: self.solver.clone(),
         };
+
+        Self::restore_renormalised_functions(&mut vv_solution, vv.system.beta);
 
         Solutions {
             config,
