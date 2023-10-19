@@ -3,25 +3,25 @@ temp = 298
 kT = 1.0
 kU = 0.0019872158728366637
 charge_coeff = 167101.0
-npts = 4096
-radius = 10.24
+npts = 16384 
+radius = 409.6
 lam = 1
 
 [params]
 potential = "LJ"
-closure = "HNC"
+closure = "KH"
 IE = "XRISM"
 solver = "MDIIS"
-depth = 12
-picard_damping = 0.5
+depth = 8
+picard_damping = 0.6
 mdiis_damping = 0.5
-itermax = 10000
+itermax = 1000
 tol = 1E-5
 diel = 78.497
 adbcor = 1.5
 
 [solvent]
-preconverged = "./cSPCE_XRISM_methane_Extended_RISM_Hyper-Netted_Chain_298K.bin"
+preconverged = "cSPCE_XRISM_methane_Extended_RISM_Kovalenko-Hirata_298K.bin"
 
 [solute]
 nsu = 5
