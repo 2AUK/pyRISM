@@ -171,7 +171,7 @@ class RismController:
             ofile.write("#\n")
             df.to_csv(ofile, index=False, header=True, mode="a")
 
-    def write_sol(self, name, atoms1, atoms2, solution, r):
+    def write_solv(self, name, atoms1, atoms2, solution, r):
         """Write solvent-solvent data to .csv file
 
         Parameters
@@ -189,9 +189,31 @@ class RismController:
             gr[lbl1 + "-" + lbl2] = solution.correlations.gr[:, i, j]
             cr[lbl1 + "-" + lbl2] = solution.correlations.cr[:, i, j]
             tr[lbl1 + "-" + lbl2] = solution.correlations.tr[:, i, j]
-        self.write_csv_driver(gr, name, ".gvv")
-        self.write_csv_driver(cr, name, ".cvv")
-        self.write_csv_driver(tr, name, ".tvv")
+        self.write_csv_driver(gr, name, "_driver.gvv")
+        self.write_csv_driver(cr, name, "_driver.cvv")
+        self.write_csv_driver(tr, name, "_driver.tvv")
+
+    def write_solu(self, name, atoms1, atoms2, solution, r):
+        """Write solvent-solvent data to .csv file
+
+        Parameters
+        ----------
+        dat: Core.RISM_Obj
+            Dataclass containing correlation functions to output
+        """
+        all_sites = []
+        gr = pd.DataFrame(r, columns=["r"])
+        cr = pd.DataFrame(r, columns=["r"])
+        tr = pd.DataFrame(r, columns=["r"])
+        for i, j in np.ndindex(len(atoms1), len(atoms2)):
+            lbl1 = atoms1[i].atom_type
+            lbl2 = atoms2[j].atom_type
+            gr[lbl1 + "-" + lbl2] = solution.correlations.gr[:, i, j]
+            cr[lbl1 + "-" + lbl2] = solution.correlations.cr[:, i, j]
+            tr[lbl1 + "-" + lbl2] = solution.correlations.tr[:, i, j]
+        self.write_csv_driver(gr, name, "_driver.guv")
+        self.write_csv_driver(cr, name, "_driver.cuv")
+        self.write_csv_driver(tr, name, "_driver.tuv")
 
     def read_input(self):
         """Reads .toml input file, populates vv and uv dataclasses
@@ -298,17 +320,26 @@ class RismController:
         rism_job = RISMDriver(
             name, data_config, operator_config, potential_config, solver_config
         )
-        solutions = rism_job.do_rism("verbose", False)
+        solutions = rism_job.do_rism("very verbose", False)
 
         grid = Core.Grid(data_config.npts, data_config.radius)
 
-        self.write_sol(
+        self.write_solv(
             name,
             data_config.solvent_atoms,
             data_config.solvent_atoms,
             solutions.vv,
             grid.ri,
-        )
+        )        # literature route
+
+        if solutions.uv:
+            self.write_solu(
+                name,
+                data_config.solute_atoms,
+                data_config.solvent_atoms,
+                solutions.uv,
+                grid.ri,
+            )
 
         self.name = os.path.basename(self.fname).split(sep=".")[0]
         if "solvent" not in inp:
