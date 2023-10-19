@@ -391,9 +391,6 @@ impl RISMDriver {
             self.data.nlambda,
         );
 
-        let interactions = Interactions::new(self.data.npts, self.data.nsv, self.data.nsv);
-        let correlations = Correlations::new(self.data.npts, self.data.nsv, self.data.nsv);
-
         let vv_problem = match self._preconv.clone() {
             None => {
                 let dielectric = self.compute_dielectrics(&grid);
@@ -402,8 +399,8 @@ impl RISMDriver {
                     self.solvent.clone(),
                     self.solvent.clone(),
                     grid.clone(),
-                    interactions,
-                    correlations,
+                    Interactions::new(self.data.npts, self.data.nsv, self.data.nsv),
+                    Correlations::new(self.data.npts, self.data.nsv, self.data.nsv),
                     dielectric.clone(),
                 );
 
