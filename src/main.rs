@@ -1,5 +1,6 @@
 use librism::{
     driver::{RISMDriver, Verbosity},
+    thermo::TDDriver,
     writer::RISMWriter,
 };
 use std::path::PathBuf;
@@ -39,16 +40,37 @@ fn main() -> Result<(), lexopt::Error> {
     let args = parse_args()?;
     let mut driver = RISMDriver::from_toml(&args.input_file);
     let solutions = driver.execute(args.verbosity, args.compress);
-    let writer = RISMWriter::new(
-        &args
-            .input_file
-            .file_stem()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string(),
-        solutions,
+    // let writer = RISMWriter::new(
+    //     &args
+    //         .input_file
+    //         .file_stem()
+    //         .unwrap()
+    //         .to_str()
+    //         .unwrap()
+    //         .to_string(),
+    //     solutions,
+    // );
+    let td = TDDriver::new(solutions);
+    println!(
+        "Isothermal Compressibility: {}",
+        td.isothermal_compressibility()
     );
-    writer.write();
+    println!(
+        "Molecular KB theory PMV: {} (A^3)",
+        td.kb_partial_molar_volume()
+    );
+    println!(
+        "Molecular KB theory PMV: {} (cm^3 / mol)",
+        td.kb_partial_molar_volume() / 1e24 * 6.022e23
+    );
+    println!(
+        "RISM KB theory PMV: {} (A^3)",
+        td.rism_kb_partial_molar_volume()
+    );
+    println!(
+        "RISM KB theory PMV: {} (cm^3 / mol)",
+        td.rism_kb_partial_molar_volume() / 1e24 * 6.022e23
+    );
+
     Ok(())
 }
