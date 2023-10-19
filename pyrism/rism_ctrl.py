@@ -317,29 +317,29 @@ class RismController:
 
         solver_config = SolverConfig(solver, settings)
 
-        rism_job = RISMDriver(
-            name, data_config, operator_config, potential_config, solver_config
-        )
-        solutions = rism_job.do_rism("very verbose", False)
-
-        grid = Core.Grid(data_config.npts, data_config.radius)
-
-        self.write_solv(
-            name,
-            data_config.solvent_atoms,
-            data_config.solvent_atoms,
-            solutions.vv,
-            grid.ri,
-        )        # literature route
-
-        if solutions.uv:
-            self.write_solu(
-                name,
-                data_config.solute_atoms,
-                data_config.solvent_atoms,
-                solutions.uv,
-                grid.ri,
-            )
+        # rism_job = RISMDriver(
+        #     name, data_config, operator_config, potential_config, solver_config
+        # )
+        # solutions = rism_job.do_rism("very verbose", False)
+        #
+        # grid = Core.Grid(data_config.npts, data_config.radius)
+        #
+        # self.write_solv(
+        #     name,
+        #     data_config.solvent_atoms,
+        #     data_config.solvent_atoms,
+        #     solutions.vv,
+        #     grid.ri,
+        # )        # literature route
+        #
+        # if solutions.uv:
+        #     self.write_solu(
+        #         name,
+        #         data_config.solute_atoms,
+        #         data_config.solvent_atoms,
+        #         solutions.uv,
+        #         grid.ri,
+        #     )
 
         self.name = os.path.basename(self.fname).split(sep=".")[0]
         if "solvent" not in inp:
