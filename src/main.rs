@@ -19,9 +19,9 @@ fn parse_args() -> Result<Args, lexopt::Error> {
     let mut parser = lexopt::Parser::from_env();
     while let Some(arg) = parser.next()? {
         match arg {
-            Short('q') => verbosity = Verbosity::Quiet,
-            Short('v') => verbosity = Verbosity::Verbose,
-            Short('l') => verbosity = Verbosity::VeryVerbose,
+            Short('q') | Long("quiet") => verbosity = Verbosity::Quiet,
+            Short('v') | Long("verbose") => verbosity = Verbosity::Verbose,
+            Short('l') | Long("loud") => verbosity = Verbosity::VeryVerbose,
             Short('c') | Long("compress") => compress = true,
             Value(val) => input_file = Some(val.into()),
             _ => return Err(arg.unexpected()),
