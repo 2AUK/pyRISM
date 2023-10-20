@@ -74,7 +74,7 @@ impl PyCorrelations {
     }
 
     pub fn from_correlations<'py>(corr: Correlations, py: Python<'py>) -> Self {
-        let gr = 1.0 + &corr.cr + &corr.tr;
+        let gr = 1.0 + &corr.hr;
         Self::new(corr.cr, corr.tr, corr.hr, gr, py)
     }
 }
