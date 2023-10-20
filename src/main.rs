@@ -40,16 +40,17 @@ fn main() -> Result<(), lexopt::Error> {
     let args = parse_args()?;
     let mut driver = RISMDriver::from_toml(&args.input_file);
     let solutions = driver.execute(args.verbosity, args.compress);
-    // let writer = RISMWriter::new(
-    //     &args
-    //         .input_file
-    //         .file_stem()
-    //         .unwrap()
-    //         .to_str()
-    //         .unwrap()
-    //         .to_string(),
-    //     solutions,
-    // );
+    let writer = RISMWriter::new(
+        &args
+            .input_file
+            .file_stem()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string(),
+        &solutions,
+    );
+    writer.write().unwrap();
     let td = TDDriver::new(solutions);
     println!(
         "Isothermal Compressibility: {}",
@@ -71,6 +72,9 @@ fn main() -> Result<(), lexopt::Error> {
         "RISM KB theory PMV: {} (cm^3 / mol)",
         td.rism_kb_partial_molar_volume() / 1e24 * 6.022e23
     );
-
+    println!(
+        "Dimensionless Molecular KB theory PMV: {} (A^3)",
+        td.dimensionless_partial_molar_volume()
+    );
     Ok(())
 }

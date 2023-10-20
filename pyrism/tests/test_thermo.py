@@ -2,7 +2,7 @@ from pyrism.rism_ctrl import *
 from pyrism import rust_helpers
 import matplotlib.pyplot as plt
 
-mol = RismController("cSPCE_XRISM_methane.toml")
+mol = RismController("../../cSPCE_XRISM_methane.toml")
 
 mol.initialise_controller()
 
