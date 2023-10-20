@@ -84,4 +84,15 @@ impl TDDriver {
         let compressibility = self.isothermal_compressibility();
         compressibility * (1.0 - p_sum * c_sum)
     }
+
+    pub fn dimensionless_partial_molar_volume(&self) -> f64 {
+        let vv = &self.solutions.vv;
+        let p_sum = vv
+            .data_config
+            .solvent_species
+            .iter()
+            .fold(0.0, |acc, x| acc + x.dens);
+
+        p_sum * self.kb_partial_molar_volume()
+    }
 }

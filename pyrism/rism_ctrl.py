@@ -707,14 +707,13 @@ class RismController:
         with open(fname + ext, "w") as ofile:
             if SFE is not None:
                 ofile.write(
-                    "# density: {p}, temp: {T}, HNC: {HNC}, GF: {GF}, KH: {KH}, PW: {PW}, HNCB: {RBC}, PC+: {PC_PLUS}\n".format(
+                    "# density: {p}, temp: {T}, HNC: {HNC}, GF: {GF}, KH: {KH}, PW: {PW}, PC+: {PC_PLUS}\n".format(
                         p=p[0][0],
                         T=T,
                         HNC=SFE["HNC"],
                         GF=SFE["GF"],
                         KH=SFE["KH"],
                         PW=SFE["PW"],
-                        RBC=SFE["RBC"],
                         PC_PLUS=SFE["PC+"],
                     )
                 )
@@ -813,9 +812,9 @@ class RismController:
         for j in range(1, dat1.nlam + 1):
             lam = 1.0 * j / dat1.nlam
             if j == 1:
-                dat1.c = -dat1.B * dat1.ur_lr
+                dat1.c = np.zeros_like(dat1.ur_lr)
                 if self.uv_check:
-                    dat2.c = -dat2.B * dat2.ur_lr
+                    dat2.c = np.zeros_like(dat2.ur_lr)
                 else:
                     pass
 
