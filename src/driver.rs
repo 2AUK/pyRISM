@@ -496,29 +496,28 @@ impl RISMDriver {
             dm_vec.push(dipole_moment(&species.atom_sites));
         }
         let (dm, _): (Vec<_>, Vec<_>) = dm_vec.into_iter().partition(Result::is_ok);
-        if dm.is_empty() {
+        if dm.is_empty() && self.operator.integral_equation == IntegralEquationKind::XRISM {
             warn!("No dipole moment found!")
         } else if dm.is_empty() && self.operator.integral_equation == IntegralEquationKind::DRISM {
             warn!("No dipole moment found! Switch from DRISM to XRISM");
             self.operator.integral_equation = IntegralEquationKind::XRISM;
-        } else {
-            trace!("Aligning dipole moment to z-axis");
-            for species in self.solvent.species.iter_mut() {
-                let tot_charge = total_charge(&species.atom_sites);
-                let mut coc = centre_of_charge(&species.atom_sites);
-                coc /= tot_charge;
-                translate(&mut species.atom_sites, &coc);
-                match reorient(&mut species.atom_sites) {
+        }
+        match self.operator.integral_equation {
+            IntegralEquationKind::DRISM => {
+                trace!("Aligning dipole moment to z-axis");
+                for species in self.solvent.species.iter_mut() {
+                    let tot_charge = total_charge(&species.atom_sites);
+                    let mut coc = centre_of_charge(&species.atom_sites);
+                    coc /= tot_charge;
+                    translate(&mut species.atom_sites, &coc);
+                    match reorient(&mut species.atom_sites) {
                     Ok(_) => (),
                     Err(e) => panic!(
                         "{}; there should be a dipole moment present for this step, something has gone FATALLY wrong",
                         e
                     ),
                 }
-            }
-        }
-        match self.operator.integral_equation {
-            IntegralEquationKind::DRISM => {
+                }
                 trace!("Calculating dielectric asymptotics for DRISM");
                 let mut k_exp_term = grid.kgrid.clone();
                 let total_density = self
