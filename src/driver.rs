@@ -550,6 +550,7 @@ impl RISMDriver {
                     let mut chi = Array::zeros((self.data.npts, self.data.nsv, self.data.nsv));
                     for (ki, k) in grid.kgrid.iter().enumerate() {
                         let mut i = 0;
+                        let hck_loop = hc0 * (-(drism_damping * k / 2.0).powf(2.0)).exp();
                         for species in self.solvent.species.iter() {
                             for atm in species.atom_sites.iter() {
                                 let k_coord = *k * Array::from_vec(atm.coords.clone());
@@ -579,7 +580,7 @@ impl RISMDriver {
                         for i in 0..self.data.nsv {
                             for j in 0..self.data.nsv {
                                 chi[[ki, i, j]] =
-                                    d0x[i] * d0y[i] * d1z[i] * d0x[j] * d0y[j] * d1z[j] * hck[ki];
+                                    d0x[i] * d0y[i] * d1z[i] * d0x[j] * d0y[j] * d1z[j] * hck_loop;
                             }
                         }
                     }
