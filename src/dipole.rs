@@ -1,7 +1,7 @@
 use crate::data::{Site, Species};
 use crate::quaternion::{cross_product, Quaternion};
 use ndarray::{arr1, s, Array, Array1, Array2, Zip};
-use ndarray_linalg::{Eig, Eigh, IntoTriangular, UPLO};
+use ndarray_linalg::Eig;
 use std::cmp::{max, min};
 use std::f64::consts::PI;
 use std::fmt;
@@ -90,11 +90,9 @@ pub fn reorient(atoms: &mut [Site]) -> Result<(), DipoleError> {
 
     // Perform rotation of dipole to z-axis
     for site in atoms.iter_mut() {
-        println!("before:\n{:#?}", site.coords);
         let site_coords = Array::from_iter(site.coords.clone().into_iter());
         let new_coords = quat.rotate(&site_coords);
         site.coords = new_coords.to_vec();
-        println!("after:\n{:#?}", site.coords);
     }
 
     let mut temp_atoms = atoms.to_owned().clone();
@@ -102,16 +100,10 @@ pub fn reorient(atoms: &mut [Site]) -> Result<(), DipoleError> {
     // zero the z-axis, so that only the x and y axes are aligned
     for site in temp_atoms.iter_mut() {
         site.coords = vec![site.coords[0], site.coords[1], 0.0];
-        println!("zeroed z: {:?}", site.coords);
     }
 
     // Compute moment of inertia matrix based on charges
     let moi_matrix = moment_of_inertia(&temp_atoms);
-    println!(
-        "MOI:{:?}\nMOI upper {:?}",
-        moi_matrix.clone(),
-        moi_matrix.clone().into_triangular(UPLO::Upper)
-    );
 
     let (_, pa) = moi_matrix
         .clone()
@@ -200,7 +192,6 @@ fn moment_of_inertia(atoms: &[Site]) -> Array2<f64> {
             .collect(),
     )
     .unwrap();
-    println!("charges: {:?}", charges);
     for (i, iat) in atoms.iter().enumerate() {
         let ci = charges[[i]].abs();
         out_arr[[0, 0]] += ci * (iat.coords[1] * iat.coords[1] + iat.coords[2] * iat.coords[2]);

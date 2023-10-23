@@ -507,22 +507,15 @@ impl RISMDriver {
                 trace!("Aligning dipole moment to z-axis");
                 for species in self.solvent.species.iter_mut() {
                     let tot_charge = total_charge(&species.atom_sites);
-                    println!("qcm: {}", tot_charge);
                     let mut coc = centre_of_charge(&species.atom_sites);
                     coc /= tot_charge;
-                    println!("before translation: {:#?}", species.atom_sites);
                     translate(&mut species.atom_sites, &coc);
-                    println!("after translation: {:#?}", species.atom_sites);
                     match reorient(&mut species.atom_sites) {
                         Ok(_) => (),
                         Err(e) => panic!(
                             "{}; there should be a dipole moment present for this step, something has gone FATALLY wrong",
                             e
                         ),
-                    }
-                    match dipole_moment(&species.atom_sites) {
-                        Ok((dmvec, _)) => println!("{:#?}", dmvec),
-                        Err(e) => println!("{}", e),
                     }
                 }
                 trace!("Calculating dielectric asymptotics for DRISM");
@@ -557,17 +550,9 @@ impl RISMDriver {
                     let mut chi = Array::zeros((self.data.npts, self.data.nsv, self.data.nsv));
                     for (ki, k) in grid.kgrid.iter().enumerate() {
                         let mut i = 0;
-                        let hck_loop = hc0 * (-(drism_damping * k / 2.0).powf(2.0)).exp();
                         for species in self.solvent.species.iter() {
                             for atm in species.atom_sites.iter() {
                                 let k_coord = *k * Array::from_vec(atm.coords.clone());
-                                if ki == 16383 {
-                                    println!(
-                                        "final: {}\n\t{:?}\n\t{:?}",
-                                        atm.atom_type, k_coord, atm.coords
-                                    );
-                                }
-
                                 if k_coord[0] == 0.0 {
                                     d0x[i] = 1.0
                                 } else {
@@ -593,11 +578,10 @@ impl RISMDriver {
                         for i in 0..self.data.nsv {
                             for j in 0..self.data.nsv {
                                 chi[[ki, i, j]] =
-                                    d0x[i] * d0y[i] * d1z[i] * d0x[j] * d0y[j] * d1z[j] * hck_loop;
+                                    d0x[i] * d0y[i] * d1z[i] * d0x[j] * d0y[j] * d1z[j] * hck[ki];
                             }
                         }
                     }
-                    println!("{:#?}\n{:#?}\n{:#?}", d0x, d0y, d1z);
                     chi
                 };
                 Some(DielectricData::new(drism_damping, diel, chi))
