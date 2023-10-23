@@ -1,10 +1,13 @@
 use crate::data::DataRs;
 use crate::operator::Operator;
 use crate::solver::{Solver, SolverError, SolverSettings, SolverSuccess};
+use crate::transforms::fourier_bessel_transform_fftw;
 use log::{info, trace, warn};
+use ndarray::{Axis, Zip};
 use ndarray_linalg::Solve;
 use numpy::ndarray::{Array, Array1, Array2, Array3};
 use std::collections::VecDeque;
+use std::f64::consts::PI;
 
 #[derive(Clone, Debug)]
 pub struct ADIIS {
@@ -19,6 +22,7 @@ pub struct ADIIS {
     fr: VecDeque<Array1<f64>>,
     res: VecDeque<Array1<f64>>,
     rms_res: VecDeque<f64>,
+    curr_depth: usize,
 }
 
 impl ADIIS {
@@ -36,47 +40,31 @@ impl ADIIS {
             fr: VecDeque::new(),
             res: VecDeque::new(),
             rms_res: VecDeque::new(),
+            curr_depth: 0,
         }
     }
 
-    fn step_picard(&mut self, curr: &Array3<f64>, prev: &Array3<f64>) -> Array3<f64> {
-        // calculate difference between current and previous solutions from RISM equation
-        let diff = curr.clone() - prev.clone();
-
-        // push current flattened solution into MDIIS array
+    fn step_mdiis(&mut self, curr: &Array3<f64>, res: &Array3<f64>) -> Array1<f64> {
+        let mut a = Array2::zeros((self.curr_depth + 1, self.curr_depth + 1));
+        let mut b = Array1::zeros(self.curr_depth + 1);
         self.fr
             .push_back(Array::from_iter(curr.clone().into_iter()));
 
         // push flattened difference into residual array
         self.res
-            .push_back(Array::from_iter(diff.clone().into_iter()));
+            .push_back(Array::from_iter(res.clone().into_iter()));
 
-        // return Picard iteration step
-        prev + self.picard_damping * diff
-    }
+        b[[self.curr_depth]] = -1.0;
 
-    fn step_mdiis(
-        &mut self,
-        curr: &Array3<f64>,
-        prev: &Array3<f64>,
-        gr: &Array3<f64>,
-    ) -> Array1<f64> {
-        let mut a = Array2::zeros((self.m + 1, self.m + 1));
-        let mut b = Array1::zeros(self.m + 1);
-
-        let gr = Array::from_iter(gr.clone().into_iter());
-
-        b[[self.m]] = -1.0;
-
-        for i in 0..self.m + 1 {
-            a[[i, self.m]] = -1.0;
-            a[[self.m, i]] = -1.0;
+        for i in 0..self.curr_depth + 1 {
+            a[[i, self.curr_depth]] = -1.0;
+            a[[self.curr_depth, i]] = -1.0;
         }
 
-        a[[self.m, self.m]] = 0.0;
+        a[[self.curr_depth, self.curr_depth]] = 0.0;
 
-        for i in 0..self.m {
-            for j in 0..self.m {
+        for i in 0..self.curr_depth {
+            for j in 0..self.curr_depth {
                 a[[i, j]] = self.res[i].dot(&self.res[j]);
             }
         }
@@ -85,28 +73,16 @@ impl ADIIS {
 
         let mut c_a: Array1<f64> = Array::zeros(self.fr[0].raw_dim());
         let mut min_res: Array1<f64> = Array::zeros(self.fr[0].raw_dim());
-        let denom = (1.0 + gr.mapv(|a| a.powf(2.0))).mapv(f64::sqrt);
-        for i in 0..self.m {
+        for i in 0..self.curr_depth {
             let modified_fr = &self.fr[i] * coefficients[i];
-            let modified_res = &self.res[i] * coefficients[i] / &denom;
+            let modified_res = &self.res[i] * coefficients[i];
             c_a += &modified_fr;
             min_res += &modified_res;
         }
-
-        // calculate difference between current and previous solutions from RISM equation
-        let diff = curr.clone() - prev.clone();
-
-        // push current flattened solution into MDIIS array
-        self.fr
-            .push_back(Array::from_iter(curr.clone().into_iter()));
-
-        // push flattened difference into residual array
-        self.res
-            .push_back(Array::from_iter(diff.clone().into_iter()));
-
-        self.fr.pop_front();
-        self.res.pop_front();
-
+        if self.curr_depth == self.m {
+            self.fr.pop_front();
+            self.res.pop_front();
+        }
         c_a + self.mdiis_damping * min_res
     }
 }
@@ -124,29 +100,48 @@ impl Solver for ADIIS {
         let shape = problem.correlations.cr.dim();
         let (npts, ns1, ns2) = shape;
         let mut i = 0;
+        let dr = problem.grid.dr;
+        let rtok = 2.0 * PI * dr;
+        let r = problem.grid.rgrid.clone();
+        let k = problem.grid.kgrid.clone();
 
         let result = loop {
-            //println!("Iteration: {}", i);
             let c_prev = problem.correlations.cr.clone();
             (operator.eq)(problem);
             let c_a = (operator.closure)(&problem);
+            let hr = {
+                let mut out = Array::zeros(c_a.raw_dim());
+                Zip::from(problem.correlations.hk.lanes(Axis(0)))
+                    .and(out.lanes_mut(Axis(0)))
+                    .par_for_each(|cr_lane, mut ck_lane| {
+                        ck_lane.assign(&fourier_bessel_transform_fftw(
+                            rtok,
+                            &r.view(),
+                            &k.view(),
+                            &cr_lane.to_owned(),
+                        ));
+                    });
+                out
+            };
+            let gr = &c_a + &problem.correlations.tr + 1.0;
+            // let r = &r.broadcast((r.len(), 0, 0)).unwrap();
+            // println!("{:?}", r.shape());
+            let mut res = (&gr - 1.0) - &hr;
+            Zip::from(res.lanes_mut(Axis(0))).par_for_each(|mut elem| {
+                elem.assign(&(&elem * &r.view()));
+            });
             let mut c_next;
-
-            if self.fr.len() < self.m {
-                //println!("Picard Step");
-                c_next = self.step_picard(&c_a, &c_prev);
-                let rmse = compute_rmse(ns1, ns2, npts, &c_a, &c_prev);
-                //println!("\tMDIIS RMSE: {}", rmse);
-                self.rms_res.push_back(rmse)
-            } else {
-                let gr = &c_a + &problem.correlations.tr;
-                //println!("MDIIS Step");
-                c_next = self
-                    .step_mdiis(&c_a, &c_prev, &gr)
-                    .into_shape(shape)
-                    .expect("could not reshape array into original shape");
-                let rmse = compute_rmse(ns1, ns2, npts, &c_a, &c_prev);
-                //println!("\tMDIIS RMSE: {}", rmse);
+            self.curr_depth = std::cmp::min(self.curr_depth + 1, self.m);
+            c_next = self
+                .step_mdiis(&c_a, &res)
+                .into_shape(shape)
+                .expect("could not reshape array into original shape");
+            Zip::from(c_next.lanes_mut(Axis(0))).par_for_each(|mut elem| {
+                elem.assign(&(&elem / &r.view()));
+            });
+            let rmse = conv_rmse(&res);
+            //println!("\tMDIIS RMSE: {}", rmse);
+            if self.curr_depth > 1 {
                 let rmse_min = self.rms_res.iter().fold(f64::INFINITY, |a, &b| a.min(b));
                 let min_index = self
                     .rms_res
@@ -155,6 +150,7 @@ impl Solver for ADIIS {
                     .expect("could not find index of minimum in rms_res");
                 if rmse > 10.0 * rmse_min {
                     trace!("MDIIS restarting");
+                    self.curr_depth = 0;
                     c_next = self.fr[min_index]
                         .clone()
                         .into_shape(shape)
@@ -163,11 +159,13 @@ impl Solver for ADIIS {
                     self.res.clear();
                     self.rms_res.clear();
                 }
-                self.rms_res.push_back(rmse);
+            }
+            self.rms_res.push_back(rmse);
+            if self.curr_depth == self.m {
                 self.rms_res.pop_front();
             }
             problem.correlations.cr = c_next.clone();
-            let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &c_next, &c_prev);
+            let rmse = conv_rmse(&res);
 
             trace!("Iteration: {} Convergence RMSE: {:.6E}", i, rmse);
 
@@ -189,24 +187,7 @@ impl Solver for ADIIS {
     }
 }
 
-fn compute_rmse(
-    ns1: usize,
-    _ns2: usize,
-    npts: usize,
-    curr: &Array3<f64>,
-    prev: &Array3<f64>,
-) -> f64 {
-    (1.0 / ns1 as f64 / npts as f64 * (curr - prev).sum().powf(2.0)).sqrt()
-}
-
-fn conv_rmse(
-    ns1: usize,
-    ns2: usize,
-    npts: usize,
-    dr: f64,
-    curr: &Array3<f64>,
-    prev: &Array3<f64>,
-) -> f64 {
-    let denom = 1.0 / ns1 as f64 / ns2 as f64 / npts as f64;
-    (dr * (curr - prev).mapv(|x| x.powf(2.0)).sum() * denom).sqrt()
+fn conv_rmse(res: &Array3<f64>) -> f64 {
+    let denom = 1.0 / res.len() as f64;
+    (res.mapv(|x| x.powf(2.0)).sum() * denom).sqrt()
 }

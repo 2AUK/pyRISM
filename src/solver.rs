@@ -1,3 +1,4 @@
+use crate::adiis::ADIIS;
 use crate::data::DataRs;
 use crate::mdiis::MDIIS;
 use crate::ng::Ng;
@@ -93,6 +94,7 @@ pub enum SolverKind {
     Picard,
     Ng,
     MDIIS,
+    ADIIS,
     Gillan,
 }
 
@@ -102,6 +104,7 @@ impl fmt::Display for SolverKind {
             SolverKind::Picard => write!(f, "Picard"),
             SolverKind::Ng => write!(f, "Ng"),
             SolverKind::MDIIS => write!(f, "MDIIS"),
+            SolverKind::ADIIS => write!(f, "ADIIS"),
             SolverKind::Gillan => write!(f, "Gillan"),
         }
     }
@@ -118,6 +121,7 @@ impl<'source> FromPyObject<'source> for SolverKind {
             "Picard" => Ok(SolverKind::Picard),
             "Ng" => Ok(SolverKind::Ng),
             "MDIIS" => Ok(SolverKind::MDIIS),
+            "ADIIS" => Ok(SolverKind::ADIIS),
             "Gillan" => Ok(SolverKind::Gillan),
             _ => panic!("not a valid solver"),
         }
@@ -129,6 +133,7 @@ impl SolverKind {
         match self {
             SolverKind::Picard => Box::new(Picard::new(settings)),
             SolverKind::MDIIS => Box::new(MDIIS::new(settings)),
+            SolverKind::ADIIS => Box::new(ADIIS::new(settings)),
             SolverKind::Ng => Box::new(Ng::new(settings)),
             _ => panic!("solver unimplemented"),
         }

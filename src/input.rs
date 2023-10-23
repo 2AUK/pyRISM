@@ -73,6 +73,22 @@ impl InputTOMLHandler {
                 mdiis_settings: None,
                 gillan_settings: None,
             },
+            SolverKind::ADIIS => {
+                let mdiis_settings = Some(MDIISSettings {
+                    depth: input_toml.params.depth.expect("MDIIS depth parameter"),
+                    damping: input_toml
+                        .params
+                        .mdiis_damping
+                        .expect("MDIIS mixing parameter"),
+                });
+                SolverSettings {
+                    picard_damping,
+                    max_iter,
+                    tolerance,
+                    mdiis_settings,
+                    gillan_settings: None,
+                }
+            }
             SolverKind::MDIIS => {
                 let mdiis_settings = Some(MDIISSettings {
                     depth: input_toml.params.depth.expect("MDIIS depth parameter"),
