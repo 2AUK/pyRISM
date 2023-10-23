@@ -107,6 +107,8 @@ class DRISM(object):
             total_density += isp.dens
             dmdensity += isp.dens * dm * dm
             qsp = 0
+            _, dmvec = Util.dipole_moment(isp)
+            print(dmvec)
             for iat in isp.atom_sites:
                 qsp += iat.params[-1]
             kap_denom += isp.dens * 1.0 * qsp**2
@@ -124,6 +126,8 @@ class DRISM(object):
             i = 0
             for isp in self.data_vv.species:
                 for iat in isp.atom_sites:
+                    if ki == 16383:
+                        print("final: {}\n\t{}\n\t{}".format(iat.atom_type, k * iat.coords, iat.coords))
                     k_coord = k * iat.coords
                     if k_coord[0] == 0.0:
                         d0x[i] = 1.0
@@ -142,6 +146,10 @@ class DRISM(object):
                 self.chi[ki, i, j] = (
                     d0x[i] * d0y[i] * d1z[i] * d0x[j] * d0y[j] * d1z[j] * hck
                 )
+        print(self.y, self.h_c0)
+        print(d0x)
+        print(d0y)
+        print(d1z)
 
     def __post_init__(self):
         self.calculate_DRISM_params()
