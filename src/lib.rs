@@ -2,6 +2,7 @@ extern crate blas_src;
 use crate::driver::RISMDriver;
 use pyo3::prelude::*;
 
+pub mod adiis;
 pub mod closure;
 pub mod data;
 pub mod dipole;
