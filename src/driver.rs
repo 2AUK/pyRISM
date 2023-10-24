@@ -512,10 +512,7 @@ impl RISMDriver {
                     translate(&mut species.atom_sites, &coc);
                     match reorient(&mut species.atom_sites) {
                         Ok(_) => (),
-                        Err(e) => panic!(
-                            "{}; there should be a dipole moment present for this step, something has gone FATALLY wrong",
-                            e
-                        ),
+                        Err(e) => trace!("{} - {}", e, species.species_name),
                     }
                 }
                 trace!("Calculating dielectric asymptotics for DRISM");
