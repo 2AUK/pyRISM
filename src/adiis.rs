@@ -70,6 +70,7 @@ impl ADIIS {
         }
 
         let coefficients = a.solve_into(b).expect("could not perform linear solve");
+        //println!("coefs: {:?}", coefficients);
 
         let mut c_a: Array1<f64> = Array::zeros(self.fr[0].raw_dim());
         let mut min_res: Array1<f64> = Array::zeros(self.fr[0].raw_dim());
@@ -105,6 +106,10 @@ impl Solver for ADIIS {
         let r = problem.grid.rgrid.clone();
         let k = problem.grid.kgrid.clone();
 
+        problem.correlations.cr = -problem.system.beta * problem.interactions.ur_lr.clone();
+        Zip::from(problem.correlations.cr.lanes_mut(Axis(0))).par_for_each(|mut elem| {
+            elem.assign(&(&elem * &r.view()));
+        });
         let result = loop {
             let c_prev = problem.correlations.cr.clone();
             (operator.eq)(problem);
@@ -126,19 +131,19 @@ impl Solver for ADIIS {
             let gr = &c_a + &problem.correlations.tr + 1.0;
             // let r = &r.broadcast((r.len(), 0, 0)).unwrap();
             // println!("{:?}", r.shape());
-            let mut res = (&gr - 1.0) - &hr;
-            Zip::from(res.lanes_mut(Axis(0))).par_for_each(|mut elem| {
-                elem.assign(&(&elem * &r.view()));
-            });
+            let mut res = &gr - &hr - 1.0;
+            // Zip::from(res.lanes_mut(Axis(0))).par_for_each(|mut elem| {
+            //     elem.assign(&(&elem * &r.view()));
+            // });
             let mut c_next;
             self.curr_depth = std::cmp::min(self.curr_depth + 1, self.m);
             c_next = self
                 .step_mdiis(&c_a, &res)
                 .into_shape(shape)
                 .expect("could not reshape array into original shape");
-            Zip::from(c_next.lanes_mut(Axis(0))).par_for_each(|mut elem| {
-                elem.assign(&(&elem / &r.view()));
-            });
+            // Zip::from(c_next.lanes_mut(Axis(0))).par_for_each(|mut elem| {
+            //     elem.assign(&(&elem / &r.view()));
+            // });
             let rmse = conv_rmse(&res);
             //println!("\tMDIIS RMSE: {}", rmse);
             if self.curr_depth > 1 {
