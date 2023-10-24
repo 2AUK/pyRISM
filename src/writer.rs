@@ -1,7 +1,7 @@
-use std::path::Path;
-
 use crate::{data::Grid, solution::Solutions};
 use csv::{QuoteStyle, WriterBuilder};
+use ndarray::Array3;
+use std::path::Path;
 
 pub struct RISMWriter<'a> {
     pub name: String,
@@ -18,8 +18,27 @@ impl<'a> RISMWriter<'a> {
 
     pub fn write(&self) -> std::io::Result<()> {
         let vv = &self.data.vv;
+        let gr = &vv.correlations.tr + &vv.correlations.cr + 1.0;
+        self.write_file(&gr, "gvv".to_string())?;
+        self.write_file(&vv.correlations.tr, "tvv".to_string())?;
+        self.write_file(&vv.correlations.cr, "cvv".to_string())?;
+
+        match self.data.uv {
+            Some(ref uv) => {
+                let gr = &uv.correlations.tr + &uv.correlations.cr + 1.0;
+                self.write_file(&gr, "guv".to_string())?;
+                self.write_file(&uv.correlations.tr, "tuv".to_string())?;
+                self.write_file(&uv.correlations.cr, "cuv".to_string())?;
+                Ok(())
+            }
+            None => Ok(()),
+        }
+    }
+
+    fn write_file(&self, func: &Array3<f64>, ext: String) -> std::io::Result<()> {
+        let vv = &self.data.vv;
         let grid = Grid::new(vv.data_config.npts, vv.data_config.radius);
-        let path_str = format!("{}_rust.csv", self.name);
+        let path_str = format!("{}_rust.{}", self.name, ext);
         let path = Path::new(&path_str);
         let mut wtr = WriterBuilder::new()
             .comment(Some(b'#'))
@@ -37,14 +56,13 @@ impl<'a> RISMWriter<'a> {
             }
         }
         wtr.write_record(header_row.as_slice())?;
-        let gr = &vv.correlations.tr + &vv.correlations.cr + 1.0;
         // tabulate data
         for i in 0..vv.data_config.npts {
             let mut data_row = Vec::new();
             data_row.push(grid.rgrid[[i]].to_string());
             for j in 0..vv.data_config.nsv {
                 for k in 0..vv.data_config.nsv {
-                    data_row.push(gr[[i, j, k]].to_string());
+                    data_row.push(func[[i, j, k]].to_string());
                 }
             }
             wtr.write_record(&data_row[..])?;
