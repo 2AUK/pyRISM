@@ -39,6 +39,10 @@ impl Gillan {
     pub fn step_gillan(&mut self, curr: &Array3<f64>, prev: &Array3<f64>) -> Array1<f64> {
         Array::from_iter(curr.clone().into_iter())
     }
+
+    pub fn compute_basis_functions(&mut self) {
+        todo!()
+    }
 }
 
 impl Solver for Gillan {
