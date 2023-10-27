@@ -1,8 +1,10 @@
 use librism::{
+    data::Grid,
     driver::{RISMDriver, Verbosity},
-    thermo::TDDriver,
+    thermo::{SFEs, TDDriver},
     writer::RISMWriter,
 };
+use ndarray::{Array, Array2};
 use std::path::PathBuf;
 
 struct Args {
@@ -24,6 +26,20 @@ fn parse_args() -> Result<Args, lexopt::Error> {
             Short('v') | Long("verbose") => verbosity = Verbosity::Verbose,
             Short('l') | Long("loud") => verbosity = Verbosity::VeryVerbose,
             Short('c') | Long("compress") => compress = true,
+            Short('h') | Long("help") => {
+                println!("Usage: rism [OPTIONS] <inputfile.toml>\n");
+                println!(
+                    "\tRuns the RISM solver and solves the problem defined in <inputfile.toml>i\n"
+                );
+                println!("Options:");
+                println!(" [-h|--help]\tShow this help message");
+                println!(" [-c|--compress]\tCompress the solvent-solvent problem for future use");
+                println!(" Verbosity:");
+                println!("  [-q|--quiet]\tSuppress all output from solver (DEFAULT)");
+                println!("  [-v|--verbose]\tPrint basic information from solver");
+                println!("  [-l|--loud]\tPrint all information from solver");
+                std::process::exit(0);
+            }
             Value(val) => input_file = Some(val.into()),
             _ => return Err(arg.unexpected()),
         }
@@ -37,6 +53,8 @@ fn parse_args() -> Result<Args, lexopt::Error> {
 }
 
 fn main() -> Result<(), lexopt::Error> {
+    #[cfg(feature = "dhat-on")]
+    let _dhat = dhat::Profiler::new_heap();
     let args = parse_args()?;
     let mut driver = RISMDriver::from_toml(&args.input_file);
     let solutions = driver.execute(args.verbosity, args.compress);
@@ -51,30 +69,49 @@ fn main() -> Result<(), lexopt::Error> {
         &solutions,
     );
     writer.write().unwrap();
-    let td = TDDriver::new(solutions);
-    println!(
-        "Isothermal Compressibility: {}",
-        td.isothermal_compressibility()
+    let vv = &solutions.vv;
+    let uv = solutions.uv.as_ref().unwrap();
+    let density = {
+        let mut dens_vec: Vec<f64> = Vec::new();
+        for i in vv.data_config.solvent_species.clone().into_iter() {
+            for _j in i.atom_sites {
+                dens_vec.push(i.dens);
+            }
+        }
+        Array2::from_diag(&Array::from_vec(dens_vec))
+    };
+    let grid = Grid::new(vv.data_config.npts, vv.data_config.radius);
+    SFEs::new(
+        1.0 / vv.data_config.kt / vv.data_config.temp,
+        vv.data_config.ku,
+        &uv.correlations,
+        &density,
+        &grid.rgrid,
     );
-    println!(
-        "Molecular KB theory PMV: {} (A^3)",
-        td.kb_partial_molar_volume()
-    );
-    println!(
-        "Molecular KB theory PMV: {} (cm^3 / mol)",
-        td.kb_partial_molar_volume() / 1e24 * 6.022e23
-    );
-    println!(
-        "RISM KB theory PMV: {} (A^3)",
-        td.rism_kb_partial_molar_volume()
-    );
-    println!(
-        "RISM KB theory PMV: {} (cm^3 / mol)",
-        td.rism_kb_partial_molar_volume() / 1e24 * 6.022e23
-    );
-    println!(
-        "Dimensionless Molecular KB theory PMV: {} (A^3)",
-        td.dimensionless_partial_molar_volume()
-    );
+    // let td = TDDriver::new(solutions);
+    // println!(
+    //     "Isothermal Compressibility: {}",
+    //     td.isothermal_compressibility()
+    // );
+    // println!(
+    //     "Molecular KB theory PMV: {} (A^3)",
+    //     td.kb_partial_molar_volume()
+    // );
+    // println!(
+    //     "Molecular KB theory PMV: {} (cm^3 / mol)",
+    //     td.kb_partial_molar_volume() / 1e24 * 6.022e23
+    // );
+    // println!(
+    //     "RISM KB theory PMV: {} (A^3)",
+    //     td.rism_kb_partial_molar_volume()
+    // );
+    // println!(
+    //     "RISM KB theory PMV: {} (cm^3 / mol)",
+    //     td.rism_kb_partial_molar_volume() / 1e24 * 6.022e23
+    // );
+    // println!(
+    //     "Dimensionless Molecular KB theory PMV: {} (A^3)",
+    //     td.dimensionless_partial_molar_volume()
+    // );
     Ok(())
 }

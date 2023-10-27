@@ -2,7 +2,7 @@ use crate::data::DataRs;
 use crate::operator::Operator;
 use crate::solver::{Solver, SolverError, SolverSettings, SolverSuccess};
 use crate::transforms::fourier_bessel_transform_fftw;
-use log::{info, trace, warn};
+use log::{info, trace};
 use ndarray::{Axis, Zip};
 use ndarray_linalg::Solve;
 use numpy::ndarray::{Array, Array1, Array2, Array3};
@@ -47,12 +47,10 @@ impl ADIIS {
     fn step_mdiis(&mut self, curr: &Array3<f64>, res: &Array3<f64>) -> Array1<f64> {
         let mut a = Array2::zeros((self.curr_depth + 1, self.curr_depth + 1));
         let mut b = Array1::zeros(self.curr_depth + 1);
-        self.fr
-            .push_back(Array::from_iter(curr.clone().into_iter()));
+        self.fr.push_back(Array::from_iter(curr.clone()));
 
         // push flattened difference into residual array
-        self.res
-            .push_back(Array::from_iter(res.clone().into_iter()));
+        self.res.push_back(Array::from_iter(res.clone()));
 
         b[[self.curr_depth]] = -1.0;
 
@@ -99,7 +97,6 @@ impl Solver for ADIIS {
         self.res.clear();
         self.rms_res.clear();
         let shape = problem.correlations.cr.dim();
-        let (npts, ns1, ns2) = shape;
         let mut i = 0;
         let dr = problem.grid.dr;
         let rtok = 2.0 * PI * dr;
@@ -111,9 +108,9 @@ impl Solver for ADIIS {
             elem.assign(&(&elem * &r.view()));
         });
         let result = loop {
-            let c_prev = problem.correlations.cr.clone();
+            let _c_prev = problem.correlations.cr.clone();
             (operator.eq)(problem);
-            let c_a = (operator.closure)(&problem);
+            let c_a = (operator.closure)(problem);
             let hr = {
                 let mut out = Array::zeros(c_a.raw_dim());
                 Zip::from(problem.correlations.hk.lanes(Axis(0)))
@@ -131,7 +128,7 @@ impl Solver for ADIIS {
             let gr = &c_a + &problem.correlations.tr + 1.0;
             // let r = &r.broadcast((r.len(), 0, 0)).unwrap();
             // println!("{:?}", r.shape());
-            let mut res = &gr - &hr - 1.0;
+            let res = &gr - &hr - 1.0;
             // Zip::from(res.lanes_mut(Axis(0))).par_for_each(|mut elem| {
             //     elem.assign(&(&elem * &r.view()));
             // });

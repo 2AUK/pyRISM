@@ -1,7 +1,7 @@
 use crate::data::DataRs;
 use crate::operator::Operator;
 use crate::solver::{Solver, SolverError, SolverSettings, SolverSuccess};
-use log::{info, trace, warn};
+use log::{info, trace};
 use ndarray_linalg::Solve;
 use numpy::ndarray::{Array, Array1, Array2, Array3};
 use std::collections::VecDeque;
@@ -44,12 +44,10 @@ impl MDIIS {
         let diff = curr.clone() - prev.clone();
 
         // push current flattened solution into MDIIS array
-        self.fr
-            .push_back(Array::from_iter(curr.clone().into_iter()));
+        self.fr.push_back(Array::from_iter(curr.clone()));
 
         // push flattened difference into residual array
-        self.res
-            .push_back(Array::from_iter(diff.clone().into_iter()));
+        self.res.push_back(Array::from_iter(diff.clone()));
 
         // return Picard iteration step
         prev + self.picard_damping * diff
@@ -64,7 +62,7 @@ impl MDIIS {
         let mut a = Array2::zeros((self.m + 1, self.m + 1));
         let mut b = Array1::zeros(self.m + 1);
 
-        let gr = Array::from_iter(gr.clone().into_iter());
+        let gr = Array::from_iter(gr.clone());
 
         b[[self.m]] = -1.0;
 
@@ -97,12 +95,10 @@ impl MDIIS {
         let diff = curr.clone() - prev.clone();
 
         // push current flattened solution into MDIIS array
-        self.fr
-            .push_back(Array::from_iter(curr.clone().into_iter()));
+        self.fr.push_back(Array::from_iter(curr.clone()));
 
         // push flattened difference into residual array
-        self.res
-            .push_back(Array::from_iter(diff.clone().into_iter()));
+        self.res.push_back(Array::from_iter(diff.clone()));
 
         self.fr.pop_front();
         self.res.pop_front();
@@ -125,7 +121,7 @@ impl Solver for MDIIS {
         let (npts, ns1, ns2) = shape;
         let mut i = 0;
 
-        let result = loop {
+        loop {
             //println!("Iteration: {}", i);
             let c_prev = problem.correlations.cr.clone();
             (operator.eq)(problem);
@@ -184,8 +180,7 @@ impl Solver for MDIIS {
             if i == self.max_iter {
                 break Err(SolverError::MaxIterationError(i));
             }
-        };
-        result
+        }
     }
 }
 

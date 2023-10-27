@@ -112,8 +112,7 @@ impl SingleData {
                     dens_vec.push(i.dens);
                 }
             }
-            let density = Array2::from_diag(&Array::from_vec(dens_vec));
-            density
+            Array2::from_diag(&Array::from_vec(dens_vec))
         };
 
         SingleData {

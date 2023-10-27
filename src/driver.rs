@@ -9,20 +9,17 @@ use crate::operator::{Operator, OperatorConfig};
 use crate::potential::{Potential, PotentialConfig};
 use crate::solution::*;
 use crate::solver::SolverConfig;
-// use bzip2::read::BzDecoder;
-// use bzip2::write::BzEncoder;
-// use bzip2::Compression;
-// use gnuplot::{AxesCommon, Caption, Color, Figure, Fix, LineWidth};
 use flate2::{read, write, Compression};
 use log::{debug, info, trace, warn};
-use ndarray::{s, Array, Array1, Array2, Array3, Axis, Slice, Zip};
+use ndarray::{Array, Array1, Array2, Array3, Axis, Zip};
 use pyo3::prelude::*;
-use simple_logger::*;
+
 use std::f64::consts::PI;
 use std::fs;
-use std::io::{prelude::*, BufReader};
 use std::path::PathBuf;
-use time::macros::format_description;
+#[cfg(feature = "dhat-on")]
+#[global_allocator]
+static ALLOC: dhat::Alloc = dhat::Alloc;
 
 pub enum Verbosity {
     Quiet,
@@ -30,15 +27,6 @@ pub enum Verbosity {
     VeryVerbose,
 }
 
-// fn plot(x: &Array1<f64>, y: &Array1<f64>) {
-//     let x_vec = x.to_vec();
-//     let y_vec = y.to_vec();
-//     let mut fg = Figure::new();
-//     fg.axes2d()
-//         .lines(&x_vec, &y_vec, &[LineWidth(1.5), Color("red")]);
-//     fg.show().unwrap();
-// }
-//
 #[pyclass]
 #[derive(Clone, Debug)]
 pub struct RISMDriver {
@@ -96,7 +84,6 @@ impl RISMDriver {
 
         // Extract solver information
         let solver: SolverConfig = solver_config.extract()?;
-        println!("{:#?}", data);
 
         Ok(RISMDriver {
             name,
@@ -327,7 +314,7 @@ impl RISMDriver {
     }
 
     pub fn from_toml(fname: &PathBuf) -> Self {
-        let config: Configuration = InputTOMLHandler::construct_configuration(&fname);
+        let config: Configuration = InputTOMLHandler::construct_configuration(fname);
         let name = fname
             .file_stem()
             .expect("extracting name of input job script")
@@ -434,8 +421,7 @@ impl RISMDriver {
                             dens_vec.push(i.dens);
                         }
                     }
-                    let density = Array2::from_diag(&Array::from_vec(dens_vec));
-                    density
+                    Array2::from_diag(&Array::from_vec(dens_vec))
                 };
                 self.solvent.wk = Array::zeros(new_shape);
                 let dielectric = self.compute_dielectrics(&grid);
