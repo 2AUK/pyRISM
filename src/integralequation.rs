@@ -1,6 +1,5 @@
 use crate::data::DataRs;
 use crate::transforms::fourier_bessel_transform_fftw;
-use fftw::plan::*;
 use ndarray::{Array, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis, Zip};
 use ndarray_linalg::Inverse;
 use pyo3::{prelude::*, types::PyString};

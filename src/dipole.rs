@@ -2,7 +2,6 @@ use crate::data::{Site, Species};
 use crate::quaternion::{cross_product, Quaternion};
 use ndarray::{arr1, s, Array, Array1, Array2, Zip};
 use ndarray_linalg::Eig;
-use std::cmp::{max, min};
 use std::f64::consts::PI;
 use std::fmt;
 
@@ -128,12 +127,11 @@ pub fn reorient(atoms: &mut [Site]) -> Result<(), DipoleError> {
     // Orient the first principal axis to the x-axis
     let x_pa: Array1<f64> = principal_axes.slice(s![0..3, 0]).to_owned();
     let mut x_angle = (f64::min(1.0, f64::max(-1.0, x_pa.dot(&xaxis)))).acos();
-    let dir: Array1<f64>;
-    if x_angle < (PI - 1e-6) && x_angle > (-PI + 1e-6) {
-        dir = cross_product(&x_pa, &xaxis);
+    let dir: Array1<f64> = if x_angle < (PI - 1e-6) && x_angle > (-PI + 1e-6) {
+        cross_product(&x_pa, &xaxis)
     } else {
-        dir = yaxis.clone();
-    }
+        yaxis.clone()
+    };
     let x_checkvec = cross_product(&dir, &x_pa);
     if x_checkvec.dot(&xaxis).is_sign_negative() {
         x_angle = -x_angle;
@@ -204,7 +202,7 @@ fn moment_of_inertia(atoms: &[Site]) -> Array2<f64> {
 
     out_arr[[1, 0]] = out_arr[[0, 1]];
     out_arr[[2, 0]] = out_arr[[0, 2]];
-    out_arr[[2, 1]] = out_arr[[2, 1]];
+    out_arr[[2, 1]] = out_arr[[1, 2]];
     out_arr
 }
 

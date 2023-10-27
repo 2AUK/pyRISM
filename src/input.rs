@@ -288,7 +288,7 @@ pub enum SpeciesInfo {
 #[cfg(test)]
 mod test {
     use super::*;
-    const TOML_PARTIAL_INPUT: &str = r#"[system]
+    const _TOML_PARTIAL_INPUT: &str = r#"[system]
 temp = 298
 kT = 1.0
 kU = 0.0019872158728366637
@@ -324,7 +324,7 @@ nspu = 1
 "O" = [ 0.0, 0.0, 0.0 ]
 "#;
 
-    const TOML_FULL_INPUT: &str = r#"[system]
+    const _TOML_FULL_INPUT: &str = r#"[system]
 temp = 298
 kT = 1.0
 kU = 0.0019872158728366637
@@ -381,7 +381,7 @@ H2-2 = [ [ 7.900546687705287, 1.324766393630111, 0.026699999999999998,], [ 4.222
 H3-3 = [ [ 7.900546687705287, 1.324766393630111, 0.026699999999999998,], [ 2.759, 1.049, 0.669,],]
 H4-4 = [ [ 7.900546687705287, 1.324766393630111, 0.026699999999999998,], [ 3.077, 1.81, -0.912,],]"#;
 
-    const TOML_PRECONV_INPUT: &str = r#"[system]
+    const _TOML_PRECONV_INPUT: &str = r#"[system]
 temp = 298
 kT = 1.0
 kU = 0.0019872158728366637

@@ -21,6 +21,8 @@ crate-type = ["lib", "cdylib"]
 
 [features]
 fftw-sys = ["fftw/system"]
+default = []
+dhat-on = []
 
 [dependencies]
 ndarray = { version = "0.15.6", features = ["approx-0_5", "rayon", "blas", "serde"] }
@@ -42,6 +44,7 @@ simple_logger = "4.2.0"
 flate2 = "1.0.28"
 time = "0.3.30"
 csv = "1.3.0"
+dhat = "0.3.2"
 
 [dependencies.fftw]
 version = "0.8.0"
@@ -54,4 +57,4 @@ python-source = "pyrism"
 [profile.release]
 incremental = true
 debug = true
-lto = "fat"
+lto = false

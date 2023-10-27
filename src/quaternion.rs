@@ -198,13 +198,14 @@ mod test {
     use super::*;
     use approx::assert_relative_eq;
     use ndarray::arr1;
+    use std::f64::consts::FRAC_1_SQRT_2;
     use std::f64::consts::PI;
 
     const PRECISION: f64 = f64::EPSILON;
 
     #[test]
     fn test_to_rotation_matrix() {
-        let quat = Quaternion::from_axis_angle(PI / 2.0, &arr1(&[0.0, 0.0, 1.0]));
+        let _quat = Quaternion::from_axis_angle(PI / 2.0, &arr1(&[0.0, 0.0, 1.0]));
     }
 
     #[test]
@@ -229,7 +230,7 @@ mod test {
     fn test_from_angle_axis() {
         let calculated_result = Quaternion::from_axis_angle(PI / 2.0, &arr1(&[0.0, 0.0, 1.0]));
 
-        let known_result = Quaternion::new([0.7071067811865476, 0.0, 0.0, 0.7071067811865476]);
+        let known_result = Quaternion::new([FRAC_1_SQRT_2, 0.0, 0.0, FRAC_1_SQRT_2]);
         assert_relative_eq!(
             arr1(&known_result.0),
             arr1(&calculated_result.0),

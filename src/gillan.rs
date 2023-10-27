@@ -36,7 +36,7 @@ impl Gillan {
         prev + self.picard_damping * diff
     }
 
-    pub fn step_gillan(&mut self, curr: &Array3<f64>, prev: &Array3<f64>) -> Array1<f64> {
+    pub fn step_gillan(&mut self, curr: &Array3<f64>, _prev: &Array3<f64>) -> Array1<f64> {
         Array::from_iter(curr.clone().into_iter())
     }
 
