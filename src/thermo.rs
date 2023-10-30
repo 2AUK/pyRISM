@@ -96,6 +96,15 @@ impl TDDriver {
             "RISM KB theory PMV: {} (cm^3 / mol)",
             self.rism_kb_partial_molar_volume() / 1e24 * 6.022e23
         );
+        println!(
+            "RISM KB theory Excess Volume: {} (A^3)",
+            self.rism_kb_partial_molar_volume() - self.isothermal_compressibility()
+        );
+        println!(
+            "RISM KB theory Excess Volume: {} (cm^3 / mol)",
+            (self.rism_kb_partial_molar_volume() - self.isothermal_compressibility()) / 1e24
+                * 6.022e23
+        );
     }
 
     fn isothermal_compressibility(&self) -> f64 {
@@ -148,7 +157,6 @@ impl TDDriver {
         let uv = &self.solutions.uv.as_ref().unwrap();
         let grid = Grid::new(vv.data_config.npts, vv.data_config.radius);
         let rtok = 2.0 * PI * grid.dr;
-        let _inv_beta = vv.data_config.temp * vv.data_config.kt;
         let mut ck = Array::zeros(uv.correlations.cr.raw_dim());
 
         Zip::from(uv.correlations.cr.lanes(Axis(0)))

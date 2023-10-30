@@ -1,0 +1,55 @@
+[system]
+temp = 283.15
+kT = 1.0
+kU = 0.0019872158728366637
+charge_coeff = 167101.0
+npts = 4096
+radius = 256
+lam = 1
+
+[params]
+potential = "LJ"
+closure = "KH"
+IE = "DRISM"
+solver = "MDIIS"
+depth = 20
+picard_damping = 0.5
+mdiis_damping = 0.5
+itermax = 1000
+tol = 1E-6
+diel = 78
+adbcor = 1.0
+
+[solvent]
+nsv = 3
+nspv = 1
+
+[solute]
+nsu = 1
+nspu = 1
+
+[solvent.water]
+dens = 0.03333
+ns = 3
+O = [
+    [78.20031991, 3.166, -0.8476], 
+    [0.00000000e+00, 0.00000000e+00, 0.00000000e+00]
+]
+
+H1 = [
+    [23.14809985, 1.000, 0.4238],
+    [1.00000000e+00, 0.00000000e+00, 0.00000000e+00]
+] 
+
+H2 = [
+    [23.14809985, 1.000, 0.4238],
+    [-3.33314000e-01, 9.42816000e-01, 0.00000000e+00]
+]
+
+[solute.methane]
+dens = 0.0
+ns = 1
+M =[
+  [147.49363536, 3.73, 0.0],
+  [0.0, 0.0, 0.0]
+]
