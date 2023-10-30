@@ -88,30 +88,8 @@ fn main() -> Result<(), lexopt::Error> {
         &density,
         &grid.rgrid,
     );
-    // let td = TDDriver::new(solutions);
-    // println!(
-    //     "Isothermal Compressibility: {}",
-    //     td.isothermal_compressibility()
-    // );
-    // println!(
-    //     "Molecular KB theory PMV: {} (A^3)",
-    //     td.kb_partial_molar_volume()
-    // );
-    // println!(
-    //     "Molecular KB theory PMV: {} (cm^3 / mol)",
-    //     td.kb_partial_molar_volume() / 1e24 * 6.022e23
-    // );
-    // println!(
-    //     "RISM KB theory PMV: {} (A^3)",
-    //     td.rism_kb_partial_molar_volume()
-    // );
-    // println!(
-    //     "RISM KB theory PMV: {} (cm^3 / mol)",
-    //     td.rism_kb_partial_molar_volume() / 1e24 * 6.022e23
-    // );
-    // println!(
-    //     "Dimensionless Molecular KB theory PMV: {} (A^3)",
-    //     td.dimensionless_partial_molar_volume()
-    // );
+    let td = TDDriver::new(solutions);
+    td.print_thermo();
+
     Ok(())
 }

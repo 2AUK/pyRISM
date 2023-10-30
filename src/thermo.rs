@@ -33,6 +33,7 @@ impl SFEs {
         println!("HNC: {}", Self::integrate(hnc_sfed, dr));
         println!("KH: {}", Self::integrate(kh_sfed, dr));
         println!("GF: {}", Self::integrate(gf_sfed, dr));
+
         SFEs {
             hypernettedchain: 0.0,
             kovalenko_hirata: 0.0,
@@ -72,6 +73,29 @@ pub struct TDDriver {
 impl TDDriver {
     pub fn new(solutions: Solutions) -> Self {
         TDDriver { solutions }
+    }
+
+    pub fn print_thermo(&self) {
+        println!(
+            "Isothermal Compressibility: {}",
+            self.isothermal_compressibility()
+        );
+        println!(
+            "Molecular KB theory PMV: {} (A^3)",
+            self.kb_partial_molar_volume()
+        );
+        println!(
+            "Molecular KB theory PMV: {} (cm^3 / mol)",
+            self.kb_partial_molar_volume() / 1e24 * 6.022e23
+        );
+        println!(
+            "RISM KB theory PMV: {} (A^3)",
+            self.rism_kb_partial_molar_volume()
+        );
+        println!(
+            "RISM KB theory PMV: {} (cm^3 / mol)",
+            self.rism_kb_partial_molar_volume() / 1e24 * 6.022e23
+        );
     }
 
     fn isothermal_compressibility(&self) -> f64 {
