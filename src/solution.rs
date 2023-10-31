@@ -22,6 +22,8 @@ pub struct SolvedData {
     pub operator_config: OperatorConfig,
     pub interactions: Interactions,
     pub correlations: Correlations,
+    pub wv: Array3<f64>,
+    pub wu: Option<Array3<f64>>,
 }
 
 impl SolvedData {
@@ -32,6 +34,8 @@ impl SolvedData {
         operator_config: OperatorConfig,
         interactions: Interactions,
         correlations: Correlations,
+        wv: Array3<f64>,
+        wu: Option<Array3<f64>>,
     ) -> Self {
         SolvedData {
             data_config,
@@ -40,6 +44,8 @@ impl SolvedData {
             operator_config,
             interactions,
             correlations,
+            wv,
+            wu,
         }
     }
 }

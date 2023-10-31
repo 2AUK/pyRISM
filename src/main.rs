@@ -85,8 +85,11 @@ fn main() -> Result<(), lexopt::Error> {
         1.0 / vv.data_config.kt / vv.data_config.temp,
         vv.data_config.ku,
         &uv.correlations,
+        &uv.wu.as_ref().unwrap(),
+        &uv.wv,
         &density,
         &grid.rgrid,
+        &grid.kgrid,
     );
     let td = TDDriver::new(solutions);
     td.print_thermo();
