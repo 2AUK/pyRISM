@@ -4,6 +4,7 @@ use crate::{
     transforms::fourier_bessel_transform_fftw,
 };
 use ndarray::{s, Array, Array1, Array2, Array3, Axis, NewAxis, Zip};
+use ndarray_linalg::Inverse;
 use std::f64::consts::PI;
 
 pub struct SFEs {
@@ -19,8 +20,11 @@ impl SFEs {
         beta: f64,
         ku: f64,
         correlations: &Correlations,
+        w_u: &Array3<f64>,
+        w_v: &Array3<f64>,
         density: &Array2<f64>,
         r: &Array1<f64>,
+        k: &Array1<f64>,
     ) -> Self {
         let dr = r[[1]] - r[[0]];
         let hnc_sfed =
@@ -29,10 +33,22 @@ impl SFEs {
             kh_functional_impl(r, density, &correlations.cr, &correlations.hr) / beta * ku;
         let gf_sfed =
             gf_functional_impl(r, density, &correlations.cr, &correlations.hr) / beta * ku;
+        let pw_sfed = pw_functional_impl(
+            r,
+            k,
+            density,
+            &correlations.cr,
+            &correlations.hr,
+            &correlations.hk,
+            w_u,
+            w_v,
+        ) / beta
+            * ku;
 
         println!("HNC: {}", Self::integrate(hnc_sfed, dr));
         println!("KH: {}", Self::integrate(kh_sfed, dr));
         println!("GF: {}", Self::integrate(gf_sfed, dr));
+        println!("PW: {}", Self::integrate(pw_sfed, dr));
 
         SFEs {
             hypernettedchain: 0.0,
@@ -263,23 +279,53 @@ fn gf_functional_impl(
 
 fn pw_functional_impl(
     r: &Array1<f64>,
+    k: &Array1<f64>,
     density: &Array2<f64>,
     cr: &Array3<f64>,
     hr: &Array3<f64>,
+    hk: &Array3<f64>,
+    w_u: &Array3<f64>,
+    w_v: &Array3<f64>,
 ) -> Array1<f64> {
     let tr = hr - cr;
+    let dk = k[[1]] - k[[0]];
+    let ktor = dk / (4.0 * PI * PI);
+    let mut h_bar_uv_k: Array3<f64> = Array::zeros(tr.raw_dim());
+    let mut h_bar_uv_r: Array3<f64> = Array::zeros(tr.raw_dim());
     let mut _out: Array3<f64> = Array::zeros(tr.raw_dim());
-    //let r = r.slice(s![.., NewAxis, NewAxis]).to_owned();
+
+    Zip::from(h_bar_uv_k.outer_iter_mut())
+        .and(hk.outer_iter())
+        .and(w_u.outer_iter())
+        .and(w_v.outer_iter())
+        .par_for_each(|mut h_out, h, wu, wv| {
+            let wv_inv = wv.inv().expect("inverted solvent intramolecular matrix");
+            let wu_inv = wu.inv().expect("inverted solute intramolecular matrix");
+            h_out.assign(&wu.dot(&h).dot(&wv).dot(density));
+        });
+
+    Zip::from(h_bar_uv_k.lanes(Axis(0)))
+        .and(h_bar_uv_r.lanes_mut(Axis(0)))
+        .par_for_each(|cr_lane, mut ck_lane| {
+            ck_lane.assign(&fourier_bessel_transform_fftw(
+                ktor,
+                &k.view(),
+                &r.view(),
+                &cr_lane.to_owned(),
+            ));
+        });
+
     let mut r = r.broadcast((1, 1, r.len())).unwrap();
     r.swap_axes(0, 2);
+
     Zip::from(_out.outer_iter_mut())
-        .and(tr.outer_iter())
+        .and(h_bar_uv_r.outer_iter())
         .and(cr.outer_iter())
         .and(hr.outer_iter())
         .and(r.outer_iter())
-        .for_each(|mut o, t, c, h, ri| {
+        .for_each(|mut o, h_bar, c, h, ri| {
             let r2 = &ri * &ri;
-            let integrand = 0.5 * &c * &h + &c;
+            let integrand = &c + (0.5 * &c * &h) - (0.5 * &h_bar * &h);
             o.assign(&(4.0 * PI * &(r2 * integrand).dot(density)));
         });
     _out.sum_axis(Axis(2)).sum_axis(Axis(1))

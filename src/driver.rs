@@ -223,6 +223,8 @@ impl RISMDriver {
                     self.operator.clone(),
                     vv.interactions.clone(),
                     vv.correlations.clone(),
+                    vv.data_b.wk.clone(),
+                    None,
                 );
                 if compress {
                     trace!("Compressing solvent-solvent data");
@@ -276,6 +278,8 @@ impl RISMDriver {
                     self.operator.clone(),
                     uv.interactions.clone(),
                     uv.correlations.clone(),
+                    uv.data_b.wk.clone(),
+                    Some(uv.data_a.wk.clone()),
                 );
                 Self::restore_renormalised_functions(&mut uv_solution, uv.system.beta);
                 Some(uv_solution)
