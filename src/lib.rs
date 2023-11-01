@@ -1,5 +1,7 @@
 extern crate blas_src;
+use crate::driver::RISMDriver;
 use pyo3::prelude::*;
+use std::path::PathBuf;
 
 pub mod adiis;
 pub mod closure;
@@ -20,6 +22,19 @@ pub mod solver;
 pub mod thermo;
 pub mod transforms;
 pub mod writer;
+
+pub struct Calculator {
+    pub name: String,
+    driver: RISMDriver,
+}
+
+impl Calculator {
+    pub fn from_toml(fname: PathBuf) -> Self {
+        let driver = RISMDriver::from_toml(&fname);
+        let name = driver.name.clone();
+        Calculator { name, driver }
+    }
+}
 
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
