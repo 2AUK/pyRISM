@@ -74,7 +74,6 @@ impl<'a> RISMWriter<'a> {
 
     fn write_file_vv(&self, func: &Array3<f64>, ext: String) -> std::io::Result<()> {
         let vv = &self.data.vv;
-        println!("{:?}", func.shape());
         let grid = Grid::new(vv.data_config.npts, vv.data_config.radius);
         let path_str = format!("{}_rust.{}", self.name, ext);
         let path = Path::new(&path_str);
