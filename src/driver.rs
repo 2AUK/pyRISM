@@ -14,9 +14,12 @@ use log::{debug, info, trace, warn};
 use ndarray::{Array, Array1, Array2, Array3, Axis, Zip};
 use pyo3::prelude::*;
 
+use std::cell::RefCell;
 use std::f64::consts::PI;
 use std::fs;
 use std::path::PathBuf;
+use std::rc::Rc;
+
 #[cfg(feature = "dhat-on")]
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
@@ -27,12 +30,12 @@ pub enum Verbosity {
     VeryVerbose,
 }
 
-#[pyclass]
+// #[pyclass]
 #[derive(Clone, Debug)]
 pub struct RISMDriver {
     pub name: String,
-    pub solvent: SingleData,
-    pub solute: Option<SingleData>,
+    pub solvent: Rc<RefCell<SingleData>>,
+    pub solute: Option<Rc<RefCell<SingleData>>>,
     pub data: DataConfig,
     pub operator: OperatorConfig,
     pub potential: PotentialConfig,
@@ -40,128 +43,105 @@ pub struct RISMDriver {
     _preconv: Option<SolvedData>,
 }
 
-#[pymethods]
+// #[pymethods]
+// impl RISMDriver {
+//     #[new]
+//     fn new<'py>(
+//         name: String,
+//         data_config: &PyAny,
+//         operator_config: &PyAny,
+//         potential_config: &PyAny,
+//         solver_config: &PyAny,
+//     ) -> PyResult<Self> {
+//         // Extract problem data
+//         let data: DataConfig = data_config.extract()?;
+//         let (solvent, solute);
+//         let shape = (data.npts, data.nsv, data.nsv);
+//         let vv_solution = Self::load_preconv_data(&data.preconverged);
+//         // Construct the solvent-solvent problem
+//         solvent = SingleData::new(
+//             data.solvent_atoms.clone(),
+//             data.solvent_species.clone(),
+//             shape,
+//         );
+//
+//         // Check if a solute-solvent problem exists
+//         match data.nsu {
+//             None => solute = None,
+//             _ => {
+//                 let shape = (data.npts, data.nsu.unwrap(), data.nsu.unwrap());
+//                 // Construct the solute-solvent problem
+//                 solute = Some(SingleData::new(
+//                     data.solute_atoms.as_ref().unwrap().clone(),
+//                     data.solute_species.as_ref().unwrap().clone(),
+//                     shape,
+//                 ));
+//             }
+//         }
+//
+//         // Extract operator information
+//         let operator: OperatorConfig = operator_config.extract()?;
+//
+//         // Extract potential information
+//         let potential: PotentialConfig = potential_config.extract()?;
+//
+//         // Extract solver information
+//         let solver: SolverConfig = solver_config.extract()?;
+//
+//         Ok(RISMDriver {
+//             name,
+//             solvent,
+//             solute,
+//             data,
+//             operator,
+//             potential,
+//             solver,
+//             _preconv: vv_solution,
+//         })
+//     }
+//
+//     pub fn do_rism<'py>(
+//         &'py mut self,
+//         verbosity: String,
+//         compress: bool,
+//         py: Python<'py>,
+//     ) -> PyResult<PySolution> {
+//         // -> PyResult<Py<PyAny>> {
+//         let verbosity = match verbosity.as_str() {
+//             "quiet" => Verbosity::Quiet,
+//             "verbose" => Verbosity::Verbose,
+//             "very verbose" => Verbosity::VeryVerbose,
+//             _ => panic!("not a valid verbosity flag"),
+//         };
+//         let solutions = self.execute(verbosity, compress);
+//         let py_cor_vv = PyCorrelations::from_correlations(solutions.vv.correlations, py);
+//         let py_inter_vv = PyInteractions::from_interactions(solutions.vv.interactions, py);
+//         let vv = PySolvedData {
+//             correlations: py_cor_vv,
+//             interactions: py_inter_vv,
+//         };
+//
+//         let uv = match solutions.uv {
+//             None => None,
+//             Some(data) => {
+//                 let py_cor_uv = PyCorrelations::from_correlations(data.correlations, py);
+//                 let py_inter_uv = PyInteractions::from_interactions(data.interactions, py);
+//                 let uv = PySolvedData {
+//                     correlations: py_cor_uv,
+//                     interactions: py_inter_uv,
+//                 };
+//                 Some(uv)
+//             }
+//         };
+//
+//         Ok(PySolution { vv, uv })
+// }
+//
 impl RISMDriver {
-    #[new]
-    fn new<'py>(
-        name: String,
-        data_config: &PyAny,
-        operator_config: &PyAny,
-        potential_config: &PyAny,
-        solver_config: &PyAny,
-    ) -> PyResult<Self> {
-        // Extract problem data
-        let data: DataConfig = data_config.extract()?;
-        let (solvent, solute);
-        let shape = (data.npts, data.nsv, data.nsv);
-        let vv_solution = Self::load_preconv_data(&data.preconverged);
-        // Construct the solvent-solvent problem
-        solvent = SingleData::new(
-            data.solvent_atoms.clone(),
-            data.solvent_species.clone(),
-            shape,
-        );
-
-        // Check if a solute-solvent problem exists
-        match data.nsu {
-            None => solute = None,
-            _ => {
-                let shape = (data.npts, data.nsu.unwrap(), data.nsu.unwrap());
-                // Construct the solute-solvent problem
-                solute = Some(SingleData::new(
-                    data.solute_atoms.as_ref().unwrap().clone(),
-                    data.solute_species.as_ref().unwrap().clone(),
-                    shape,
-                ));
-            }
-        }
-
-        // Extract operator information
-        let operator: OperatorConfig = operator_config.extract()?;
-
-        // Extract potential information
-        let potential: PotentialConfig = potential_config.extract()?;
-
-        // Extract solver information
-        let solver: SolverConfig = solver_config.extract()?;
-
-        Ok(RISMDriver {
-            name,
-            solvent,
-            solute,
-            data,
-            operator,
-            potential,
-            solver,
-            _preconv: vv_solution,
-        })
+    pub fn new(name: String, config: Configuration) -> Self {
+        todo!()
     }
 
-    pub fn do_rism<'py>(
-        &'py mut self,
-        verbosity: String,
-        compress: bool,
-        py: Python<'py>,
-    ) -> PyResult<PySolution> {
-        // -> PyResult<Py<PyAny>> {
-        let verbosity = match verbosity.as_str() {
-            "quiet" => Verbosity::Quiet,
-            "verbose" => Verbosity::Verbose,
-            "very verbose" => Verbosity::VeryVerbose,
-            _ => panic!("not a valid verbosity flag"),
-        };
-        let solutions = self.execute(verbosity, compress);
-        let py_cor_vv = PyCorrelations::from_correlations(solutions.vv.correlations, py);
-        let py_inter_vv = PyInteractions::from_interactions(solutions.vv.interactions, py);
-        let vv = PySolvedData {
-            correlations: py_cor_vv,
-            interactions: py_inter_vv,
-        };
-
-        let uv = match solutions.uv {
-            None => None,
-            Some(data) => {
-                let py_cor_uv = PyCorrelations::from_correlations(data.correlations, py);
-                let py_inter_uv = PyInteractions::from_interactions(data.interactions, py);
-                let uv = PySolvedData {
-                    correlations: py_cor_uv,
-                    interactions: py_inter_uv,
-                };
-                Some(uv)
-            }
-        };
-
-        Ok(PySolution { vv, uv })
-
-        // Ok(PyCorrelations::new(
-        //     uv.clone().unwrap().correlations.cr,
-        //     uv.clone().unwrap().correlations.tr,
-        //     uv.clone().unwrap().correlations.hr,
-        //     gr_uv,
-        //     py,
-        // )
-        // .into_py(py))
-    }
-
-    // pub fn extract<'py>(
-    //     &'py self,
-    //     py: Python<'py>,
-    // ) -> PyResult<(
-    //     &PyArray3<f64>,
-    //     &PyArray3<f64>,
-    //     &PyArray3<f64>,
-    //     &PyArray3<f64>,
-    // )> {
-    //     Ok((
-    //         self.data.cr.clone().into_pyarray(py),
-    //         self.data.tr.clone().into_pyarray(py),
-    //         self.data.hr.clone().into_pyarray(py),
-    //         self.data.hk.clone().into_pyarray(py),
-    //     ))
-    // }
-}
-
-impl RISMDriver {
     fn restore_renormalised_functions(data: &mut SolvedData, beta: f64) {
         let cr = data.correlations.cr.clone();
         let tr = data.correlations.tr.clone();
