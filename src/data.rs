@@ -3,8 +3,10 @@ use ndarray::{Array, Array1, Array2, Array3};
 use numpy::{PyArray1, PyArray2, PyArray3};
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
 use std::f64::consts::PI;
 use std::path::PathBuf;
+use std::rc::Rc;
 
 #[derive(FromPyObject, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Site {
@@ -184,8 +186,8 @@ impl Correlations {
 #[derive(Clone, Debug)]
 pub struct DataRs {
     pub system: SystemState,
-    pub data_a: SingleData,
-    pub data_b: SingleData,
+    pub data_a: Rc<RefCell<SingleData>>,
+    pub data_b: Rc<RefCell<SingleData>>,
     pub grid: Grid,
     pub interactions: Interactions,
     pub correlations: Correlations,
@@ -196,8 +198,8 @@ pub struct DataRs {
 impl DataRs {
     pub fn new(
         system: SystemState,
-        data_a: SingleData,
-        data_b: SingleData,
+        data_a: Rc<RefCell<SingleData>>,
+        data_b: Rc<RefCell<SingleData>>,
         grid: Grid,
         interactions: Interactions,
         correlations: Correlations,
