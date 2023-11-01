@@ -81,12 +81,14 @@ fn main() -> Result<(), lexopt::Error> {
         Array2::from_diag(&Array::from_vec(dens_vec))
     };
     let grid = Grid::new(vv.data_config.npts, vv.data_config.radius);
+    let wv = &driver.solvent.borrow().wk;
+    let wu = &driver.solute.as_ref().unwrap().borrow().wk;
     SFEs::new(
         1.0 / vv.data_config.kt / vv.data_config.temp,
         vv.data_config.ku,
         &uv.correlations,
-        &uv.wu.as_ref().unwrap(),
-        &uv.wv,
+        wu,
+        wv,
         &density,
         &grid.rgrid,
         &grid.kgrid,

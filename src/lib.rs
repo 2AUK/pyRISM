@@ -27,6 +27,6 @@ pub mod writer;
 /// import the module.
 #[pymodule]
 fn librism(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    m.add_class::<RISMDriver>()?;
+    //m.add_class::<RISMDriver>()?;
     Ok(())
 }

@@ -205,8 +205,6 @@ impl RISMDriver {
                     self.operator.clone(),
                     vv.interactions.clone(),
                     vv.correlations.clone(),
-                    vv.data_b.wk.clone(),
-                    None,
                 );
                 if compress {
                     trace!("Compressing solvent-solvent data");
@@ -260,8 +258,6 @@ impl RISMDriver {
                     self.operator.clone(),
                     uv.interactions.clone(),
                     uv.correlations.clone(),
-                    uv.data_b.wk.clone(),
-                    Some(uv.data_a.wk.clone()),
                 );
                 Self::restore_renormalised_functions(&mut uv_solution, uv.system.beta);
                 Some(uv_solution)
@@ -313,11 +309,11 @@ impl RISMDriver {
         let shape = (data.npts, data.nsv, data.nsv);
 
         // Construct the solvent-solvent problem
-        solvent = SingleData::new(
+        solvent = Rc::new(RefCell::new(SingleData::new(
             data.solvent_atoms.clone(),
             data.solvent_species.clone(),
             shape,
-        );
+        )));
 
         // Check if a solute-solvent problem exists
         match data.nsu {
@@ -325,11 +321,11 @@ impl RISMDriver {
             _ => {
                 let shape = (data.npts, data.nsu.unwrap(), data.nsu.unwrap());
                 // Construct the solute-solvent problem
-                solute = Some(SingleData::new(
+                solute = Some(Rc::new(RefCell::new(SingleData::new(
                     data.solute_atoms.as_ref().unwrap().clone(),
                     data.solute_species.as_ref().unwrap().clone(),
                     shape,
-                ));
+                ))));
             }
         }
 
@@ -393,14 +389,14 @@ impl RISMDriver {
                 );
                 self.data.nsv = data.data_config.nsv;
                 self.data.nspv = data.data_config.nspv;
-                self.solvent.sites = data.data_config.solvent_atoms.clone();
-                self.solvent.species = data.data_config.solvent_species.clone();
+                self.solvent.borrow_mut().sites = data.data_config.solvent_atoms.clone();
+                self.solvent.borrow_mut().species = data.data_config.solvent_species.clone();
                 let new_shape = (
                     data.data_config.npts,
                     data.data_config.nsv,
                     data.data_config.nsv,
                 );
-                self.solvent.density = {
+                self.solvent.borrow_mut().density = {
                     let mut dens_vec: Vec<f64> = Vec::new();
                     for i in data.data_config.solvent_species.clone().into_iter() {
                         for _j in i.atom_sites {
@@ -409,7 +405,7 @@ impl RISMDriver {
                     }
                     Array2::from_diag(&Array::from_vec(dens_vec))
                 };
-                self.solvent.wk = Array::zeros(new_shape);
+                self.solvent.borrow_mut().wk = Array::zeros(new_shape);
                 let dielectric = self.compute_dielectrics(&grid);
                 vv_problem = DataRs::new(
                     system.clone(),
@@ -464,7 +460,7 @@ impl RISMDriver {
     fn compute_dielectrics(&mut self, grid: &Grid) -> Option<DielectricData> {
         trace!("Checking for dipole moment");
         let mut dm_vec = Vec::new();
-        for species in self.solvent.species.iter() {
+        for species in self.solvent.borrow().species.iter() {
             dm_vec.push(dipole_moment(&species.atom_sites));
         }
         let (dm, _): (Vec<_>, Vec<_>) = dm_vec.into_iter().partition(Result::is_ok);
@@ -477,7 +473,7 @@ impl RISMDriver {
         match self.operator.integral_equation {
             IntegralEquationKind::DRISM => {
                 trace!("Aligning dipole moment to z-axis");
-                for species in self.solvent.species.iter_mut() {
+                for species in self.solvent.borrow_mut().species.iter_mut() {
                     let tot_charge = total_charge(&species.atom_sites);
                     let mut coc = centre_of_charge(&species.atom_sites);
                     coc /= tot_charge;
@@ -491,6 +487,7 @@ impl RISMDriver {
                 let mut k_exp_term = grid.kgrid.clone();
                 let total_density = self
                     .solvent
+                    .borrow()
                     .species
                     .iter()
                     .fold(0.0, |acc, species| acc + species.dens);
@@ -500,12 +497,17 @@ impl RISMDriver {
                     .expect("damping parameter for DRISM set");
                 let diel = self.data.dielec.expect("dielectric constant set");
                 k_exp_term.par_mapv_inplace(|x| (-1.0 * (drism_damping * x / 2.0).powf(2.0)).exp());
-                let dipole_density = self.solvent.species.iter().fold(0.0, |acc, species| {
-                    match dipole_moment(&species.atom_sites) {
-                        Ok((_, dm)) => acc + species.dens * dm * dm,
-                        _ => acc + 0.0,
-                    }
-                });
+                let dipole_density =
+                    self.solvent
+                        .borrow()
+                        .species
+                        .iter()
+                        .fold(0.0, |acc, species| {
+                            match dipole_moment(&species.atom_sites) {
+                                Ok((_, dm)) => acc + species.dens * dm * dm,
+                                _ => acc + 0.0,
+                            }
+                        });
                 let y = 4.0 * PI * dipole_density / 9.0;
                 let hc0 = (((diel - 1.0) / y) - 3.0) / total_density;
                 let hck = hc0 * k_exp_term;
@@ -519,7 +521,7 @@ impl RISMDriver {
                     let mut chi = Array::zeros((self.data.npts, self.data.nsv, self.data.nsv));
                     for (ki, k) in grid.kgrid.iter().enumerate() {
                         let mut i = 0;
-                        for species in self.solvent.species.iter() {
+                        for species in self.solvent.borrow().species.iter() {
                             for atm in species.atom_sites.iter() {
                                 let k_coord = *k * Array::from_vec(atm.coords.clone());
                                 if k_coord[0] == 0.0 {
@@ -604,21 +606,21 @@ impl RISMDriver {
         let potential = Potential::new(&self.potential);
         // set up total potential
         let npts = problem.grid.npts;
-        let num_sites_a = problem.data_a.sites.len();
-        let num_sites_b = problem.data_b.sites.len();
+        let num_sites_a = problem.data_a.borrow().sites.len();
+        let num_sites_b = problem.data_b.borrow().sites.len();
         let shape = (npts, num_sites_a, num_sites_b);
         let (mut u_nb, mut u_c) = (Array::zeros(shape), Array::zeros(shape));
         // compute nonbonded interaction
         (potential.nonbonded)(
-            &problem.data_a.sites,
-            &problem.data_b.sites,
+            &problem.data_a.borrow().sites,
+            &problem.data_b.borrow().sites,
             &problem.grid.rgrid,
             &mut u_nb,
         );
         // compute electrostatic interaction
         (potential.coulombic)(
-            &problem.data_a.sites,
-            &problem.data_b.sites,
+            &problem.data_a.borrow().sites,
+            &problem.data_b.borrow().sites,
             &problem.grid.rgrid,
             &mut u_c,
         );
@@ -628,14 +630,14 @@ impl RISMDriver {
 
         // compute renormalised potentials
         (potential.renormalisation_real)(
-            &problem.data_a.sites,
-            &problem.data_b.sites,
+            &problem.data_a.borrow().sites,
+            &problem.data_b.borrow().sites,
             &problem.grid.rgrid,
             &mut problem.interactions.ur_lr,
         );
         (potential.renormalisation_fourier)(
-            &problem.data_a.sites,
-            &problem.data_b.sites,
+            &problem.data_a.borrow().sites,
+            &problem.data_b.borrow().sites,
             &problem.grid.kgrid,
             &mut problem.interactions.uk_lr,
         );
@@ -648,11 +650,25 @@ impl RISMDriver {
     }
 
     fn build_intramolecular_correlation(&mut self, problem: &mut DataRs) {
-        let distances_a = Self::distance_matrix(&problem.data_a.species, &problem.data_a.species);
-        let distances_b = Self::distance_matrix(&problem.data_b.species, &problem.data_b.species);
+        let distances_a = Self::distance_matrix(
+            &problem.data_a.borrow().species,
+            &problem.data_a.borrow().species,
+        );
+        let distances_b = Self::distance_matrix(
+            &problem.data_b.borrow().species,
+            &problem.data_b.borrow().species,
+        );
 
-        Self::intramolecular_corr_impl(&distances_a, &problem.grid.kgrid, &mut problem.data_a.wk);
-        Self::intramolecular_corr_impl(&distances_b, &problem.grid.kgrid, &mut problem.data_b.wk);
+        Self::intramolecular_corr_impl(
+            &distances_a,
+            &problem.grid.kgrid,
+            &mut problem.data_a.borrow_mut().wk,
+        );
+        Self::intramolecular_corr_impl(
+            &distances_b,
+            &problem.grid.kgrid,
+            &mut problem.data_b.borrow_mut().wk,
+        );
     }
 
     fn intramolecular_corr_impl(
