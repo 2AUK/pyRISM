@@ -137,6 +137,7 @@ pub struct RISMDriver {
 //         Ok(PySolution { vv, uv })
 // }
 //
+
 impl RISMDriver {
     pub fn new(name: String, config: Configuration) -> Self {
         todo!()
@@ -151,6 +152,7 @@ impl RISMDriver {
         data.correlations.tr.assign(&(&tr + beta * &urlr));
         data.correlations.hr = &data.correlations.cr + &data.correlations.tr;
     }
+
     pub fn execute(&mut self, verbosity: Verbosity, compress: bool) -> Solutions {
         match verbosity {
             Verbosity::Quiet => (),
