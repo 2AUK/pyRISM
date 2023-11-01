@@ -30,6 +30,16 @@ pub enum Verbosity {
     VeryVerbose,
 }
 
+/// Driver for performing Reference Interaction Site Model (RISM) Calculations.
+///
+/// Provides a simple interface for reading input files, performing RISM calculations and getting
+/// the resulting solutions:
+/// ```rust
+/// use librism::RISMDriver;
+///
+/// let driver = RISMDriver::from_toml("input.toml");
+/// let solution = driver.execute()?;
+/// ```
 // #[pyclass]
 #[derive(Clone, Debug)]
 pub struct RISMDriver {
