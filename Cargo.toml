@@ -55,6 +55,10 @@ features = ["source"]
 python-source = "pyrism"
 
 [profile.release]
+codegen-units = 1
 incremental = true
-debug = true
-lto = false
+debug = false
+lto = "fat"
+opt-level = "z"
+panic = "abort"
+strip = "debuginfo"

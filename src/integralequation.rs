@@ -62,18 +62,18 @@ pub fn rism_uv(problem: &mut DataRs) {
         problem.grid.dr,
         problem.grid.dk,
         problem.correlations.cr.view(),
-        problem.data_a.wk.view(),
-        problem.data_b.density.view(),
+        problem.data_a.borrow().wk.view(),
+        problem.data_b.borrow().density.view(),
         problem.system.beta,
         problem.interactions.uk_lr.view(),
         problem.interactions.ur_lr.view(),
         h_vv.view(),
-        problem.data_b.wk.view(),
+        problem.data_b.borrow().wk.view(),
     )
 }
 
 pub fn xrism_vv(problem: &mut DataRs) {
-    let nsv = problem.data_a.sites.len();
+    let nsv = problem.data_a.borrow().sites.len();
     (problem.correlations.hk, problem.correlations.tr) = rism_vv_equation_impl(
         nsv,
         problem.grid.npts,
@@ -82,8 +82,8 @@ pub fn xrism_vv(problem: &mut DataRs) {
         problem.grid.dr,
         problem.grid.dk,
         problem.correlations.cr.view(),
-        problem.data_a.wk.view(),
-        problem.data_a.density.view(),
+        problem.data_a.borrow().wk.view(),
+        problem.data_a.borrow().density.view(),
         problem.system.beta,
         problem.interactions.uk_lr.view(),
         problem.interactions.ur_lr.view(),
@@ -92,7 +92,7 @@ pub fn xrism_vv(problem: &mut DataRs) {
 }
 
 pub fn drism_vv(problem: &mut DataRs) {
-    let nsv = problem.data_a.sites.len();
+    let nsv = problem.data_a.borrow().sites.len();
     (problem.correlations.hk, problem.correlations.tr) = rism_vv_equation_impl(
         nsv,
         problem.grid.npts,
@@ -101,8 +101,8 @@ pub fn drism_vv(problem: &mut DataRs) {
         problem.grid.dr,
         problem.grid.dk,
         problem.correlations.cr.view(),
-        problem.data_a.wk.view(),
-        problem.data_a.density.view(),
+        problem.data_a.borrow().wk.view(),
+        problem.data_a.borrow().density.view(),
         problem.system.beta,
         problem.interactions.uk_lr.view(),
         problem.interactions.ur_lr.view(),
