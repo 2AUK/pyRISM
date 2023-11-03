@@ -1,9 +1,6 @@
-use crate::adiis::ADIIS;
 use crate::data::DataRs;
-use crate::mdiis::MDIIS;
-use crate::ng::Ng;
-use crate::operator::Operator;
-use crate::picard::Picard;
+use crate::iet::operator::Operator;
+use crate::solvers::{adiis::ADIIS, mdiis::MDIIS, ng::Ng, picard::Picard};
 use pyo3::{prelude::*, types::PyString};
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Debug, Display};

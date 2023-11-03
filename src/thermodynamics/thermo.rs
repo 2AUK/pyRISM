@@ -1,7 +1,7 @@
 use crate::{
+    data::solution::Solutions,
     data::{Correlations, Grid},
-    solution::Solutions,
-    transforms::fourier_bessel_transform_fftw,
+    grids::transforms::fourier_bessel_transform_fftw,
 };
 use ndarray::{s, Array, Array1, Array2, Array3, Axis, NewAxis, Zip};
 use ndarray_linalg::Inverse;

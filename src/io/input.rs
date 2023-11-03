@@ -5,12 +5,12 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::{
-    closure::ClosureKind,
     data::{DataConfig, Site, Species},
-    integralequation::IntegralEquationKind,
-    operator::OperatorConfig,
-    potential::{PotentialConfig, PotentialKind},
-    solver::{GillanSettings, MDIISSettings, SolverConfig, SolverKind, SolverSettings},
+    iet::closure::ClosureKind,
+    iet::integralequation::IntegralEquationKind,
+    iet::operator::OperatorConfig,
+    interactions::potential::{PotentialConfig, PotentialKind},
+    solvers::solver::{GillanSettings, MDIISSettings, SolverConfig, SolverKind, SolverSettings},
 };
 
 #[derive(Debug, Clone)]

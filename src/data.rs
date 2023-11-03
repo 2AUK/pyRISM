@@ -1,4 +1,4 @@
-use crate::solution::*;
+use crate::data::solution::*;
 use ndarray::{Array, Array1, Array2, Array3};
 use numpy::{PyArray1, PyArray2, PyArray3};
 use pyo3::prelude::*;
@@ -7,6 +7,8 @@ use std::cell::RefCell;
 use std::f64::consts::PI;
 use std::path::PathBuf;
 use std::rc::Rc;
+
+pub mod solution;
 
 #[derive(FromPyObject, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Site {

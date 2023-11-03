@@ -1,8 +1,8 @@
 use crate::data::{Correlations, DataConfig, Interactions};
-use crate::input::Configuration;
-use crate::operator::OperatorConfig;
-use crate::potential::PotentialConfig;
-use crate::solver::SolverConfig;
+use crate::iet::operator::OperatorConfig;
+use crate::interactions::potential::PotentialConfig;
+use crate::io::input::Configuration;
+use crate::solvers::solver::SolverConfig;
 use ndarray::Array3;
 use numpy::{IntoPyArray, PyArray3};
 use pyo3::prelude::*;
