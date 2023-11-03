@@ -1,20 +1,27 @@
-use crate::data::DataRs;
-use crate::operator::Operator;
-use crate::solver::{Solver, SolverError, SolverSettings, SolverSuccess};
-use log::{info, trace};
-use numpy::ndarray::Array3;
+use crate::{
+    data::DataRs,
+    iet::operator::Operator,
+    solvers::solver::{Solver, SolverError, SolverSettings, SolverSuccess},
+};
+use log::trace;
+use ndarray::{Array, Array1, Array3};
 
 #[derive(Clone, Debug)]
-pub struct Picard {
+pub struct Gillan {
     // input parameters for solver
+    pub nbasis: usize,
     pub picard_damping: f64,
     pub max_iter: usize,
     pub tolerance: f64,
 }
-
-impl Picard {
+impl Gillan {
     pub fn new(settings: &SolverSettings) -> Self {
-        Picard {
+        let gillan_settings = settings
+            .clone()
+            .gillan_settings
+            .expect("MDIIS settings not found");
+        Gillan {
+            nbasis: gillan_settings.nbasis,
             picard_damping: settings.picard_damping,
             max_iter: settings.max_iter,
             tolerance: settings.tolerance,
@@ -28,27 +35,36 @@ impl Picard {
         // return Picard iteration step
         prev + self.picard_damping * diff
     }
+
+    pub fn step_gillan(&mut self, curr: &Array3<f64>, _prev: &Array3<f64>) -> Array1<f64> {
+        Array::from_iter(curr.clone().into_iter())
+    }
+
+    pub fn compute_basis_functions(&mut self) {
+        todo!()
+    }
 }
 
-impl Solver for Picard {
+impl Solver for Gillan {
     fn solve(
         &mut self,
         problem: &mut DataRs,
         operator: &Operator,
     ) -> Result<SolverSuccess, SolverError> {
-        info! {"Solving RISM equation"};
         let shape = problem.correlations.cr.dim();
-        let (npts, ns1, ns2) = shape;
         let mut i = 0;
 
         let result = loop {
-            //println!("Iteration: {}", i);
             let c_prev = problem.correlations.cr.clone();
             (operator.eq)(problem);
             let c_a = (operator.closure)(&problem);
-            let c_next = self.step_picard(&c_a, &c_prev);
+            let c_next;
+            c_next = self
+                .step_gillan(&c_a, &c_prev)
+                .into_shape(shape)
+                .expect("could not reshape array into original shape");
             problem.correlations.cr = c_next.clone();
-            let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &c_next, &c_prev);
+            let rmse = conv_rmse(&c_prev);
 
             trace!("Iteration: {} Convergence RMSE: {:.6E}", i, rmse);
 
@@ -70,14 +86,7 @@ impl Solver for Picard {
     }
 }
 
-fn conv_rmse(
-    ns1: usize,
-    ns2: usize,
-    npts: usize,
-    dr: f64,
-    curr: &Array3<f64>,
-    prev: &Array3<f64>,
-) -> f64 {
-    let denom = 1.0 / ns1 as f64 / ns2 as f64 / npts as f64;
-    (dr * (curr - prev).mapv(|x| x.powf(2.0)).sum() * denom).sqrt()
+fn conv_rmse(res: &Array3<f64>) -> f64 {
+    let denom = 1.0 / res.len() as f64;
+    (res.mapv(|x| x.powf(2.0)).sum() * denom).sqrt()
 }

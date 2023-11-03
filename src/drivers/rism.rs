@@ -1,18 +1,17 @@
+use crate::data::solution::*;
 use crate::data::{
     Correlations, DataConfig, DataRs, DielectricData, Grid, Interactions, SingleData, Species,
     SystemState,
 };
-use crate::dipole::*;
-use crate::input::{Configuration, InputTOMLHandler};
-use crate::integralequation::IntegralEquationKind;
-use crate::operator::{Operator, OperatorConfig};
-use crate::potential::{Potential, PotentialConfig};
-use crate::solution::*;
-use crate::solver::SolverConfig;
+use crate::iet::integralequation::IntegralEquationKind;
+use crate::iet::operator::{Operator, OperatorConfig};
+use crate::interactions::dipole::*;
+use crate::interactions::potential::{Potential, PotentialConfig};
+use crate::io::input::{Configuration, InputTOMLHandler};
+use crate::solvers::solver::SolverConfig;
 use flate2::{read, write, Compression};
 use log::{debug, info, trace, warn};
 use ndarray::{Array, Array1, Array2, Array3, Axis, Zip};
-use pyo3::prelude::*;
 
 use std::cell::RefCell;
 use std::f64::consts::PI;

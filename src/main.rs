@@ -1,8 +1,8 @@
 use librism::{
     data::Grid,
-    driver::{RISMDriver, Verbosity},
-    thermo::{SFEs, TDDriver},
-    writer::RISMWriter,
+    drivers::rism::{RISMDriver, Verbosity},
+    io::writer::RISMWriter,
+    thermodynamics::thermo::{SFEs, TDDriver},
 };
 use ndarray::{Array, Array2};
 use std::path::PathBuf;

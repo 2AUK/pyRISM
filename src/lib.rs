@@ -1,27 +1,24 @@
 extern crate blas_src;
-use crate::driver::RISMDriver;
+use crate::drivers::rism::RISMDriver;
 use pyo3::prelude::*;
 use std::path::PathBuf;
 
-pub mod adiis;
-pub mod closure;
 pub mod data;
-pub mod dipole;
-pub mod driver;
-pub mod gillan;
-pub mod input;
-pub mod integralequation;
-pub mod mdiis;
-pub mod ng;
-pub mod operator;
-pub mod picard;
-pub mod potential;
-pub mod quaternion;
-pub mod solution;
-pub mod solver;
-pub mod thermo;
-pub mod transforms;
-pub mod writer;
+pub mod drivers;
+pub mod grids;
+pub mod iet;
+pub mod interactions;
+pub mod io;
+pub mod solvers;
+pub mod structure;
+pub mod thermodynamics;
+
+#[pyclass(unsendable)]
+#[pyo3(name = "Calculator")]
+pub struct PyCalculator {
+    pub name: String,
+    driver: RISMDriver,
+}
 
 pub struct Calculator {
     pub name: String,
@@ -41,6 +38,6 @@ impl Calculator {
 /// import the module.
 #[pymodule]
 fn librism(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    //m.add_class::<RISMDriver>()?;
+    m.add_class::<PyCalculator>()?;
     Ok(())
 }

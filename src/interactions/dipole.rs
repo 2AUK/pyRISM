@@ -1,5 +1,5 @@
 use crate::data::{Site, Species};
-use crate::quaternion::{cross_product, Quaternion};
+use crate::structure::quaternion::{cross_product, Quaternion};
 use ndarray::{arr1, s, Array, Array1, Array2, Zip};
 use ndarray_linalg::Eig;
 use std::f64::consts::PI;

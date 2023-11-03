@@ -1,6 +1,6 @@
 use crate::data::DataRs;
-use crate::operator::Operator;
-use crate::solver::{Solver, SolverError, SolverSettings, SolverSuccess};
+use crate::iet::operator::Operator;
+use crate::solvers::solver::{Solver, SolverError, SolverSettings, SolverSuccess};
 use log::{info, trace};
 use ndarray_linalg::Solve;
 use numpy::ndarray::{Array, Array1, Array2, Array3};
