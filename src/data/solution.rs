@@ -1,11 +1,13 @@
-use crate::data::configuration::{
-    Configuration,
-    {
-        operator::OperatorConfig, potential::PotentialConfig, problem::ProblemConfig,
-        solver::SolverConfig,
+use crate::data::{
+    configuration::{
+        Configuration,
+        {
+            operator::OperatorConfig, potential::PotentialConfig, problem::ProblemConfig,
+            solver::SolverConfig,
+        },
     },
+    core::{Correlations, Interactions},
 };
-use crate::data::{Correlations, Interactions};
 use ndarray::Array3;
 use numpy::{IntoPyArray, PyArray3};
 use pyo3::prelude::*;

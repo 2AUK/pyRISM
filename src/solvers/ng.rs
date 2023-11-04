@@ -1,5 +1,4 @@
-use crate::data::configuration::solver::*;
-use crate::data::DataRs;
+use crate::data::{configuration::solver::*, core::DataRs};
 use crate::iet::operator::Operator;
 use crate::solvers::solver::Solver;
 use log::{info, trace};

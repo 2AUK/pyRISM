@@ -1,7 +1,5 @@
-use crate::data::DataRs;
 use crate::iet::closure::ClosureKind;
 use crate::iet::integralequation::IntegralEquationKind;
-use ndarray::Array3;
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fmt;

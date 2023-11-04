@@ -1,4 +1,4 @@
-use crate::data::DataRs;
+use crate::data::core::DataRs;
 use ndarray::{par_azip, Array, Array3};
 use pyo3::{prelude::*, types::PyString};
 use serde::{Deserialize, Serialize};

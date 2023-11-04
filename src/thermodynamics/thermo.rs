@@ -1,6 +1,6 @@
 use crate::{
+    data::core::Correlations,
     data::solution::Solutions,
-    data::Correlations,
     grids::{radial_grid::Grid, transforms::fourier_bessel_transform_fftw},
 };
 use ndarray::{s, Array, Array1, Array2, Array3, Axis, Zip};

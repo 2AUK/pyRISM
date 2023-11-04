@@ -1,4 +1,4 @@
-use crate::data::DataRs;
+use crate::data::core::DataRs;
 use crate::grids::transforms::fourier_bessel_transform_fftw;
 use ndarray::{Array, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis, Zip};
 use ndarray_linalg::Inverse;
