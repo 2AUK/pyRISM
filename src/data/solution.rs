@@ -13,6 +13,8 @@ use numpy::{IntoPyArray, PyArray3};
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
+pub struct JobDetails {}
+
 pub struct Solutions {
     pub config: Configuration,
     pub vv: SolvedData,
