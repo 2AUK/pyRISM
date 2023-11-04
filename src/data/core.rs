@@ -2,11 +2,10 @@ use crate::data::solution::*;
 use crate::grids::radial_grid::Grid;
 use crate::structure::system::{Site, Species};
 use ndarray::{Array, Array2, Array3};
-use numpy::{PyArray1, PyArray2, PyArray3};
-use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::rc::Rc;
+
 #[derive(Clone, Debug)]
 pub struct SystemState {
     // Thermodynamic parameters
