@@ -1,14 +1,16 @@
-use crate::data::solution::*;
-use crate::data::{
-    Correlations, DataConfig, DataRs, DielectricData, Grid, Interactions, SingleData, Species,
-    SystemState,
+use crate::data::configuration::{
+    Configuration,
+    {operator::OperatorConfig, potential::PotentialConfig, problem::ProblemConfig, solver::*},
 };
+use crate::data::solution::*;
+use crate::data::{Correlations, DataRs, DielectricData, Interactions, SingleData, SystemState};
+use crate::grids::radial_grid::Grid;
 use crate::iet::integralequation::IntegralEquationKind;
-use crate::iet::operator::{Operator, OperatorConfig};
+use crate::iet::operator::Operator;
 use crate::interactions::dipole::*;
-use crate::interactions::potential::{Potential, PotentialConfig};
-use crate::io::input::{Configuration, InputTOMLHandler};
-use crate::solvers::solver::SolverConfig;
+use crate::interactions::potential::Potential;
+use crate::io::input::InputTOMLHandler;
+use crate::structure::system::Species;
 use flate2::{read, write, Compression};
 use log::{debug, info, trace, warn};
 use ndarray::{Array, Array1, Array2, Array3, Axis, Zip};
@@ -29,23 +31,13 @@ pub enum Verbosity {
     VeryVerbose,
 }
 
-/// Driver for performing Reference Interaction Site Model (RISM) Calculations.
-///
-/// Provides a simple interface for reading input files, performing RISM calculations and getting
-/// the resulting solutions:
-/// ```rust
-/// use librism::RISMDriver;
-///
-/// let driver = RISMDriver::from_toml("input.toml");
-/// let solution = driver.execute()?;
-/// ```
 // #[pyclass]
 #[derive(Clone, Debug)]
 pub struct RISMDriver {
     pub name: String,
     pub solvent: Rc<RefCell<SingleData>>,
     pub solute: Option<Rc<RefCell<SingleData>>>,
-    pub data: DataConfig,
+    pub data: ProblemConfig,
     pub operator: OperatorConfig,
     pub potential: PotentialConfig,
     pub solver: SolverConfig,

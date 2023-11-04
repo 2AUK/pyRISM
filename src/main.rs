@@ -1,6 +1,6 @@
 use librism::{
-    data::Grid,
     drivers::rism::{RISMDriver, Verbosity},
+    grids::radial_grid::Grid,
     io::writer::RISMWriter,
     thermodynamics::thermo::{SFEs, TDDriver},
 };

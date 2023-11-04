@@ -1,6 +1,7 @@
+use crate::data::configuration::solver::*;
 use crate::data::DataRs;
 use crate::iet::operator::Operator;
-use crate::solvers::solver::{Solver, SolverError, SolverSettings, SolverSuccess};
+use crate::solvers::solver::Solver;
 use log::{info, trace};
 use numpy::ndarray::Array3;
 

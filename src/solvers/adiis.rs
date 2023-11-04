@@ -1,7 +1,8 @@
+use crate::data::configuration::solver::*;
 use crate::data::DataRs;
 use crate::grids::transforms::fourier_bessel_transform_fftw;
 use crate::iet::operator::Operator;
-use crate::solvers::solver::{Solver, SolverError, SolverSettings, SolverSuccess};
+use crate::solvers::solver::Solver;
 use log::{info, trace};
 use ndarray::{Axis, Zip};
 use ndarray_linalg::Solve;

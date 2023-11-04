@@ -5,21 +5,16 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::{
-    data::{DataConfig, Site, Species},
+    data::configuration::{
+        Configuration,
+        {operator::OperatorConfig, potential::PotentialConfig, problem::ProblemConfig, solver::*},
+    },
     iet::closure::ClosureKind,
     iet::integralequation::IntegralEquationKind,
-    iet::operator::OperatorConfig,
-    interactions::potential::{PotentialConfig, PotentialKind},
-    solvers::solver::{GillanSettings, MDIISSettings, SolverConfig, SolverKind, SolverSettings},
+    interactions::potential::PotentialKind,
+    solvers::solver::SolverKind,
+    structure::system::{Site, Species},
 };
-
-#[derive(Debug, Clone)]
-pub struct Configuration {
-    pub data_config: DataConfig,
-    pub operator_config: OperatorConfig,
-    pub potential_config: PotentialConfig,
-    pub solver_config: SolverConfig,
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InputTOMLHandler {
@@ -208,7 +203,7 @@ impl InputTOMLHandler {
             }
             _ => info!("No solute data in .toml file"),
         }
-        let data_config = DataConfig {
+        let data_config = ProblemConfig {
             temp: input_toml.system.temp,
             kt: input_toml.system.boltzmann_internal,
             ku: input_toml.system.boltzmann_energy,
@@ -419,18 +414,18 @@ H2-2 = [ [ 7.900546687705287, 1.324766393630111, 0.026699999999999998,], [ 4.222
 H3-3 = [ [ 7.900546687705287, 1.324766393630111, 0.026699999999999998,], [ 2.759, 1.049, 0.669,],]
 H4-4 = [ [ 7.900546687705287, 1.324766393630111, 0.026699999999999998,], [ 3.077, 1.81, -0.912,],]"#;
 
-    #[test]
-    fn test_toml_full_data_parse() {
-        let path = PathBuf::from("/home/abdullah/Code/Python/pyRISM/cSPCE_XRISM_methane.toml");
-        let config = InputTOMLHandler::construct_configuration(&path);
-        println!("{:?}", config);
-    }
-
-    #[test]
-    fn test_toml_preconverged_parse() {
-        let path =
-            PathBuf::from("/home/abdullah/Code/Python/pyRISM/cSPCE_XRISM_methane_preconv.toml");
-        let config = InputTOMLHandler::construct_configuration(&path);
-        println!("{:?}", config);
-    }
+    // #[test]
+    // fn test_toml_full_data_parse() {
+    //     let path = PathBuf::from("/home/abdullah/Code/Python/pyRISM/cSPCE_XRISM_methane.toml");
+    //     let config = InputTOMLHandler::construct_configuration(&path);
+    //     println!("{:?}", config);
+    // }
+    //
+    // #[test]
+    // fn test_toml_preconverged_parse() {
+    //     let path =
+    //         PathBuf::from("/home/abdullah/Code/Python/pyRISM/cSPCE_XRISM_methane_preconv.toml");
+    //     let config = InputTOMLHandler::construct_configuration(&path);
+    //     println!("{:?}", config);
+    // }
 }

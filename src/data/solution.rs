@@ -1,8 +1,11 @@
-use crate::data::{Correlations, DataConfig, Interactions};
-use crate::iet::operator::OperatorConfig;
-use crate::interactions::potential::PotentialConfig;
-use crate::io::input::Configuration;
-use crate::solvers::solver::SolverConfig;
+use crate::data::configuration::{
+    Configuration,
+    {
+        operator::OperatorConfig, potential::PotentialConfig, problem::ProblemConfig,
+        solver::SolverConfig,
+    },
+};
+use crate::data::{Correlations, Interactions};
 use ndarray::Array3;
 use numpy::{IntoPyArray, PyArray3};
 use pyo3::prelude::*;
@@ -16,7 +19,7 @@ pub struct Solutions {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SolvedData {
-    pub data_config: DataConfig,
+    pub data_config: ProblemConfig,
     pub solver_config: SolverConfig,
     pub potential_config: PotentialConfig,
     pub operator_config: OperatorConfig,
@@ -26,7 +29,7 @@ pub struct SolvedData {
 
 impl SolvedData {
     pub fn new(
-        data_config: DataConfig,
+        data_config: ProblemConfig,
         solver_config: SolverConfig,
         potential_config: PotentialConfig,
         operator_config: OperatorConfig,
