@@ -1,9 +1,11 @@
-use crate::data::configuration::{
-    Configuration,
-    {operator::OperatorConfig, potential::PotentialConfig, problem::ProblemConfig, solver::*},
-};
 use crate::data::solution::*;
-use crate::data::{Correlations, DataRs, DielectricData, Interactions, SingleData, SystemState};
+use crate::data::{
+    configuration::{
+        Configuration,
+        {operator::OperatorConfig, potential::PotentialConfig, problem::ProblemConfig, solver::*},
+    },
+    core::*,
+};
 use crate::grids::radial_grid::Grid;
 use crate::iet::integralequation::IntegralEquationKind;
 use crate::iet::operator::Operator;

@@ -1,4 +1,4 @@
-use crate::data::{configuration::operator::OperatorConfig, DataRs};
+use crate::data::{configuration::operator::OperatorConfig, core::DataRs};
 use ndarray::Array3;
 
 pub struct Operator {

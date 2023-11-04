@@ -1,5 +1,5 @@
 use crate::data::configuration::solver::{SolverError, SolverSettings, SolverSuccess};
-use crate::data::DataRs;
+use crate::data::core::DataRs;
 use crate::iet::operator::Operator;
 use crate::solvers::{adiis::ADIIS, mdiis::MDIIS, ng::Ng, picard::Picard};
 use pyo3::{prelude::*, types::PyString};
