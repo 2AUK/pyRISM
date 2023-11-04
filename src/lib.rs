@@ -1,5 +1,5 @@
 extern crate blas_src;
-use crate::drivers::rism::RISMDriver;
+pub use crate::drivers::rism::RISMDriver;
 use pyo3::prelude::*;
 use std::path::PathBuf;
 

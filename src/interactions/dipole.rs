@@ -1,5 +1,5 @@
-use crate::data::{Site, Species};
 use crate::structure::quaternion::{cross_product, Quaternion};
+use crate::structure::system::{Site, Species};
 use ndarray::{arr1, s, Array, Array1, Array2, Zip};
 use ndarray_linalg::Eig;
 use std::f64::consts::PI;
@@ -213,7 +213,7 @@ pub fn dmtodebye(dm: f64) -> f64 {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::data::Site;
+    use crate::structure::system::Site;
     use approx::assert_relative_eq;
 
     const PRECISION: f64 = 1e-8;

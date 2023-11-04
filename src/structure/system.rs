@@ -16,7 +16,7 @@ pub struct Species {
     pub atom_sites: Vec<Site>,
 }
 
-#[derive(FromPyObject, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct System {
     pub species: Vec<Species>,
     sites: Vec<Site>,
@@ -33,10 +33,11 @@ impl System {
     }
     pub fn parse(input: &str) -> Self {
         println!("{}", input);
-        System {
-            species: Vec::new(),
-            sites: Vec::new(),
-        }
+        todo!()
+        // System {
+        //     species: Vec::new(),
+        //     sites: Vec::new(),
+        // }
     }
     pub fn iter(&self) -> impl Iterator<Item = &Species> {
         self.species.iter()
@@ -71,12 +72,12 @@ mod test {
     fn test_system_parse_string() {
         System::parse(
             "O 78.15 3.16 -0.846 0.0 0.0 0.0
-        H1 7.185 1.16 0.4238 1.0 0.0 0.0
-        H2 7.185 1.16 0.4238 -0.3334, -0.922618, 0.0
-        -
-        Na+ 150.0 20.0 1.0 0.0 0.0 0.0
-        -
-        Cl- 200.0 50.0 -1.0 0.0 0.0 0.0",
+H1 7.185 1.16 0.4238 1.0 0.0 0.0
+H2 7.185 1.16 0.4238 -0.3334, -0.922618, 0.0
+-
+Na+ 150.0 20.0 1.0 0.0 0.0 0.0
+-
+Cl- 200.0 50.0 -1.0 0.0 0.0 0.0",
         );
     }
 }

@@ -1,9 +1,9 @@
 use crate::{
     data::solution::Solutions,
-    data::{Correlations, Grid},
-    grids::transforms::fourier_bessel_transform_fftw,
+    data::Correlations,
+    grids::{radial_grid::Grid, transforms::fourier_bessel_transform_fftw},
 };
-use ndarray::{s, Array, Array1, Array2, Array3, Axis, NewAxis, Zip};
+use ndarray::{s, Array, Array1, Array2, Array3, Axis, Zip};
 use ndarray_linalg::Inverse;
 use std::f64::consts::PI;
 

@@ -1,4 +1,5 @@
-use crate::{data::solution::Solutions, data::Grid};
+use crate::data::solution::Solutions;
+use crate::grids::radial_grid::Grid;
 use csv::{QuoteStyle, WriterBuilder};
 use ndarray::Array3;
 use std::path::Path;

@@ -1,8 +1,5 @@
-use crate::{
-    data::DataRs,
-    iet::operator::Operator,
-    solvers::solver::{Solver, SolverError, SolverSettings, SolverSuccess},
-};
+use crate::data::configuration::solver::*;
+use crate::{data::DataRs, iet::operator::Operator, solvers::solver::Solver};
 use log::trace;
 use ndarray::{Array, Array1, Array3};
 

@@ -1,76 +1,15 @@
 use crate::data::solution::*;
-use ndarray::{Array, Array1, Array2, Array3};
+use crate::grids::radial_grid::Grid;
+use crate::structure::system::{Site, Species};
+use ndarray::{Array, Array2, Array3};
 use numpy::{PyArray1, PyArray2, PyArray3};
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
-use std::f64::consts::PI;
-use std::path::PathBuf;
 use std::rc::Rc;
 
+pub mod configuration;
 pub mod solution;
-
-#[derive(FromPyObject, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Site {
-    pub atom_type: String,
-    pub params: Vec<f64>,
-    pub coords: Vec<f64>,
-}
-
-#[derive(FromPyObject, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Species {
-    pub species_name: String,
-    pub dens: f64,
-    pub ns: usize,
-    pub atom_sites: Vec<Site>,
-}
-
-#[derive(FromPyObject, Debug, Clone, Serialize, Deserialize)]
-pub struct DataConfig {
-    pub temp: f64,
-    pub kt: f64,
-    pub ku: f64,
-    pub amph: f64,
-    pub drism_damping: Option<f64>,
-    pub dielec: Option<f64>,
-    pub nsv: usize,
-    pub nsu: Option<usize>,
-    pub nspv: usize,
-    pub nspu: Option<usize>,
-    pub npts: usize,
-    pub radius: f64,
-    pub nlambda: usize,
-    pub preconverged: Option<PathBuf>,
-    pub solvent_atoms: Vec<Site>,
-    pub solute_atoms: Option<Vec<Site>>,
-    pub solvent_species: Vec<Species>,
-    pub solute_species: Option<Vec<Species>>,
-}
-
-#[derive(Clone, Debug)]
-pub struct Grid {
-    pub npts: usize,
-    pub radius: f64,
-    pub dr: f64,
-    pub dk: f64,
-    pub rgrid: Array1<f64>,
-    pub kgrid: Array1<f64>,
-}
-
-impl Grid {
-    pub fn new(npts: usize, radius: f64) -> Self {
-        let dr = radius / npts as f64;
-        let dk = 2.0 * PI / (2.0 * npts as f64 * dr);
-        Grid {
-            npts,
-            radius,
-            dr,
-            dk,
-            rgrid: Array1::range(0.5, npts as f64, 1.0) * dr,
-            kgrid: Array1::range(0.5, npts as f64, 1.0) * dk,
-        }
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct SystemState {
