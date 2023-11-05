@@ -16,6 +16,7 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
+      - uses: Swatinem/rust-cache@v2
       - name: Install OpenBLAS
         run: sudo apt-get install libopenblas-dev gfortran
       - uses: actions-rs/cargo@v1
