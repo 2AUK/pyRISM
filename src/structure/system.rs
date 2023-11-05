@@ -33,11 +33,10 @@ impl System {
     }
     pub fn parse(input: &str) -> Self {
         println!("{}", input);
-        todo!()
-        // System {
-        //     species: Vec::new(),
-        //     sites: Vec::new(),
-        // }
+        System {
+            species: Vec::new(),
+            sites: Vec::new(),
+        }
     }
     pub fn iter(&self) -> impl Iterator<Item = &Species> {
         self.species.iter()
