@@ -21,7 +21,6 @@ crate-type = ["lib", "cdylib"]
 
 [features]
 fftw-sys = ["fftw/system"]
-openblas-static= ["openblas-src/static", "ndarray-linalg/openblas-static"]
 default = []
 dhat-on = []
 
@@ -46,6 +45,10 @@ flate2 = "1.0.28"
 time = "0.3.30"
 csv = "1.3.0"
 dhat = "0.3.2"
+
+[dev-dependencies]
+ndarray = { version = "0.15.6", features = ["approx-0_5", "rayon", "serde"] }
+ndarray-linalg = { version = "0.16.0" }
 
 [dependencies.fftw]
 version = "0.8.0"
