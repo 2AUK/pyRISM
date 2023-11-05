@@ -1,0 +1,44 @@
+[system]
+temp = 85 
+kT = 1.0
+kU = 0.00198720414667
+charge_coeff = 167101.0
+npts = 16384
+radius = 20.48
+lam = 10
+
+[params]
+potential = "LJ"
+closure = "KH"
+IE = "XRISM"
+solver = "MDIIS"
+depth = 8
+picard_damping = 0.5
+itermax = 10000
+tol = 1E-7
+diel = 1.5053
+adbcor = 0.5
+
+[solvent]
+nsv = 1
+nspv = 1
+
+[solvent.argon]
+dens = 0.021017479720736955
+ns = 1
+"Ar" = [
+    [120.0, 3.4, 0.0], 
+    [0.00000000e+00, 0.00000000e+00, 0.00000000e+00]
+]
+
+[solute]
+nsu = 1
+nspu = 1
+
+[solute.argon]
+dens = 0.0
+ns = 1
+"Ar_uv" = [
+	[120.0, 3.4, 0.0],
+	[0.0, 0.0, 0.0]
+]
