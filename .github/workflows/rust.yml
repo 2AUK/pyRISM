@@ -16,6 +16,8 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
+      - name: Install OpenBLAS
+        run: sudo apt-get install libopenblas-dev gfortran
       - uses: actions-rs/cargo@v1
         with:
           command: test 
