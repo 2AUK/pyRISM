@@ -72,5 +72,7 @@ fn main() -> Result<(), lexopt::Error> {
     let wv = &driver.solvent.borrow().wk;
     let wu = &driver.solute.as_ref().unwrap().borrow().wk;
     let td = TDDriver::new(solutions, wv.clone(), wu.clone());
+    let thermo = td.execute();
+    println!("{}", thermo);
     Ok(())
 }
