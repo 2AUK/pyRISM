@@ -34,7 +34,7 @@ impl std::fmt::Display for SFEs {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Solvation Free Energies\nHNC: {}\nKH: {}\nGF: {}\nPW: {}\nPC+: {}",
+            "Solvation Free Energies:\nHNC: {}\nKH: {}\nGF: {}\nPW: {}\nPC+: {}",
             self.hypernettedchain,
             self.kovalenko_hirata,
             self.gaussian_fluctuations,
@@ -63,6 +63,7 @@ impl Densities {
         let kt = solutions.config.data_config.kt;
         let ku = solutions.config.data_config.ku;
         let beta = 1.0 / kt / temp;
+
         let density = {
             let mut dens_vec: Vec<f64> = Vec::new();
             for i in solutions
@@ -110,6 +111,22 @@ pub struct Thermodynamics {
     pub pressure: f64,
 }
 
+impl std::fmt::Display for Thermodynamics {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Thermodynamics:\nIsothermal Compressibility: {}\nMolecular KB PMV: {} A^3\n                  {} cm^3/mol\nRISM KB PMV: {} A^3\n             {} cm^3/mol\nTotal Density (1/A^3): {}\nPressure: {}\n{}",
+            self.isothermal_compressibility,
+            self.molecular_kb_pmv,
+            self.molecular_kb_pmv / 1e24 * 6.022e23,
+            self.rism_kb_pmv,
+            self.rism_kb_pmv / 1e24 * 6.022e23,
+            self.total_density,
+            self.pressure,
+            self.sfe,
+        )
+    }
+}
 pub struct TDDriver {
     pub solutions: Solutions,
     pub(crate) wv: Array3<f64>,
