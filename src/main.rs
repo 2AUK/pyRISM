@@ -69,32 +69,8 @@ fn main() -> Result<(), lexopt::Error> {
         &solutions,
     );
     writer.write().unwrap();
-    let vv = &solutions.vv;
-    let uv = solutions.uv.as_ref().unwrap();
-    let density = {
-        let mut dens_vec: Vec<f64> = Vec::new();
-        for i in vv.data_config.solvent_species.clone().into_iter() {
-            for _j in i.atom_sites {
-                dens_vec.push(i.dens);
-            }
-        }
-        Array2::from_diag(&Array::from_vec(dens_vec))
-    };
-    let grid = Grid::new(vv.data_config.npts, vv.data_config.radius);
     let wv = &driver.solvent.borrow().wk;
     let wu = &driver.solute.as_ref().unwrap().borrow().wk;
-    SFEs::new(
-        1.0 / vv.data_config.kt / vv.data_config.temp,
-        vv.data_config.ku,
-        &uv.correlations,
-        wu,
-        wv,
-        &density,
-        &grid.rgrid,
-        &grid.kgrid,
-    );
-    let td = TDDriver::new(solutions);
-    td.print_thermo();
-
+    let td = TDDriver::new(solutions, wv.clone(), wu.clone());
     Ok(())
 }

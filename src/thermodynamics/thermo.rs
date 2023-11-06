@@ -1,5 +1,4 @@
 use crate::{
-    data::core::Correlations,
     data::solution::Solutions,
     grids::{radial_grid::Grid, transforms::fourier_bessel_transform_fftw},
 };
@@ -16,60 +15,89 @@ pub struct SFEs {
 }
 
 impl SFEs {
-    pub fn new(
-        beta: f64,
-        ku: f64,
-        correlations: &Correlations,
-        w_u: &Array3<f64>,
-        w_v: &Array3<f64>,
-        density: &Array2<f64>,
-        r: &Array1<f64>,
-        k: &Array1<f64>,
-    ) -> Self {
-        let dr = r[[1]] - r[[0]];
-        let hnc_sfed =
-            hnc_functional_impl(r, density, &correlations.cr, &correlations.hr) / beta * ku;
-        let kh_sfed =
-            kh_functional_impl(r, density, &correlations.cr, &correlations.hr) / beta * ku;
-        let gf_sfed =
-            gf_functional_impl(r, density, &correlations.cr, &correlations.hr) / beta * ku;
-        let pw_sfed = pw_functional_impl(
-            r,
-            k,
-            density,
-            &correlations.cr,
-            &correlations.hr,
-            &correlations.hk,
-            w_u,
-            w_v,
-        ) / beta
-            * ku;
-
-        println!("HNC: {}", Self::integrate(hnc_sfed, dr));
-        println!("KH: {}", Self::integrate(kh_sfed, dr));
-        println!("GF: {}", Self::integrate(gf_sfed, dr));
-        println!("PW: {}", Self::integrate(pw_sfed, dr));
-
+    pub fn new(densities: &Densities, pressure: f64, pmv: f64, dr: f64) -> Self {
         SFEs {
-            hypernettedchain: 0.0,
-            kovalenko_hirata: 0.0,
-            gaussian_fluctuations: 0.0,
-            partial_wave: 0.0,
-            pc_plus: 0.0,
+            hypernettedchain: Self::integrate(&densities.hypernettedchain, dr),
+            kovalenko_hirata: Self::integrate(&densities.kovalenko_hirata, dr),
+            gaussian_fluctuations: Self::integrate(&densities.gaussian_fluctuations, dr),
+            partial_wave: Self::integrate(&densities.partial_wave, dr),
+            pc_plus: pressure * pmv,
         }
     }
 
-    pub fn integrate(func: Array1<f64>, dr: f64) -> f64 {
+    pub fn integrate(func: &Array1<f64>, dr: f64) -> f64 {
         func.sum() * dr
+    }
+}
+
+impl std::fmt::Display for SFEs {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Solvation Free Energies\nHNC: {}\nKH: {}\nGF: {}\nPW: {}\nPC+: {}",
+            self.hypernettedchain,
+            self.kovalenko_hirata,
+            self.gaussian_fluctuations,
+            self.partial_wave,
+            self.pc_plus
+        )
     }
 }
 
 pub struct Densities {
     pub hypernettedchain: Array1<f64>,
-    pub kovalenko_hirate: Array1<f64>,
+    pub kovalenko_hirata: Array1<f64>,
     pub gaussian_fluctuations: Array1<f64>,
     pub partial_wave: Array1<f64>,
     pub partial_molar_volume: Array1<f64>,
+}
+
+impl Densities {
+    pub fn new(solutions: &Solutions, wv: &Array3<f64>, wu: &Array3<f64>) -> Self {
+        let uv = solutions.uv.as_ref().unwrap();
+        let grid = Grid::new(
+            solutions.config.data_config.npts,
+            solutions.config.data_config.radius,
+        );
+        let temp = solutions.config.data_config.temp;
+        let kt = solutions.config.data_config.kt;
+        let ku = solutions.config.data_config.ku;
+        let beta = 1.0 / kt / temp;
+        let density = {
+            let mut dens_vec: Vec<f64> = Vec::new();
+            for i in solutions
+                .config
+                .data_config
+                .solvent_species
+                .clone()
+                .into_iter()
+            {
+                for _j in i.atom_sites {
+                    dens_vec.push(i.dens);
+                }
+            }
+            &Array2::from_diag(&Array::from_vec(dens_vec))
+        };
+
+        let r = &grid.rgrid;
+        let k = &grid.kgrid;
+        let cr = &uv.correlations.cr;
+        let hr = &uv.correlations.hr;
+        let hk = &uv.correlations.hk;
+        let hnc_density = hnc_functional_impl(r, density, cr, hr) / beta * ku;
+        let gf_density = gf_functional_impl(r, density, cr, hr) / beta * ku;
+        let kh_density = kh_functional_impl(r, density, cr, hr) / beta * ku;
+        let pw_density = pw_functional_impl(r, k, density, cr, hr, hk, wu, wv) / beta * ku;
+        let pmv_density = Array::zeros(pw_density.raw_dim());
+
+        Densities {
+            hypernettedchain: hnc_density,
+            kovalenko_hirata: kh_density,
+            gaussian_fluctuations: gf_density,
+            partial_wave: pw_density,
+            partial_molar_volume: pmv_density,
+        }
+    }
 }
 
 pub struct Thermodynamics {
@@ -79,48 +107,72 @@ pub struct Thermodynamics {
     pub molecular_kb_pmv: f64,
     pub rism_kb_pmv: f64,
     pub total_density: f64,
+    pub pressure: f64,
 }
 
 pub struct TDDriver {
-    // pub thermodynamics: Thermodynamics,
     pub solutions: Solutions,
+    pub(crate) wv: Array3<f64>,
+    pub(crate) wu: Array3<f64>,
 }
 
 impl TDDriver {
-    pub fn new(solutions: Solutions) -> Self {
-        TDDriver { solutions }
+    pub fn new(solutions: Solutions, wv: Array3<f64>, wu: Array3<f64>) -> Self {
+        TDDriver { solutions, wv, wu }
     }
 
-    pub fn print_thermo(&self) {
-        println!(
-            "Isothermal Compressibility: {}",
-            self.isothermal_compressibility()
+    pub fn execute(&self) -> Thermodynamics {
+        let grid = Grid::new(
+            self.solutions.config.data_config.npts,
+            self.solutions.config.data_config.radius,
         );
-        println!(
-            "Molecular KB theory PMV: {} (A^3)",
-            self.kb_partial_molar_volume()
+        let isothermal_compressibility = self.isothermal_compressibility();
+        let molecular_kb_pmv = self.kb_partial_molar_volume();
+        let rism_kb_pmv = self.rism_kb_partial_molar_volume();
+        let total_density = self.total_density();
+        let sfed = Densities::new(&self.solutions, &self.wv, &self.wu);
+        let pressure = self.pressure();
+        let sfe = SFEs::new(&sfed, pressure, rism_kb_pmv, grid.dr);
+
+        Thermodynamics {
+            sfe,
+            sfed,
+            isothermal_compressibility,
+            molecular_kb_pmv,
+            rism_kb_pmv,
+            total_density,
+            pressure,
+        }
+    }
+
+    fn pressure(&self) -> f64 {
+        let grid = Grid::new(
+            self.solutions.config.data_config.npts,
+            self.solutions.config.data_config.radius,
         );
-        println!(
-            "Molecular KB theory PMV: {} (cm^3 / mol)",
-            self.kb_partial_molar_volume() / 1e24 * 6.022e23
-        );
-        println!(
-            "RISM KB theory PMV: {} (A^3)",
-            self.rism_kb_partial_molar_volume()
-        );
-        println!(
-            "RISM KB theory PMV: {} (cm^3 / mol)",
-            self.rism_kb_partial_molar_volume() / 1e24 * 6.022e23
-        );
-        println!(
-            "RISM KB theory Excess Volume: {} (A^3)",
-            self.rism_kb_partial_molar_volume() - self.isothermal_compressibility()
-        );
-        println!(
-            "RISM KB theory Excess Volume: {} (cm^3 / mol)",
-            (self.rism_kb_partial_molar_volume() - self.isothermal_compressibility()) / 1e24
-                * 6.022e23
-        );
+        let uv = self.solutions.uv.as_ref().unwrap();
+        let ku = self.solutions.config.data_config.ku;
+        let nu = self.solutions.config.data_config.nsu.unwrap();
+        let temp = self.solutions.config.data_config.temp;
+        let mut ck = Array::zeros(uv.correlations.cr.raw_dim());
+        let rtok = 2.0 * PI * grid.dr;
+
+        Zip::from(uv.correlations.cr.lanes(Axis(0)))
+            .and(ck.lanes_mut(Axis(0)))
+            .par_for_each(|cr_lane, mut ck_lane| {
+                ck_lane.assign(&fourier_bessel_transform_fftw(
+                    rtok,
+                    &grid.rgrid.view(),
+                    &grid.kgrid.view(),
+                    &cr_lane.to_owned(),
+                ));
+            });
+        let p = self.total_density();
+        let initial_term = ((nu as f64 + 1.0) / 2.0) * ku * temp * p;
+        let ck_direct = p * p * ck.slice(s![0, .., ..]).sum();
+        let pressure = initial_term - (ku * temp) / 2.0 * ck_direct;
+        let ideal_pressure = p * ku * temp;
+        pressure - ideal_pressure
     }
 
     fn isothermal_compressibility(&self) -> f64 {
