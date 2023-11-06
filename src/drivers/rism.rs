@@ -16,7 +16,7 @@ use crate::structure::system::Species;
 use flate2::{read, write, Compression};
 use log::{debug, info, trace, warn};
 use ndarray::{Array, Array1, Array2, Array3, Axis, Zip};
-
+use pyo3::prelude::*;
 use std::cell::RefCell;
 use std::f64::consts::PI;
 use std::fs;
@@ -33,7 +33,7 @@ pub enum Verbosity {
     VeryVerbose,
 }
 
-// #[pyclass]
+#[pyclass(unsendable)]
 #[derive(Clone, Debug)]
 pub struct RISMDriver {
     pub name: String,

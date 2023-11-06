@@ -38,6 +38,6 @@ impl Calculator {
 /// import the module.
 #[pymodule]
 fn librism(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    m.add_class::<PyCalculator>()?;
+    m.add_class::<RISMDriver>()?;
     Ok(())
 }

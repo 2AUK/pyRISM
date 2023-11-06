@@ -301,7 +301,7 @@ fn pw_functional_impl(
         .par_for_each(|mut h_out, h, wu, wv| {
             let wv_inv = wv.inv().expect("inverted solvent intramolecular matrix");
             let wu_inv = wu.inv().expect("inverted solute intramolecular matrix");
-            h_out.assign(&wu.dot(&h).dot(&wv).dot(density));
+            h_out.assign(&wu_inv.dot(&h).dot(&wv_inv).dot(density));
         });
 
     Zip::from(h_bar_uv_k.lanes(Axis(0)))
@@ -326,7 +326,7 @@ fn pw_functional_impl(
         .for_each(|mut o, h_bar, c, h, ri| {
             let r2 = &ri * &ri;
             let integrand = &c + (0.5 * &c * &h) - (0.5 * &h_bar * &h);
-            o.assign(&(4.0 * PI * &(r2 * integrand).dot(density)));
+            o.assign(&(-4.0 * PI * &(r2 * integrand).dot(density)));
         });
     _out.sum_axis(Axis(2)).sum_axis(Axis(1))
 }
