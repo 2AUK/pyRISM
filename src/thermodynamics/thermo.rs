@@ -102,39 +102,54 @@ impl Densities {
 }
 
 pub struct Thermodynamics {
-    pub sfe: SFEs,
-    pub sfed: Densities,
-    pub isothermal_compressibility: f64,
-    pub molecular_kb_pmv: f64,
-    pub rism_kb_pmv: f64,
     pub total_density: f64,
-    pub pressure: f64,
+    pub temperature: f64,
+    pub isothermal_compressibility: f64,
+    pub sfe: Option<SFEs>,
+    pub sfed: Option<Densities>,
+    pub molecular_kb_pmv: Option<f64>,
+    pub rism_kb_pmv: Option<f64>,
+    pub pressure: Option<f64>,
 }
 
 impl std::fmt::Display for Thermodynamics {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
+        match self.sfe {
+            Some(ref sfe) => {
+                write!(
             f,
-            "Thermodynamics:\nIsothermal Compressibility: {}\nMolecular KB PMV: {} A^3\n                  {} cm^3/mol\nRISM KB PMV: {} A^3\n             {} cm^3/mol\nTotal Density (1/A^3): {}\nPressure: {}\n{}",
-            self.isothermal_compressibility,
-            self.molecular_kb_pmv,
-            self.molecular_kb_pmv / 1e24 * 6.022e23,
-            self.rism_kb_pmv,
-            self.rism_kb_pmv / 1e24 * 6.022e23,
+            "Thermodynamics:\nTemperature: {} K\nTotal Density: {} (1/A^3)\nIsothermal Compressibility: {}\nPressure: {}\nMolecular KB PMV: {} A^3\n                  {} cm^3/mol\nRISM KB PMV: {} A^3\n             {} cm^3/mol\n{}",
+            self.temperature,
             self.total_density,
-            self.pressure,
-            self.sfe,
+            self.isothermal_compressibility,
+            self.pressure.unwrap(),
+            self.molecular_kb_pmv.unwrap(),
+            self.molecular_kb_pmv.unwrap() / 1e24 * 6.022e23,
+            self.rism_kb_pmv.unwrap(),
+            self.rism_kb_pmv.unwrap() / 1e24 * 6.022e23,
+            sfe,
         )
+            }
+            None => {
+                write!(
+            f,
+            "Thermodynamics:\nTemperature: {} K\nTotal Density: {} (1/A^3)\nIsothermal Compressibility: {}",
+            self.temperature,
+            self.total_density,
+            self.isothermal_compressibility,
+        )
+            }
+        }
     }
 }
 pub struct TDDriver {
     pub solutions: Solutions,
     pub(crate) wv: Array3<f64>,
-    pub(crate) wu: Array3<f64>,
+    pub(crate) wu: Option<Array3<f64>>,
 }
 
 impl TDDriver {
-    pub fn new(solutions: Solutions, wv: Array3<f64>, wu: Array3<f64>) -> Self {
+    pub fn new(solutions: Solutions, wv: Array3<f64>, wu: Option<Array3<f64>>) -> Self {
         TDDriver { solutions, wv, wu }
     }
 
@@ -143,22 +158,44 @@ impl TDDriver {
             self.solutions.config.data_config.npts,
             self.solutions.config.data_config.radius,
         );
-        let isothermal_compressibility = self.isothermal_compressibility();
-        let molecular_kb_pmv = self.kb_partial_molar_volume();
-        let rism_kb_pmv = self.rism_kb_partial_molar_volume();
-        let total_density = self.total_density();
-        let sfed = Densities::new(&self.solutions, &self.wv, &self.wu);
-        let pressure = self.pressure();
-        let sfe = SFEs::new(&sfed, pressure, rism_kb_pmv, grid.dr);
+        match self.solutions.uv {
+            Some(_) => {
+                let isothermal_compressibility = self.isothermal_compressibility();
+                let molecular_kb_pmv = self.kb_partial_molar_volume();
+                let rism_kb_pmv = self.rism_kb_partial_molar_volume();
+                let total_density = self.total_density();
+                let sfed = Densities::new(&self.solutions, &self.wv, self.wu.as_ref().unwrap());
+                let pressure = self.pressure();
+                let sfe = SFEs::new(&sfed, pressure, rism_kb_pmv, grid.dr);
+                let temperature = self.solutions.config.data_config.temp;
 
-        Thermodynamics {
-            sfe,
-            sfed,
-            isothermal_compressibility,
-            molecular_kb_pmv,
-            rism_kb_pmv,
-            total_density,
-            pressure,
+                Thermodynamics {
+                    temperature,
+                    total_density,
+                    isothermal_compressibility,
+                    sfe: Some(sfe),
+                    sfed: Some(sfed),
+                    molecular_kb_pmv: Some(molecular_kb_pmv),
+                    rism_kb_pmv: Some(rism_kb_pmv),
+                    pressure: Some(pressure),
+                }
+            }
+            None => {
+                let isothermal_compressibility = self.isothermal_compressibility();
+                let total_density = self.total_density();
+                let temperature = self.solutions.config.data_config.temp;
+
+                Thermodynamics {
+                    temperature,
+                    total_density,
+                    isothermal_compressibility,
+                    sfe: None,
+                    sfed: None,
+                    molecular_kb_pmv: None,
+                    rism_kb_pmv: None,
+                    pressure: None,
+                }
+            }
         }
     }
 
