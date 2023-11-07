@@ -21,7 +21,6 @@ from pyrism import Util
 from numba import njit, jit, prange
 import time
 import warnings
-from pyrism.librism import RISMDriver
 from dataclasses import dataclass, field
 from enum import Enum
 

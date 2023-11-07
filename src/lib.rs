@@ -1,7 +1,12 @@
 extern crate blas_src;
 pub use crate::drivers::rism::RISMDriver;
+pub use crate::io::writer::RISMWriter;
+pub use crate::thermodynamics::thermo::TDDriver;
+use data::solution::Solutions;
+use drivers::rism::{Compress, Verbosity};
 use pyo3::prelude::*;
 use std::path::PathBuf;
+use thermodynamics::thermo::Thermodynamics;
 
 pub mod data;
 pub mod drivers;
@@ -22,14 +27,35 @@ pub struct PyCalculator {
 
 pub struct Calculator {
     pub name: String,
+    verbosity: Verbosity,
+    compress: Compress,
     driver: RISMDriver,
 }
 
 impl Calculator {
-    pub fn from_toml(fname: PathBuf) -> Self {
+    pub fn new(fname: PathBuf, verbosity: Verbosity, compress: Compress) -> Self {
         let driver = RISMDriver::from_toml(&fname);
         let name = driver.name.clone();
-        Calculator { name, driver }
+        Calculator {
+            name,
+            verbosity,
+            compress,
+            driver,
+        }
+    }
+
+    pub fn execute(&mut self) -> (Solutions, Thermodynamics) {
+        let solution = self.driver.execute(&self.verbosity, &self.compress);
+        let wv = self.driver.solvent.borrow().wk.clone();
+        let wu = {
+            match &self.driver.solute {
+                Some(v) => Some(v.borrow().wk.clone()),
+                None => None,
+            }
+        };
+        let thermodynamics = TDDriver::new(&solution, wv, wu).execute();
+        let _ = RISMWriter::new(&self.name, &solution, &thermodynamics).write();
+        (solution, thermodynamics)
     }
 }
 
@@ -38,6 +64,6 @@ impl Calculator {
 /// import the module.
 #[pymodule]
 fn librism(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    m.add_class::<RISMDriver>()?;
+    m.add_class::<PyCalculator>()?;
     Ok(())
 }

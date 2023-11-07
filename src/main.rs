@@ -1,3 +1,5 @@
+use librism::drivers::rism::Compress;
+use librism::Calculator;
 use librism::{
     drivers::rism::{RISMDriver, Verbosity},
     grids::radial_grid::Grid,
@@ -10,7 +12,7 @@ use std::path::PathBuf;
 struct Args {
     input_file: PathBuf,
     verbosity: Verbosity,
-    compress: bool,
+    compress: Compress,
 }
 
 fn parse_args() -> Result<Args, lexopt::Error> {
@@ -18,14 +20,14 @@ fn parse_args() -> Result<Args, lexopt::Error> {
 
     let mut verbosity = Verbosity::Quiet;
     let mut input_file: Option<PathBuf> = None;
-    let mut compress: bool = false;
+    let mut compress: Compress = Compress::NoCompress;
     let mut parser = lexopt::Parser::from_env();
     while let Some(arg) = parser.next()? {
         match arg {
             Short('q') | Long("quiet") => verbosity = Verbosity::Quiet,
             Short('v') | Long("verbose") => verbosity = Verbosity::Verbose,
             Short('l') | Long("loud") => verbosity = Verbosity::VeryVerbose,
-            Short('c') | Long("compress") => compress = true,
+            Short('c') | Long("compress") => compress = Compress::Compress,
             Short('h') | Long("help") => {
                 println!("Usage: rism [OPTIONS] <inputfile.toml>\n");
                 println!(
@@ -56,29 +58,30 @@ fn main() -> Result<(), lexopt::Error> {
     #[cfg(feature = "dhat-on")]
     let _dhat = dhat::Profiler::new_heap();
     let args = parse_args()?;
-    let mut driver = RISMDriver::from_toml(&args.input_file);
-    let solutions = driver.execute(args.verbosity, args.compress);
-
-    let wv = driver.solvent.borrow().wk.clone();
-    let wu = {
-        match driver.solute {
-            Some(v) => Some(v.borrow().wk.clone()),
-            None => None,
-        }
-    };
-    let td = TDDriver::new(&solutions, wv, wu);
-    let thermo = td.execute();
-    let writer = RISMWriter::new(
-        &args
-            .input_file
-            .file_stem()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string(),
-        &solutions,
-        &thermo,
-    );
-    writer.write().unwrap();
+    // let mut driver = RISMDriver::from_toml(&args.input_file);
+    // let solutions = driver.execute(args.verbosity, args.compress);
+    //
+    // let wv = driver.solvent.borrow().wk.clone();
+    // let wu = {
+    //     match driver.solute {
+    //         Some(v) => Some(v.borrow().wk.clone()),
+    //         None => None,
+    //     }
+    // };
+    // let td = TDDriver::new(&solutions, wv, wu);
+    // let thermo = td.execute();
+    // let writer = RISMWriter::new(
+    //     &args
+    //         .input_file
+    //         .file_stem()
+    //         .unwrap()
+    //         .to_str()
+    //         .unwrap()
+    //         .to_string(),
+    //     &solutions,
+    //     &thermo,
+    // );
+    //writer.write().unwrap();
+    Calculator::new(args.input_file, args.verbosity, args.compress).execute();
     Ok(())
 }
