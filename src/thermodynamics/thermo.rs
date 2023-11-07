@@ -396,6 +396,7 @@ fn hnc_functional_impl(
     //let r = r.slice(s![.., NewAxis, NewAxis]).to_owned();
     let mut r = r.broadcast((1, 1, r.len())).unwrap();
     r.swap_axes(0, 2);
+    println!("density: {:?}", density);
     Zip::from(_out.outer_iter_mut())
         .and(tr.outer_iter())
         .and(cr.outer_iter())
