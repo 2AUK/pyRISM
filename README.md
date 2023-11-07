@@ -10,7 +10,7 @@ A Rust implementation of the RISM equations
 - Picard, Ng, and MDIIS Solvers (more to come!)
 - Compressed solvent-solvent solutions (for solving subsequent solute-solvent problem)
 - Solvation free energy densities
-- Thermodynamical data (Partial Molar Volume, Isothermal Compressibility,etc.)
+- Thermodynamical data (Partial Molar Volume, Isothermal Compressibility, etc.)
 - Arbitrary inputs can be defined (though no guarantee everything will converge...)
 
 #### Potentials
@@ -32,7 +32,9 @@ pyRISM can be installed with `make install`.
 ### Usage 
 Currently, the calculator is focused for command-line usage with a very minimal library interface.
 This will change soon with bindings in both Rust and Python.
+
 The command-line tool can be called with:
+
 `rism [OPTIONS] <input_file.toml>`
 
 The list of options:
