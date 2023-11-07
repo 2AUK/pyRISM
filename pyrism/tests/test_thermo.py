@@ -1,5 +1,4 @@
 from pyrism.rism_ctrl import *
-from pyrism import rust_helpers
 import matplotlib.pyplot as plt
 
 mol = RismController("../data/cSPCE_DRISM_methane.toml")
