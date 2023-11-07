@@ -34,7 +34,7 @@ Currently, the calculator is focused for command-line usage with a very minimal 
 This will change soon with bindings in both Rust and Python.
 
 The command-line tool can be called with:
-`rism [OPTIONS] <input_file.toml>`
+`rism [OPTIONS] <inputfile.toml>`
 
 The list of options:
 ```
@@ -44,6 +44,9 @@ The list of options:
 [-v|--verbose]   Print basic information from solver
 [-l|--loud]      Print all information from solver
 ```
+
+More details regarding the input file structure can be found in the [wiki](https://github.com/2AUK/pyRISM/wiki).
+
 ### Future Work
 - LMV Solver (in progress)
 - Gillan Solver (in progress)
