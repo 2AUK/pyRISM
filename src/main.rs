@@ -58,6 +58,16 @@ fn main() -> Result<(), lexopt::Error> {
     let args = parse_args()?;
     let mut driver = RISMDriver::from_toml(&args.input_file);
     let solutions = driver.execute(args.verbosity, args.compress);
+
+    let wv = driver.solvent.borrow().wk.clone();
+    let wu = {
+        match driver.solute {
+            Some(v) => Some(v.borrow().wk.clone()),
+            None => None,
+        }
+    };
+    let td = TDDriver::new(&solutions, wv, wu);
+    let thermo = td.execute();
     let writer = RISMWriter::new(
         &args
             .input_file
@@ -67,17 +77,8 @@ fn main() -> Result<(), lexopt::Error> {
             .unwrap()
             .to_string(),
         &solutions,
+        &thermo,
     );
     writer.write().unwrap();
-    let wv = driver.solvent.borrow().wk.clone();
-    let wu = {
-        match driver.solute {
-            Some(v) => Some(v.borrow().wk.clone()),
-            None => None,
-        }
-    };
-    let td = TDDriver::new(solutions, wv, wu);
-    let thermo = td.execute();
-    println!("{}", thermo);
     Ok(())
 }
