@@ -39,12 +39,14 @@ impl std::fmt::Display for SFEs {
 \tKH:                           {}
 \tGF:                           {}
 \tPW:                           {}
-\tPC+:                          {}",
+\tPC+:                          {}
+\tPW - PC+                      {}",
             self.hypernettedchain,
             self.kovalenko_hirata,
             self.gaussian_fluctuations,
             self.partial_wave,
-            self.pc_plus
+            self.pc_plus,
+            self.partial_wave - self.pc_plus,
         )
     }
 }
@@ -54,7 +56,7 @@ pub struct Densities {
     pub kovalenko_hirata: Array1<f64>,
     pub gaussian_fluctuations: Array1<f64>,
     pub partial_wave: Array1<f64>,
-    pub partial_molar_volume: Array1<f64>,
+    partial_molar_volume: Array1<f64>,
 }
 
 impl Densities {
@@ -192,12 +194,26 @@ impl<'a> TDDriver<'a> {
                 let pressure = self.pressure();
                 let sfe = SFEs::new(&sfed, pressure, rism_kb_pmv, grid.dr);
                 let temperature = self.solutions.config.data_config.temp;
-
-                println!(
-                    "1: {}\n2: {}",
-                    SFEs::integrate(&self.rism_kb_partial_molar_volume_density(), grid.dr),
-                    SFEs::integrate(&self.rism_kb_partial_molar_volume_density_2(), grid.dr)
-                );
+                //
+                // println!(
+                //     "1: {}\n2: {}\n3: {}\n4: {}",
+                //     SFEs::integrate(&self.rism_kb_partial_molar_volume_density(), grid.dr),
+                //     SFEs::integrate(&self.rism_kb_partial_molar_volume_density_2(), grid.dr),
+                //     SFEs::integrate(
+                //         &(&self.rism_kb_partial_molar_volume_density()
+                //             - self.isothermal_compressibility()),
+                //         grid.dr
+                //     ) + self.isothermal_compressibility(),
+                //     SFEs::integrate(
+                //         &(&self.rism_kb_partial_molar_volume_density_2()
+                //             - self.isothermal_compressibility_density()),
+                //         grid.dr
+                //     ) + SFEs::integrate(
+                //         &(&self.isothermal_compressibility_density()
+                //             - (1.0 / self.total_density())),
+                //         grid.dr
+                //     ) + (1.0 / self.total_density()),
+                // );
 
                 Thermodynamics {
                     temperature,
@@ -396,7 +412,6 @@ fn hnc_functional_impl(
     //let r = r.slice(s![.., NewAxis, NewAxis]).to_owned();
     let mut r = r.broadcast((1, 1, r.len())).unwrap();
     r.swap_axes(0, 2);
-    println!("density: {:?}", density);
     Zip::from(_out.outer_iter_mut())
         .and(tr.outer_iter())
         .and(cr.outer_iter())

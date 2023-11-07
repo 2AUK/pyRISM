@@ -128,7 +128,7 @@ impl<'a> RISMWriter<'a> {
             "KH".to_string(),
             "GF".to_string(),
             "PW".to_string(),
-            "PMV".to_string(),
+            //"PMV".to_string(),
         ];
         wtr.write_record(header.as_slice())?;
         let densities = self.thermo.sfed.as_ref().unwrap();
@@ -139,7 +139,7 @@ impl<'a> RISMWriter<'a> {
                 densities.kovalenko_hirata[[i]].to_string(),
                 densities.gaussian_fluctuations[[i]].to_string(),
                 densities.partial_wave[[i]].to_string(),
-                densities.partial_molar_volume[[i]].to_string(),
+                //densities.partial_molar_volume[[i]].to_string(),
             ];
             wtr.write_record(data.as_slice())?;
         }
