@@ -394,6 +394,8 @@ impl RISMDriver {
                 self.data.nspv = data.data_config.nspv;
                 self.solvent.borrow_mut().sites = data.data_config.solvent_atoms.clone();
                 self.solvent.borrow_mut().species = data.data_config.solvent_species.clone();
+                self.data.solvent_atoms = data.data_config.solvent_atoms.clone();
+                self.data.solvent_species = data.data_config.solvent_species.clone();
                 let new_shape = (
                     data.data_config.npts,
                     data.data_config.nsv,
