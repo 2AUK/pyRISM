@@ -34,7 +34,12 @@ impl std::fmt::Display for SFEs {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Solvation Free Energies:\nHNC: {}\nKH: {}\nGF: {}\nPW: {}\nPC+: {}",
+            "Solvation Free Energies (kcal/mol):
+\tHNC:                          {}
+\tKH:                           {}
+\tGF:                           {}
+\tPW:                           {}
+\tPC+:                          {}",
             self.hypernettedchain,
             self.kovalenko_hirata,
             self.gaussian_fluctuations,
@@ -53,7 +58,12 @@ pub struct Densities {
 }
 
 impl Densities {
-    pub fn new(solutions: &Solutions, wv: &Array3<f64>, wu: &Array3<f64>) -> Self {
+    pub fn new(
+        solutions: &Solutions,
+        wv: &Array3<f64>,
+        wu: &Array3<f64>,
+        pmv_density: Array1<f64>,
+    ) -> Self {
         let uv = solutions.uv.as_ref().unwrap();
         let grid = Grid::new(
             solutions.config.data_config.npts,
@@ -89,7 +99,6 @@ impl Densities {
         let gf_density = gf_functional_impl(r, density, cr, hr) / beta * ku;
         let kh_density = kh_functional_impl(r, density, cr, hr) / beta * ku;
         let pw_density = pw_functional_impl(r, k, density, cr, hr, hk, wu, wv) / beta * ku;
-        let pmv_density = Array::zeros(pw_density.raw_dim());
 
         Densities {
             hypernettedchain: hnc_density,
@@ -117,39 +126,49 @@ impl std::fmt::Display for Thermodynamics {
         match self.sfe {
             Some(ref sfe) => {
                 write!(
-            f,
-            "Thermodynamics:\nTemperature: {} K\nTotal Density: {} (1/A^3)\nIsothermal Compressibility: {}\nPressure: {}\nMolecular KB PMV: {} A^3\n                  {} cm^3/mol\nRISM KB PMV: {} A^3\n             {} cm^3/mol\n{}",
-            self.temperature,
-            self.total_density,
-            self.isothermal_compressibility,
-            self.pressure.unwrap(),
-            self.molecular_kb_pmv.unwrap(),
-            self.molecular_kb_pmv.unwrap() / 1e24 * 6.022e23,
-            self.rism_kb_pmv.unwrap(),
-            self.rism_kb_pmv.unwrap() / 1e24 * 6.022e23,
-            sfe,
-        )
+                    f,
+                    "Thermodynamics:
+\tTemperature:                  {} K
+\tTotal Density:                {} (1/A^3)
+\tIsothermal Compressibility:   {}
+\tPressure:                     {}
+\tMolecular KB PMV:             {} A^3
+\t                              {} cm^3/mol
+\tRISM KB PMV:                  {} A^3
+\t                              {} cm^3/mol
+{}",
+                    self.temperature,
+                    self.total_density,
+                    self.isothermal_compressibility,
+                    self.pressure.unwrap(),
+                    self.molecular_kb_pmv.unwrap(),
+                    self.molecular_kb_pmv.unwrap() / 1e24 * 6.022e23,
+                    self.rism_kb_pmv.unwrap(),
+                    self.rism_kb_pmv.unwrap() / 1e24 * 6.022e23,
+                    sfe,
+                )
             }
             None => {
                 write!(
-            f,
-            "Thermodynamics:\nTemperature: {} K\nTotal Density: {} (1/A^3)\nIsothermal Compressibility: {}",
-            self.temperature,
-            self.total_density,
-            self.isothermal_compressibility,
-        )
+                    f,
+                    "Thermodynamics:
+\tTemperature:                  {} K
+\tTotal Density:                {} (1/A^3)
+\tIsothermal Compressibility:   {}",
+                    self.temperature, self.total_density, self.isothermal_compressibility,
+                )
             }
         }
     }
 }
-pub struct TDDriver {
-    pub solutions: Solutions,
+pub struct TDDriver<'a> {
+    pub solutions: &'a Solutions,
     pub(crate) wv: Array3<f64>,
     pub(crate) wu: Option<Array3<f64>>,
 }
 
-impl TDDriver {
-    pub fn new(solutions: Solutions, wv: Array3<f64>, wu: Option<Array3<f64>>) -> Self {
+impl<'a> TDDriver<'a> {
+    pub fn new(solutions: &'a Solutions, wv: Array3<f64>, wu: Option<Array3<f64>>) -> Self {
         TDDriver { solutions, wv, wu }
     }
 
@@ -164,7 +183,12 @@ impl TDDriver {
                 let molecular_kb_pmv = self.kb_partial_molar_volume();
                 let rism_kb_pmv = self.rism_kb_partial_molar_volume();
                 let total_density = self.total_density();
-                let sfed = Densities::new(&self.solutions, &self.wv, self.wu.as_ref().unwrap());
+                let sfed = Densities::new(
+                    &self.solutions,
+                    &self.wv,
+                    self.wu.as_ref().unwrap(),
+                    self.rism_kb_partial_molar_volume_density(),
+                );
                 let pressure = self.pressure();
                 let sfe = SFEs::new(&sfed, pressure, rism_kb_pmv, grid.dr);
                 let temperature = self.solutions.config.data_config.temp;
@@ -256,6 +280,21 @@ impl TDDriver {
         1.0 / (p_sum * (1.0 - p_sum * c_sum))
     }
 
+    fn isothermal_compressibility_density(&self) -> Array1<f64> {
+        let vv = &self.solutions.vv;
+        let cr = &vv.correlations.cr;
+        let grid = Grid::new(vv.data_config.npts, vv.data_config.radius);
+        let r = &grid.rgrid;
+        let site_summed_cr = r * r * cr.sum_axis(Axis(2)).sum_axis(Axis(1)) * 4.0 * PI;
+        let p_sum = vv
+            .data_config
+            .solvent_species
+            .iter()
+            .fold(0.0, |acc, x| acc + x.dens);
+
+        1.0 / (p_sum * (1.0 - p_sum * site_summed_cr))
+    }
+
     fn kb_partial_molar_volume(&self) -> f64 {
         let vv = &self.solutions.vv;
         let uv = &self.solutions.uv.as_ref().unwrap();
@@ -300,6 +339,34 @@ impl TDDriver {
             .fold(0.0, |acc, x| acc + x.dens);
         let compressibility = self.isothermal_compressibility();
         compressibility * (1.0 - p_sum * c_sum)
+    }
+
+    fn rism_kb_partial_molar_volume_density(&self) -> Array1<f64> {
+        let vv = &self.solutions.vv;
+        let uv = &self.solutions.uv.as_ref().unwrap();
+        let cr = &uv.correlations.cr;
+        let grid = Grid::new(vv.data_config.npts, vv.data_config.radius);
+        let r = &grid.rgrid;
+        let site_summed_cr = cr.sum_axis(Axis(2)).sum_axis(Axis(1));
+        let integrand = r * r * site_summed_cr * 4.0 * PI;
+        let compressibility = self.isothermal_compressibility();
+        let p_sum = self.total_density();
+
+        compressibility * (1.0 - p_sum * integrand)
+    }
+
+    fn rism_kb_partial_molar_volume_density_2(&self) -> Array1<f64> {
+        let vv = &self.solutions.vv;
+        let uv = &self.solutions.uv.as_ref().unwrap();
+        let cr = &uv.correlations.cr;
+        let grid = Grid::new(vv.data_config.npts, vv.data_config.radius);
+        let r = &grid.rgrid;
+        let site_summed_cr = cr.sum_axis(Axis(2)).sum_axis(Axis(1));
+        let integrand = r * r * site_summed_cr * 4.0 * PI;
+        let compressibility = self.isothermal_compressibility_density();
+        let p_sum = self.total_density();
+
+        compressibility * (1.0 - p_sum * integrand)
     }
 
     fn total_density(&self) -> f64 {
