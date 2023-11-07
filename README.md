@@ -34,7 +34,6 @@ Currently, the calculator is focused for command-line usage with a very minimal 
 This will change soon with bindings in both Rust and Python.
 
 The command-line tool can be called with:
-
 `rism [OPTIONS] <input_file.toml>`
 
 The list of options:
