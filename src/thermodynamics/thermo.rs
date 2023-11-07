@@ -40,7 +40,7 @@ impl std::fmt::Display for SFEs {
 \tGF:                           {}
 \tPW:                           {}
 \tPC+:                          {}
-\tPW - PC+                      {}",
+\tPW - PC+:                     {}",
             self.hypernettedchain,
             self.kovalenko_hirata,
             self.gaussian_fluctuations,

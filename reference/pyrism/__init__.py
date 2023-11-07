@@ -12,4 +12,3 @@ from .IntegralEquations import *
 from .Util import *
 from .Potentials import *
 from .Functionals import *
-from pyrism import librism

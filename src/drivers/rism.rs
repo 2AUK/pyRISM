@@ -33,6 +33,11 @@ pub enum Verbosity {
     VeryVerbose,
 }
 
+pub enum Compress {
+    Compress,
+    NoCompress,
+}
+
 #[pyclass(unsendable)]
 #[derive(Clone, Debug)]
 pub struct RISMDriver {
@@ -156,7 +161,7 @@ impl RISMDriver {
         data.correlations.hr = &data.correlations.cr + &data.correlations.tr;
     }
 
-    pub fn execute(&mut self, verbosity: Verbosity, compress: bool) -> Solutions {
+    pub fn execute(&mut self, verbosity: &Verbosity, compress: &Compress) -> Solutions {
         match verbosity {
             Verbosity::Quiet => (),
             Verbosity::Verbose => {
@@ -209,34 +214,40 @@ impl RISMDriver {
                     vv.interactions.clone(),
                     vv.correlations.clone(),
                 );
-                if compress {
-                    trace!("Compressing solvent-solvent data");
-                    let inteq =
-                        str::replace(&self.operator.integral_equation.to_string(), " ", "_");
-                    let clos = str::replace(&self.operator.closure.to_string(), " ", "_");
-                    let temp = &self.data.temp;
-                    let name = format!("{}_{}_{}_{}K.bin", self.name, inteq, clos, temp);
-                    let file = fs::File::create(name).unwrap();
-                    let mut compressor = write::GzEncoder::new(file, Compression::best());
-                    println!("Compressing binary");
-                    bincode::serialize_into(&mut compressor, &vv_solution)
-                        .expect("encode solvent-solvent results to compressed binary");
-                    println!("Finishing up");
-                    compressor
-                        .finish()
-                        .expect("finish encoding solvent-solvent results");
-                    // let compression_level = Compression::best();
-                    // let mut file_compressed = fs::File::create("test_compressed.bin").unwrap();
-                    // let mut compressor = GzEncoder::new(file_compressed, compression_level);
-                    // compressor.write_all(&encoded_vv[..]);
+                match compress {
+                    Compress::Compress => {
+                        trace!("Compressing solvent-solvent data");
+                        let inteq =
+                            str::replace(&self.operator.integral_equation.to_string(), " ", "_");
+                        let clos = str::replace(&self.operator.closure.to_string(), " ", "_");
+                        let temp = &self.data.temp;
+                        let name = format!("{}_{}_{}_{}K.bin", self.name, inteq, clos, temp);
+                        let file = fs::File::create(name).unwrap();
+                        let mut compressor = write::GzEncoder::new(file, Compression::best());
+                        println!("Compressing binary");
+                        bincode::serialize_into(&mut compressor, &vv_solution)
+                            .expect("encode solvent-solvent results to compressed binary");
+                        println!("Finishing up");
+                        compressor
+                            .finish()
+                            .expect("finish encoding solvent-solvent results");
+                        // let compression_level = Compression::best();
+                        // let mut file_compressed = fs::File::create("test_compressed.bin").unwrap();
+                        // let mut compressor = GzEncoder::new(file_compressed, compression_level);
+                        // compressor.write_all(&encoded_vv[..]);
+                    }
+                    _ => (),
                 }
                 vv_solution
             }
             Some(ref x) => {
-                if compress {
-                    warn!(
+                match compress {
+                    Compress::Compress => {
+                        warn!(
                         "Already loading saved solution! Skipping solvent-solvent compression..."
                     );
+                    }
+                    _ => (),
                 }
                 x.clone()
             }
