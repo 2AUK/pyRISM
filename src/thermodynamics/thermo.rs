@@ -193,6 +193,12 @@ impl<'a> TDDriver<'a> {
                 let sfe = SFEs::new(&sfed, pressure, rism_kb_pmv, grid.dr);
                 let temperature = self.solutions.config.data_config.temp;
 
+                println!(
+                    "1: {}\n2: {}",
+                    SFEs::integrate(&self.rism_kb_partial_molar_volume_density(), grid.dr),
+                    SFEs::integrate(&self.rism_kb_partial_molar_volume_density_2(), grid.dr)
+                );
+
                 Thermodynamics {
                     temperature,
                     total_density,
