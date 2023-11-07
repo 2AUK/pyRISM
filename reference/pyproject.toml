@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools"]
+
+[project]
+name = "pyRISM"
+version = "0.2.0"
+dependencies = [
+    "toml",
+    "numpy",
+    "scipy",
+    "pandas",
+    "numba",
+    "matplotlib",
+    "click",
+]
+
+[tool.setuptools.packages]
+find = {}
+
+[project.scripts]
+pyrism = "pyrism.__main__:cli"
+pyrplot = "pyrism.plotter:plot"
