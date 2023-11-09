@@ -29,5 +29,5 @@ def plot():
         plt.plot(r, gr[1], label=gr[0])
 
     plt.legend()
-    plt.savefig(sys.argv[1] + "_RDF.eps", format="eps")
+    plt.savefig(sys.argv[1] + "_RDF.png", format="png")
     plt.show()
