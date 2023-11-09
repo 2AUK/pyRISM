@@ -5,9 +5,11 @@ pub use crate::thermodynamics::thermo::TDDriver;
 use data::solution::Solutions;
 use drivers::rism::{Compress, Verbosity};
 use pybindings::pystructs::PyCorrelations;
+use pybindings::pystructs::PyGrid;
 use pybindings::pystructs::PyInteractions;
 use pybindings::pystructs::PySolution;
 use pybindings::pystructs::PySolvedData;
+use pybindings::pystructs::PyThermodynamics;
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
 use std::path::PathBuf;
@@ -58,8 +60,16 @@ impl PyCalculator {
         })
     }
 
-    pub fn execute<'py>(&'py mut self, py: Python<'py>) -> PyResult<PySolution> {
+    pub fn execute<'py>(
+        &'py mut self,
+        py: Python<'py>,
+    ) -> PyResult<(PySolution, PyThermodynamics, PyGrid)> {
         let solution = self.driver.execute(&self.verbosity, &self.compress);
+        let grid = PyGrid::new(
+            solution.config.data_config.npts,
+            solution.config.data_config.radius,
+            py,
+        );
         let wv = self.driver.solvent.borrow().wk.clone();
         let wu = {
             match &self.driver.solute {
@@ -88,11 +98,13 @@ impl PyCalculator {
             None => None,
         };
 
+        let thermodynamics = PyThermodynamics::from_thermodynamics(thermodynamics, py);
+
         let solution = PySolution {
             vv: py_vv,
             uv: py_uv,
         };
-        Ok(solution)
+        Ok((solution, thermodynamics, grid))
     }
 }
 
