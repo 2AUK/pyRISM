@@ -51,16 +51,18 @@ impl<'a> RISMWriter<'a> {
                 let gr = tr + cr + 1.0;
                 let mut uv_headers: Vec<String> = uv
                     .data_config
-                    .solvent_atoms
+                    .solute_atoms
+                    .as_ref()
+                    .unwrap()
                     .iter()
                     .cartesian_product(vv.data_config.solvent_atoms.iter())
                     .map(|(iat, jat)| format!("{}-{}", &iat.atom_type, &jat.atom_type))
                     .collect();
 
                 uv_headers.insert(0, "r(A)".to_string());
-                self.write_correlation(&gr, &grid.rgrid, &uv_headers, "gvv".to_string(), gr.dim())?;
-                self.write_correlation(cr, &grid.rgrid, &uv_headers, "cvv".to_string(), gr.dim())?;
-                self.write_correlation(tr, &grid.rgrid, &uv_headers, "tvv".to_string(), gr.dim())?;
+                self.write_correlation(&gr, &grid.rgrid, &uv_headers, "guv".to_string(), gr.dim())?;
+                self.write_correlation(cr, &grid.rgrid, &uv_headers, "cuv".to_string(), gr.dim())?;
+                self.write_correlation(tr, &grid.rgrid, &uv_headers, "tuv".to_string(), gr.dim())?;
 
                 //Write thermodynamics to file
                 let td_path = format!("{}.td", self.name);
@@ -128,7 +130,7 @@ impl<'a> RISMWriter<'a> {
             "KH".to_string(),
             "GF".to_string(),
             "PW".to_string(),
-            //"PMV".to_string(),
+            "PMV".to_string(),
         ];
         wtr.write_record(header.as_slice())?;
         let densities = self.thermo.sfed.as_ref().unwrap();
@@ -139,7 +141,7 @@ impl<'a> RISMWriter<'a> {
                 densities.kovalenko_hirata[[i]].to_string(),
                 densities.gaussian_fluctuations[[i]].to_string(),
                 densities.partial_wave[[i]].to_string(),
-                //densities.partial_molar_volume[[i]].to_string(),
+                densities.partial_molar_volume[[i]].to_string(),
             ];
             wtr.write_record(data.as_slice())?;
         }
