@@ -56,7 +56,7 @@ pub struct Densities {
     pub kovalenko_hirata: Array1<f64>,
     pub gaussian_fluctuations: Array1<f64>,
     pub partial_wave: Array1<f64>,
-    partial_molar_volume: Array1<f64>,
+    pub partial_molar_volume: Array1<f64>,
 }
 
 impl Densities {
