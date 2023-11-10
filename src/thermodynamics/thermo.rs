@@ -2,7 +2,6 @@ use crate::{
     data::solution::Solutions,
     grids::{radial_grid::Grid, transforms::fourier_bessel_transform_fftw},
 };
-use faer::{mat, prelude::*, scale, IntoFaer, Mat};
 use ndarray::{s, Array, Array1, Array2, Array3, Axis, Zip};
 use ndarray_linalg::Inverse;
 use std::f64::consts::PI;
@@ -496,10 +495,7 @@ fn pw_functional_impl(
         .and(w_u.outer_iter())
         .and(w_v.outer_iter())
         .for_each(|mut h_out, h, wu, wv| {
-            let wv_faer = wv.into_faer();
-            let wv_inv_faer = wv_faer.inverse();
             let wv_inv = wv.inv().expect("inverted solvent intramolecular matrix");
-            println!("{:?}", wu);
             let wu_inv = wu.inv().expect("inverted solute intramolecular matrix");
             h_out.assign(&wu_inv.dot(&h).dot(&wv_inv).dot(density));
         });
