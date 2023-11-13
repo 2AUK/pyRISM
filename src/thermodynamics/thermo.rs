@@ -536,3 +536,7 @@ fn heaviside(arr: &Array2<f64>) -> Array2<f64> {
     )
     .expect("heaviside function from input array")
 }
+
+fn matrix_inversion() {
+    todo!()
+}
