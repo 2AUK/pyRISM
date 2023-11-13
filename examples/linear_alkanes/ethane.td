@@ -1,16 +1,16 @@
 Thermodynamics:
 	Temperature:                  300 K
-	Total Density:                0.03334 (1/A^3)
-	Isothermal Compressibility:   2.1150203889773738
-	Pressure:                     0.3805395125222499
-	Molecular KB PMV:             197.1715460532995 A^3
-	                              118.73670503329696 cm^3/mol
-	RISM KB PMV:                  68.29633728708967 A^3
-	                              41.12805431428541 cm^3/mol
+	Total Density:                0.0337 (1/A^3)
+	Isothermal Compressibility:   2.0034146231034646
+	Pressure:                     0.40121586464435965
+	Molecular KB PMV:             196.52169918450736 A^3
+	                              118.34536724891034 cm^3/mol
+	RISM KB PMV:                  67.99659786080437 A^3
+	                              40.947551231776394 cm^3/mol
 Solvation Free Energies (kcal/mol):
-	HNC:                          19.613565242410516
-	KH:                           18.803084358565332
-	GF:                           5.859406089712559
-	PW:                           5.975301642803066
-	PC+:                          25.98945489828426
-	PW - PC+:                     -20.014153255481197
+	HNC:                          20.23197936462811
+	KH:                           19.395798704299473
+	GF:                           6.362038980057345
+	PW:                           6.481846259385169
+	PC+:                          27.281313803597442
+	PW - PC+:                     -20.799467544212273
