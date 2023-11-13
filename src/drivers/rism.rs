@@ -51,101 +51,6 @@ pub struct RISMDriver {
     _preconv: Option<SolvedData>,
 }
 
-// #[pymethods]
-// impl RISMDriver {
-//     #[new]
-//     fn new<'py>(
-//         name: String,
-//         data_config: &PyAny,
-//         operator_config: &PyAny,
-//         potential_config: &PyAny,
-//         solver_config: &PyAny,
-//     ) -> PyResult<Self> {
-//         // Extract problem data
-//         let data: DataConfig = data_config.extract()?;
-//         let (solvent, solute);
-//         let shape = (data.npts, data.nsv, data.nsv);
-//         let vv_solution = Self::load_preconv_data(&data.preconverged);
-//         // Construct the solvent-solvent problem
-//         solvent = SingleData::new(
-//             data.solvent_atoms.clone(),
-//             data.solvent_species.clone(),
-//             shape,
-//         );
-//
-//         // Check if a solute-solvent problem exists
-//         match data.nsu {
-//             None => solute = None,
-//             _ => {
-//                 let shape = (data.npts, data.nsu.unwrap(), data.nsu.unwrap());
-//                 // Construct the solute-solvent problem
-//                 solute = Some(SingleData::new(
-//                     data.solute_atoms.as_ref().unwrap().clone(),
-//                     data.solute_species.as_ref().unwrap().clone(),
-//                     shape,
-//                 ));
-//             }
-//         }
-//
-//         // Extract operator information
-//         let operator: OperatorConfig = operator_config.extract()?;
-//
-//         // Extract potential information
-//         let potential: PotentialConfig = potential_config.extract()?;
-//
-//         // Extract solver information
-//         let solver: SolverConfig = solver_config.extract()?;
-//
-//         Ok(RISMDriver {
-//             name,
-//             solvent,
-//             solute,
-//             data,
-//             operator,
-//             potential,
-//             solver,
-//             _preconv: vv_solution,
-//         })
-//     }
-//
-//     pub fn do_rism<'py>(
-//         &'py mut self,
-//         verbosity: String,
-//         compress: bool,
-//         py: Python<'py>,
-//     ) -> PyResult<PySolution> {
-//         // -> PyResult<Py<PyAny>> {
-//         let verbosity = match verbosity.as_str() {
-//             "quiet" => Verbosity::Quiet,
-//             "verbose" => Verbosity::Verbose,
-//             "very verbose" => Verbosity::VeryVerbose,
-//             _ => panic!("not a valid verbosity flag"),
-//         };
-//         let solutions = self.execute(verbosity, compress);
-//         let py_cor_vv = PyCorrelations::from_correlations(solutions.vv.correlations, py);
-//         let py_inter_vv = PyInteractions::from_interactions(solutions.vv.interactions, py);
-//         let vv = PySolvedData {
-//             correlations: py_cor_vv,
-//             interactions: py_inter_vv,
-//         };
-//
-//         let uv = match solutions.uv {
-//             None => None,
-//             Some(data) => {
-//                 let py_cor_uv = PyCorrelations::from_correlations(data.correlations, py);
-//                 let py_inter_uv = PyInteractions::from_interactions(data.interactions, py);
-//                 let uv = PySolvedData {
-//                     correlations: py_cor_uv,
-//                     interactions: py_inter_uv,
-//                 };
-//                 Some(uv)
-//             }
-//         };
-//
-//         Ok(PySolution { vv, uv })
-// }
-//
-
 impl RISMDriver {
     pub fn new(name: String, config: Configuration) -> Self {
         todo!()
@@ -224,10 +129,9 @@ impl RISMDriver {
                         let name = format!("{}_{}_{}_{}K.bin", self.name, inteq, clos, temp);
                         let file = fs::File::create(name).unwrap();
                         let mut compressor = write::GzEncoder::new(file, Compression::best());
-                        println!("Compressing binary");
+                        info!("Compressing binary");
                         bincode::serialize_into(&mut compressor, &vv_solution)
                             .expect("encode solvent-solvent results to compressed binary");
-                        println!("Finishing up");
                         compressor
                             .finish()
                             .expect("finish encoding solvent-solvent results");
@@ -507,25 +411,46 @@ impl RISMDriver {
                     .species
                     .iter()
                     .fold(0.0, |acc, species| acc + species.dens);
+                let total_site_density = {
+                    let mut acc = 0.0;
+                    for i in self.solvent.borrow().species.iter() {
+                        for _j in i.atom_sites.iter() {
+                            acc += i.dens;
+                        }
+                    }
+                    acc
+                };
                 let drism_damping = self
                     .data
                     .drism_damping
                     .expect("damping parameter for DRISM set");
                 let diel = self.data.dielec.expect("dielectric constant set");
                 k_exp_term.par_mapv_inplace(|x| (-1.0 * (drism_damping * x / 2.0).powf(2.0)).exp());
-                let dipole_density =
-                    self.solvent
-                        .borrow()
-                        .species
-                        .iter()
-                        .fold(0.0, |acc, species| {
-                            match dipole_moment(&species.atom_sites) {
-                                Ok((_, dm)) => acc + species.dens * dm * dm,
-                                _ => acc + 0.0,
-                            }
-                        });
-                let y = 4.0 * PI * dipole_density / 9.0;
-                let hc0 = (((diel - 1.0) / y) - 3.0) / total_density;
+                // let dipole_density =
+                //     self.solvent
+                //         .borrow()
+                //         .species
+                //         .iter()
+                //         .fold(0.0, |acc, species| {
+                //             match dipole_moment(&species.atom_sites) {
+                //                 Ok((_, dm)) => acc + species.dens * dm * dm,
+                //                 _ => acc + 0.0,
+                //             }
+                //         });
+                let dipole_site_density = {
+                    let mut acc = 0.0;
+                    for i in self.solvent.borrow().species.iter() {
+                        for _j in i.atom_sites.iter() {
+                            match dipole_moment(&i.atom_sites) {
+                                Ok((_, dm)) => acc += i.dens * dm * dm,
+                                _ => acc += 0.0,
+                            };
+                        }
+                    }
+                    acc
+                };
+                let y = 4.0 * PI * dipole_site_density / 9.0;
+                let hc0 = (((diel - 1.0) / y) - 3.0) / total_site_density;
                 let hck = hc0 * k_exp_term;
                 debug!("y: {}", y);
                 debug!("h_c(0): {}", hc0);
