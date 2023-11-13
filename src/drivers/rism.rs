@@ -420,23 +420,27 @@ impl RISMDriver {
                     }
                     acc
                 };
+                println!(
+                    "rho:\n\tsite: {}, species: {}",
+                    total_site_density, total_density,
+                );
                 let drism_damping = self
                     .data
                     .drism_damping
                     .expect("damping parameter for DRISM set");
                 let diel = self.data.dielec.expect("dielectric constant set");
                 k_exp_term.par_mapv_inplace(|x| (-1.0 * (drism_damping * x / 2.0).powf(2.0)).exp());
-                // let dipole_density =
-                //     self.solvent
-                //         .borrow()
-                //         .species
-                //         .iter()
-                //         .fold(0.0, |acc, species| {
-                //             match dipole_moment(&species.atom_sites) {
-                //                 Ok((_, dm)) => acc + species.dens * dm * dm,
-                //                 _ => acc + 0.0,
-                //             }
-                //         });
+                let dipole_density =
+                    self.solvent
+                        .borrow()
+                        .species
+                        .iter()
+                        .fold(0.0, |acc, species| {
+                            match dipole_moment(&species.atom_sites) {
+                                Ok((_, dm)) => acc + species.dens * dm * dm,
+                                _ => acc + 0.0,
+                            }
+                        });
                 let dipole_site_density = {
                     let mut acc = 0.0;
                     for i in self.solvent.borrow().species.iter() {
@@ -449,6 +453,10 @@ impl RISMDriver {
                     }
                     acc
                 };
+                println!(
+                    "dm:\n\tsite: {}, species: {}",
+                    dipole_site_density, dipole_density,
+                );
                 let y = 4.0 * PI * dipole_site_density / 9.0;
                 let hc0 = (((diel - 1.0) / y) - 3.0) / total_site_density;
                 let hck = hc0 * k_exp_term;
