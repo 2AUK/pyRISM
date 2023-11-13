@@ -184,7 +184,7 @@ impl<'a> TDDriver<'a> {
                 let isothermal_compressibility = self.isothermal_compressibility();
                 let molecular_kb_pmv = self.kb_partial_molar_volume();
                 let rism_kb_pmv = self.rism_kb_partial_molar_volume();
-                let total_density = self.total_density();
+                let total_density = self.total_species_density();
                 let sfed = Densities::new(
                     &self.solutions,
                     &self.wv,
@@ -228,7 +228,7 @@ impl<'a> TDDriver<'a> {
             }
             None => {
                 let isothermal_compressibility = self.isothermal_compressibility();
-                let total_density = self.total_density();
+                let total_density = self.total_species_density();
                 let temperature = self.solutions.config.data_config.temp;
 
                 Thermodynamics {
@@ -250,14 +250,15 @@ impl<'a> TDDriver<'a> {
             self.solutions.config.data_config.npts,
             self.solutions.config.data_config.radius,
         );
+        let vv = &self.solutions.vv;
         let uv = self.solutions.uv.as_ref().unwrap();
         let ku = self.solutions.config.data_config.ku;
         let nu = self.solutions.config.data_config.nsu.unwrap();
         let temp = self.solutions.config.data_config.temp;
-        let mut ck = Array::zeros(uv.correlations.cr.raw_dim());
+        let mut ck = Array::zeros(vv.correlations.cr.raw_dim());
         let rtok = 2.0 * PI * grid.dr;
 
-        Zip::from(uv.correlations.cr.lanes(Axis(0)))
+        Zip::from(vv.correlations.cr.lanes(Axis(0)))
             .and(ck.lanes_mut(Axis(0)))
             .par_for_each(|cr_lane, mut ck_lane| {
                 ck_lane.assign(&fourier_bessel_transform_fftw(
@@ -267,10 +268,12 @@ impl<'a> TDDriver<'a> {
                     &cr_lane.to_owned(),
                 ));
             });
-        let p = self.total_density();
+        let p = self.total_species_density();
+        let pi = self.total_site_density();
+
         let initial_term = ((nu as f64 + 1.0) / 2.0) * ku * temp * p;
         let ck_direct = p * p * ck.slice(s![0, .., ..]).sum();
-        let pressure = initial_term - (ku * temp) / 2.0 * ck_direct;
+        let pressure = initial_term - (ku * temp / 2.0) * ck_direct;
         let ideal_pressure = p * ku * temp;
         pressure - ideal_pressure
     }
@@ -293,12 +296,7 @@ impl<'a> TDDriver<'a> {
             });
 
         let c_sum = ck.slice(s![0, .., ..]).sum();
-        let p_sum = vv
-            .data_config
-            .solvent_species
-            .iter()
-            .fold(0.0, |acc, x| acc + x.dens);
-
+        let p_sum = self.total_species_density();
         1.0 / (p_sum * (1.0 - p_sum * c_sum))
     }
 
@@ -321,12 +319,7 @@ impl<'a> TDDriver<'a> {
         let vv = &self.solutions.vv;
         let uv = &self.solutions.uv.as_ref().unwrap();
 
-        let p_sum = vv
-            .data_config
-            .solvent_species
-            .iter()
-            .fold(0.0, |acc, x| acc + x.dens);
-
+        let p_sum = self.total_species_density();
         let n = uv.data_config.nsu.unwrap() as f64;
 
         let hkvv_sum = vv.correlations.hk.slice(s![0, .., ..]).sum();
@@ -354,11 +347,7 @@ impl<'a> TDDriver<'a> {
             });
 
         let c_sum = ck.slice(s![0, .., ..]).sum();
-        let p_sum = vv
-            .data_config
-            .solvent_species
-            .iter()
-            .fold(0.0, |acc, x| acc + x.dens);
+        let p_sum = self.total_species_density();
         let compressibility = self.isothermal_compressibility();
         compressibility * (1.0 - p_sum * c_sum)
     }
@@ -372,7 +361,7 @@ impl<'a> TDDriver<'a> {
         let site_summed_cr = cr.sum_axis(Axis(2)).sum_axis(Axis(1));
         let integrand = r * r * site_summed_cr * 4.0 * PI;
         let compressibility = self.isothermal_compressibility();
-        let p_sum = self.total_density();
+        let p_sum = self.total_species_density();
 
         compressibility * (1.0 - p_sum * integrand)
     }
@@ -386,18 +375,29 @@ impl<'a> TDDriver<'a> {
         let site_summed_cr = cr.sum_axis(Axis(2)).sum_axis(Axis(1));
         let integrand = r * r * site_summed_cr * 4.0 * PI;
         let compressibility = self.isothermal_compressibility_density();
-        let p_sum = self.total_density();
+        let p_sum = self.total_species_density();
 
         compressibility * (1.0 - p_sum * integrand)
         //1.0 - integrand
     }
 
-    fn total_density(&self) -> f64 {
+    fn total_species_density(&self) -> f64 {
         let vv = &self.solutions.vv;
         vv.data_config
             .solvent_species
             .iter()
             .fold(0.0, |acc, x| acc + x.dens)
+    }
+
+    fn total_site_density(&self) -> f64 {
+        let vv = &self.solutions.vv;
+        let mut acc = 0.0;
+        for i in vv.data_config.solvent_species.clone().into_iter() {
+            for _j in i.atom_sites {
+                acc += i.dens;
+            }
+        }
+        acc
     }
 }
 
