@@ -189,7 +189,7 @@ impl<'a> TDDriver<'a> {
                     &self.solutions,
                     &self.wv,
                     self.wu.as_ref().unwrap(),
-                    self.rism_kb_partial_molar_volume_density(),
+                    self.rism_kb_partial_molar_volume_density() / self.isothermal_compressibility(),
                 );
                 let pressure = self.pressure();
                 let sfe = SFEs::new(&sfed, pressure, rism_kb_pmv, grid.dr);
