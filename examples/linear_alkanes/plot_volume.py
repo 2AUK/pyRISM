@@ -57,7 +57,7 @@ class Molecule:
         mol = Chem.MolFromSmiles(smi)
         AllChem.EmbedMolecule(mol)
         result = AllChem.ComputeMolVolume(mol)
-        return result * density * 1e24 / 6.022e23
+        return result * density 
 
     def read_smi(self, fname):
         smi_path = Path("linear_alkanes") / Path(fname.stem + ".smi")
