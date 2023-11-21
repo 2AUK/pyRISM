@@ -2,7 +2,8 @@ use crate::{
     data::solution::Solutions,
     grids::{radial_grid::Grid, transforms::fourier_bessel_transform_fftw},
 };
-use ndarray::{s, Array, Array1, Array2, Array3, Axis, Zip};
+use faer::{prelude::*, IntoFaer, IntoNdarray, Side};
+use ndarray::{s, Array, Array1, Array2, Array3, ArrayView2, Axis, Zip};
 use ndarray_linalg::Inverse;
 use std::f64::consts::PI;
 
@@ -495,8 +496,8 @@ fn pw_functional_impl(
         .and(w_u.outer_iter())
         .and(w_v.outer_iter())
         .for_each(|mut h_out, h, wu, wv| {
-            let wv_inv = wv.inv().expect("inverted solvent intramolecular matrix");
-            let wu_inv = wu.inv().expect("inverted solute intramolecular matrix");
+            let wv_inv = matrix_inversion(wv);
+            let wu_inv = matrix_inversion(wu);
             h_out.assign(&wu_inv.dot(&h).dot(&wv_inv).dot(density));
         });
 
@@ -537,6 +538,13 @@ fn heaviside(arr: &Array2<f64>) -> Array2<f64> {
     .expect("heaviside function from input array")
 }
 
-fn matrix_inversion() {
-    todo!()
+fn matrix_inversion(arr: ArrayView2<f64>) -> Array2<f64> {
+    let inp_mat = arr.into_faer();
+    println!("{:#?}", inp_mat);
+
+    let result = inp_mat
+        .cholesky(Side::Upper)
+        .expect("Cholesky decomposition of symmetric positive-definite matrix");
+
+    result.inverse().as_ref().into_ndarray().to_owned()
 }
