@@ -6,7 +6,14 @@ df = pd.read_csv(sys.argv[1])
 
 mols = df['Name'].tolist()
 
-for mol in mols:
-    name = mol.replace(',', '').replace('(', '').replace(')', '').replace(' ', '_')
-    print(name)
-    pcp.download('SDF', name + '.sdf', mol, 'name', overwrite=True)
+with open('SDC_dataset.smi', 'w') as smifile:
+    for mol in mols:
+        canonical_name = mol
+        name = mol.replace(',', '').replace('(', '').replace(')', '').replace(' ', '_')
+        print(canonical_name, name)
+        data = pcp.get_compounds(mol, 'name')
+        line = str(data[0].to_dict(properties=['canonical_smiles'])['canonical_smiles']) + " " + canonical_name + '\n'
+        smifile.write(line)
+        print(data[0].to_dict(properties=['canonical_smiles'])['canonical_smiles'])
+        pcp.download('SDF', name + '.sdf', mol, 'name', overwrite=True)
+    # pcp.download('SMILES', name+ '.smi', mol, 'name', overwrite=True)
