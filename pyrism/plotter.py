@@ -7,7 +7,7 @@ import numpy as np
 
 def plot():
     plt.rcParams["text.usetex"] = False
-    plt.rcParams["font.size"] = 14
+    plt.rcParams["font.size"] = 20
     df = pd.read_csv(sys.argv[1], sep=",")
 
     r = df.iloc[:, 0].to_numpy()
