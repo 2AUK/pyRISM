@@ -37,16 +37,13 @@ impl std::fmt::Display for SFEs {
             "Solvation Free Energies (kcal/mol):
 \tHNC:                          {}
 \tKH:                           {}
-\tGF:                           {}
-\tPW:                           {}
-\tPC+:                          {}
-\tPW - PC+:                     {}",
+\tGF:                           {}",
             self.hypernettedchain,
             self.kovalenko_hirata,
             self.gaussian_fluctuations,
-            self.partial_wave,
-            self.pc_plus,
-            self.partial_wave - self.pc_plus,
+            //self.partial_wave,
+            //self.pc_plus,
+            //self.partial_wave - self.pc_plus,
         )
     }
 }
