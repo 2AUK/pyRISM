@@ -91,6 +91,9 @@ impl RISMDriver {
                     .unwrap();
             }
         }
+
+        let (mut vv, mut uv) = self.problem_setup();
+
         // set up operator(RISM equation and Closure)
         trace!("Defining operator");
         let operator = Operator::new(&self.operator);
@@ -98,8 +101,6 @@ impl RISMDriver {
             integral_equation: IntegralEquationKind::UV,
             ..self.operator.clone()
         });
-
-        let (mut vv, mut uv) = self.problem_setup();
 
         let mut solver = self.solver.solver.set(&self.solver.settings);
 
