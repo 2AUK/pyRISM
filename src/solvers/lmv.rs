@@ -57,8 +57,9 @@ impl Solver for LMV {
                             .cos()
                 }
             }
+            println!("{:?}", out_arr);
             Some(out_arr)
         };
-        todo!()
+        Ok(SolverSuccess(1, 0.1))
     }
 }
