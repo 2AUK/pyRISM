@@ -47,13 +47,16 @@ impl Solver for LMV {
         let (npts, ns1, ns2) = shape;
         let mut i = 0;
 
+        println!("{}", self.nbasis);
         // tabulate cos_table
         self.cos_table = {
             let mut out_arr = Array::zeros((3 * self.nbasis, npts));
             for j in 0..3 * self.nbasis {
                 for i in 0..npts {
                     out_arr[[j, i]] =
-                        (PI * (i as f64 * 2.0 + 1.0) * (j - self.nbasis) as f64 / npts as f64 / 2.0)
+                        (PI * (i as f64 * 2.0 + 1.0) * (j as f64 - self.nbasis as f64)
+                            / npts as f64
+                            / 2.0)
                             .cos()
                 }
             }

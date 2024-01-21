@@ -104,8 +104,23 @@ impl InputTOMLHandler {
                 let gillan_settings = Some(GillanSettings {
                     nbasis: input_toml
                         .params
-                        .depth
+                        .nbasis
                         .expect("Gillan basis number parameter"),
+                });
+                SolverSettings {
+                    picard_damping,
+                    max_iter,
+                    tolerance,
+                    mdiis_settings: None,
+                    gillan_settings,
+                }
+            }
+            SolverKind::LMV => {
+                let gillan_settings = Some(GillanSettings {
+                    nbasis: input_toml
+                        .params
+                        .nbasis
+                        .expect("LMV basis number parameter"),
                 });
                 SolverSettings {
                     picard_damping,
