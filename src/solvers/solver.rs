@@ -1,7 +1,7 @@
 use crate::data::configuration::solver::{SolverError, SolverSettings, SolverSuccess};
 use crate::data::core::DataRs;
 use crate::iet::operator::Operator;
-use crate::solvers::{adiis::ADIIS, mdiis::MDIIS, ng::Ng, picard::Picard};
+use crate::solvers::{adiis::ADIIS, lmv::LMV, mdiis::MDIIS, ng::Ng, picard::Picard};
 use pyo3::{prelude::*, types::PyString};
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Debug};
@@ -21,6 +21,7 @@ pub enum SolverKind {
     MDIIS,
     ADIIS,
     Gillan,
+    LMV,
 }
 
 impl fmt::Display for SolverKind {
@@ -31,6 +32,7 @@ impl fmt::Display for SolverKind {
             SolverKind::MDIIS => write!(f, "MDIIS"),
             SolverKind::ADIIS => write!(f, "ADIIS"),
             SolverKind::Gillan => write!(f, "Gillan"),
+            SolverKind::LMV => write!(f, "LMV"),
         }
     }
 }
@@ -48,6 +50,7 @@ impl<'source> FromPyObject<'source> for SolverKind {
             "MDIIS" => Ok(SolverKind::MDIIS),
             "ADIIS" => Ok(SolverKind::ADIIS),
             "Gillan" => Ok(SolverKind::Gillan),
+            "LMV" => Ok(SolverKind::LMV),
             _ => panic!("not a valid solver"),
         }
     }
@@ -60,6 +63,7 @@ impl SolverKind {
             SolverKind::MDIIS => Box::new(MDIIS::new(settings)),
             SolverKind::ADIIS => Box::new(ADIIS::new(settings)),
             SolverKind::Ng => Box::new(Ng::new(settings)),
+            SolverKind::LMV => Box::new(LMV::new(settings)),
             _ => panic!("solver unimplemented"),
         }
     }
