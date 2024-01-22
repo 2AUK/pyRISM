@@ -25,6 +25,30 @@ macro_rules! pse_n {
     };
 }
 
+pub enum ClosureDerivativeKind {
+    HyperNettedChain,
+    KovalenkoHirata,
+    PercusYevick,
+}
+
+impl ClosureDerivativeKind {
+    pub fn new(closure: &ClosureKind) -> ClosureDerivativeKind {
+        match closure {
+            ClosureKind::HyperNettedChain => ClosureDerivativeKind::HyperNettedChain,
+            ClosureKind::KovalenkoHirata => ClosureDerivativeKind::KovalenkoHirata,
+            ClosureKind::PercusYevick => ClosureDerivativeKind::PercusYevick,
+            _ => panic!("Derivative not implemented for {}", closure),
+        }
+    }
+    pub fn set(&self) -> fn(&DataRs) -> Array3<f64> {
+        match self {
+            ClosureDerivativeKind::HyperNettedChain => hyper_netted_chain_derivative,
+            ClosureDerivativeKind::KovalenkoHirata => kovalenko_hirata_derivative,
+            ClosureDerivativeKind::PercusYevick => percus_yevick_derivative,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ClosureKind {
     #[serde(rename = "HNC")]
@@ -88,6 +112,11 @@ pub fn hyper_netted_chain(problem: &DataRs) -> Array3<f64> {
         - &problem.correlations.tr
 }
 
+pub fn hyper_netted_chain_derivative(problem: &DataRs) -> Array3<f64> {
+    (-problem.system.beta * &problem.interactions.u_sr + &problem.correlations.tr).mapv(|a| a.exp())
+        - 1.0
+}
+
 pub fn kovalenko_hirata(problem: &DataRs) -> Array3<f64> {
     let mut out = Array::zeros(problem.correlations.tr.raw_dim());
     par_azip!((a in &mut out, &b in &(-problem.system.beta * &problem.interactions.u_sr + &problem.correlations.tr), &c in &problem.correlations.tr)    {
@@ -99,11 +128,28 @@ pub fn kovalenko_hirata(problem: &DataRs) -> Array3<f64> {
     });
     out
 }
+
+pub fn kovalenko_hirata_derivative(problem: &DataRs) -> Array3<f64> {
+    let mut out = Array::zeros(problem.correlations.tr.raw_dim());
+    par_azip!((a in &mut out, &b in &(-problem.system.beta * &problem.interactions.u_sr + &problem.correlations.tr), &c in &problem.correlations.tr)    {
+        if b <= 0.0 {
+            *a = b.exp() - 1.0
+        } else {
+            *a = 0.0
+        }
+    });
+    out
+}
+
 pub fn percus_yevick(problem: &DataRs) -> Array3<f64> {
     (-problem.system.beta * &problem.interactions.u_sr).mapv(|a| a.exp())
         * (1.0 + &problem.correlations.tr)
         - 1.0
         - &problem.correlations.tr
+}
+
+pub fn percus_yevick_derivative(problem: &DataRs) -> Array3<f64> {
+    (-problem.system.beta * &problem.interactions.u_sr).mapv(|a| a.exp()) - 1.0
 }
 
 pub fn partial_series_expansion(_problem: &DataRs) -> Array3<f64> {
