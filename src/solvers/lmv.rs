@@ -3,7 +3,7 @@ use crate::iet::operator::Operator;
 use crate::solvers::solver::Solver;
 use log::{info, trace};
 use ndarray_linalg::Solve;
-use numpy::ndarray::{Array, Array1, Array2, Array3};
+use numpy::ndarray::{Array, Array1, Array2, Array3, Array4};
 use std::f64::consts::PI;
 
 #[derive(Clone, Debug)]
@@ -35,6 +35,31 @@ impl LMV {
         // return Picard iteration step
         prev + self.picard_damping * diff
     }
+
+    fn get_cjk(
+        &mut self,
+        problem: &mut DataRs,
+        operator: &Operator,
+        costab: Array2<f64>,
+    ) -> Array4<f64> {
+        let shape = problem.correlations.cr.dim();
+        let (npts, ns1, ns2) = shape;
+        let mut dp: Array1<f64> = Array::zeros(3 * self.nbasis);
+
+        for i in 0..ns1 {
+            for j in 0..ns2 {
+                for m in 1..(3 * self.nbasis) - 1 {
+                    for l in 0..npts {
+                        dp[m] =
+                            dp[m] + (operator.closure_der)(&problem)[[l, i, j]] * costab[[m, l]];
+                    }
+                    dp[m] = dp[m] / npts as f64;
+                }
+            }
+        }
+        println!("{}", dp);
+        Array::zeros((ns1, ns2, self.nbasis, self.nbasis))
+    }
 }
 
 impl Solver for LMV {
@@ -47,7 +72,6 @@ impl Solver for LMV {
         let (npts, ns1, ns2) = shape;
         let mut i = 0;
 
-        println!("{}", self.nbasis);
         // tabulate cos_table
         self.cos_table = {
             let mut out_arr = Array::zeros((3 * self.nbasis, npts));
@@ -63,6 +87,8 @@ impl Solver for LMV {
             println!("{:?}", out_arr);
             Some(out_arr)
         };
+
+        self.get_cjk(problem, operator, self.cos_table.clone().unwrap());
         Ok(SolverSuccess(1, 0.1))
     }
 }
