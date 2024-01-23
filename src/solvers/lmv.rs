@@ -45,13 +45,13 @@ impl LMV {
         let shape = problem.correlations.cr.dim();
         let (npts, ns1, ns2) = shape;
         let mut dp: Array1<f64> = Array::zeros(3 * self.nbasis);
+        let der = (operator.closure_der)(&problem);
 
         for i in 0..ns1 {
             for j in 0..ns2 {
                 for m in 1..(3 * self.nbasis) - 1 {
                     for l in 0..npts {
-                        dp[m] =
-                            dp[m] + (operator.closure_der)(&problem)[[l, i, j]] * costab[[m, l]];
+                        dp[[m]] += der[[l, i, j]] * costab[[m, l]];
                     }
                     dp[m] = dp[m] / npts as f64;
                 }
