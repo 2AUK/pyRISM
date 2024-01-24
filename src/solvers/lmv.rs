@@ -1,9 +1,10 @@
 use crate::data::{configuration::solver::*, core::DataRs};
+use crate::grids::transforms::fourier_bessel_transform_fftw;
 use crate::iet::operator::Operator;
 use crate::solvers::solver::Solver;
 use log::{info, trace};
-use ndarray_linalg::Solve;
-use numpy::ndarray::{Array, Array1, Array2, Array3, Array4};
+use ndarray_linalg::Inverse;
+use numpy::ndarray::{Array, Array1, Array2, Array3, Array4, Axis, Zip};
 use std::f64::consts::PI;
 
 #[derive(Clone, Debug)]
@@ -94,6 +95,48 @@ impl LMV {
     fn lmv_update(&mut self, der: Array3<f64>, invwc1w: Array3<f64>) {
         self.get_cjk(self.cos_table.clone().unwrap(), der);
     }
+
+    fn get_invwc1w(&mut self, problem: &DataRs) -> Array3<f64> {
+        let cr = problem.correlations.cr.clone();
+        let rho = problem.data_a.borrow().density.clone();
+        let b = problem.system.beta;
+        let uk_lr = problem.interactions.uk_lr.clone();
+        let mut ck = Array::zeros(cr.raw_dim());
+        let mut out = Array::zeros(cr.raw_dim());
+        let wk = problem.data_b.borrow().wk.clone();
+        let r = problem.grid.rgrid.view();
+        let k = problem.grid.kgrid.view();
+        let dr = problem.grid.dr;
+        let rtok = 2.0 * PI * dr;
+        let (_, ns2, _) = cr.dim();
+        let identity = Array::eye(ns2);
+        // Transforming c(r) -> c(k)
+        Zip::from(cr.lanes(Axis(0)))
+            .and(ck.lanes_mut(Axis(0)))
+            .par_for_each(|cr_lane, mut ck_lane| {
+                ck_lane.assign(&fourier_bessel_transform_fftw(
+                    rtok,
+                    &r,
+                    &k,
+                    &cr_lane.to_owned(),
+                ));
+            });
+
+        ck = ck - b * uk_lr.to_owned();
+
+        Zip::from(out.outer_iter_mut())
+            .and(wk.outer_iter())
+            .and(ck.outer_iter())
+            .for_each(|mut out_matrix, wk_matrix, ck_matrix| {
+                let inv1wcp = (&identity - &wk_matrix.dot(&ck_matrix.dot(&rho)))
+                    .inv()
+                    .expect("Matrix inversion of 1.0 - w * c * rho");
+                let result = inv1wcp.dot(&wk_matrix);
+                out_matrix.assign(&result);
+            });
+
+        out
+    }
 }
 
 impl Solver for LMV {
@@ -122,6 +165,56 @@ impl Solver for LMV {
             Some(out_arr)
         };
 
-        Ok(SolverSuccess(1, 0.1))
+        loop {
+            let c_prev = problem.correlations.cr.clone();
+            (operator.eq)(problem);
+            let c_a = (operator.closure)(&problem);
+            let c_next;
+
+            let invwc1w = self.get_invwc1w(&problem);
+            println!("{}", invwc1w);
+            c_next = c_a;
+
+            problem.correlations.cr = c_next.clone();
+            let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &c_next, &c_prev);
+
+            trace!("Iteration: {} Convergence RMSE: {:.6E}", i, rmse);
+
+            if rmse <= self.tolerance {
+                break Ok(SolverSuccess(i, rmse));
+            }
+
+            if rmse == std::f64::NAN || rmse == std::f64::INFINITY {
+                break Err(SolverError::ConvergenceError(i));
+            }
+
+            i += 1;
+
+            if i == self.max_iter {
+                break Err(SolverError::MaxIterationError(i));
+            }
+        }
     }
+}
+
+fn compute_rmse(
+    ns1: usize,
+    _ns2: usize,
+    npts: usize,
+    curr: &Array3<f64>,
+    prev: &Array3<f64>,
+) -> f64 {
+    (1.0 / ns1 as f64 / npts as f64 * (curr - prev).sum().powf(2.0)).sqrt()
+}
+
+fn conv_rmse(
+    ns1: usize,
+    ns2: usize,
+    npts: usize,
+    dr: f64,
+    curr: &Array3<f64>,
+    prev: &Array3<f64>,
+) -> f64 {
+    let denom = 1.0 / ns1 as f64 / ns2 as f64 / npts as f64;
+    (dr * (curr - prev).mapv(|x| x.powf(2.0)).sum() * denom).sqrt()
 }
