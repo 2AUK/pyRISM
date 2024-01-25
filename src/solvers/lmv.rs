@@ -123,6 +123,9 @@ impl LMV {
             });
 
         ck = ck - b * uk_lr.to_owned();
+        println!("{:?}", ck);
+        println!("{:?}", r);
+        println!("{:?}", k);
 
         Zip::from(out.outer_iter_mut())
             .and(wk.outer_iter())
