@@ -14,6 +14,7 @@ pub struct LMV {
     pub max_iter: usize,
     pub tolerance: f64,
     pub cos_table: Option<Array2<f64>>,
+    pub coefficients: Array1<f64>,
 }
 
 impl LMV {
@@ -28,6 +29,7 @@ impl LMV {
             max_iter: settings.max_iter,
             tolerance: settings.tolerance,
             cos_table: None,
+            coefficients: Array::zeros(lmv_settings.nbasis),
         }
     }
 
@@ -45,42 +47,42 @@ impl LMV {
 
         for i in 0..ns1 {
             for j in 0..ns2 {
-                println!("ns idx: {},{}", i, j);
+                //println!("ns idx: {},{}", i, j);
                 for m in 1..(3 * self.nbasis) - 1 {
                     dp[m] = 0.0;
                     for l in 0..npts {
-                        println!("point: {}, basis: {}, before: {}", l, m, dp[[m]]);
-                        println!(
-                            "der: {}, costab: {}, der * costab: {}",
-                            der[[l, i, j]],
-                            costab[[m, l]],
-                            der[[l, i, j]] * costab[[m, l]]
-                        );
+                        // println!("point: {}, basis: {}, before: {}", l, m, dp[[m]]);
+                        // println!(
+                        //     "der: {}, costab: {}, der * costab: {}",
+                        //     der[[l, i, j]],
+                        //     costab[[m, l]],
+                        //     der[[l, i, j]] * costab[[m, l]]
+                        // );
                         dp[[m]] += der[[l, i, j]] * costab[[m, l]];
-                        println!("point: {}, basis: {}, after: {}", l, m, dp[[m]]);
+                        // println!("point: {}, basis: {}, after: {}", l, m, dp[[m]]);
                     }
                     dp[m] = dp[m] / npts as f64;
                 }
-                for m in 0..(3 * self.nbasis) {
-                    println!("dp[{}] = {}", m, dp[m]);
-                }
+                // for m in 0..(3 * self.nbasis) {
+                //     println!("dp[{}] = {}", m, dp[m]);
+                // }
 
                 for m in 0..self.nbasis {
                     for k in 0..self.nbasis {
                         let kpm_m = k + m + self.nbasis;
                         let kmm_m = (k as isize - m as isize + self.nbasis as isize) as usize;
-                        println!("m: {}, k: {}, k-m+M: {}, k+m+M: {}", m, k, kpm_m, kmm_m,);
+                        // println!("m: {}, k: {}, k-m+M: {}, k+m+M: {}", m, k, kpm_m, kmm_m,);
                         cjk[[i, j, m, k]] = dp[kmm_m] - dp[kpm_m];
-                        println!(
-                            "c_{}{}[{}][{}] = {} - {} = {}",
-                            i,
-                            j,
-                            m,
-                            k,
-                            dp[kmm_m],
-                            dp[kpm_m],
-                            cjk[[i, j, m, k]]
-                        );
+                        // println!(
+                        //     "c_{}{}[{}][{}] = {} - {} = {}",
+                        //     i,
+                        //     j,
+                        //     m,
+                        //     k,
+                        //     dp[kmm_m],
+                        //     dp[kpm_m],
+                        //     cjk[[i, j, m, k]]
+                        // );
                     }
                 }
             }
@@ -90,20 +92,21 @@ impl LMV {
 
     fn get_jacobian(&mut self, invwc1w: Array3<f64>, cjk: Array4<f64>) -> Array2<f64> {
         let mut out = Array::zeros((self.nbasis, self.nbasis));
-        let (ns1, ns2, _) = invwc1w.dim();
+        let (_, ns1, ns2) = invwc1w.dim();
 
         let mut identity = 0.0;
-        for m1 in 0..self.nbasis {
-            for i in 0..ns1 {
-                for m2 in 0..self.nbasis {
-                    for j in 0..ns2 {
+        for i in 0..ns1 {
+            for j in 0..ns2 {
+                println!("{} {}", i, j);
+                for m1 in 0..self.nbasis {
+                    for m2 in 0..self.nbasis {
                         if i == j {
                             identity = (m1 == m2) as i32 as f64 + cjk[[i, j, m1, m2]];
                         } else {
                             identity = 0.0;
                         }
                         out[[m1, m2]] = identity
-                            - invwc1w[[i, j, m1]] * cjk[[i, j, m1, m2]] * invwc1w[[i, j, m2]];
+                            - invwc1w[[m1, i, j]] * cjk[[i, j, m1, m2]] * invwc1w[[m2, i, j]];
                     }
                 }
             }
@@ -153,18 +156,18 @@ impl LMV {
             .and(wk.outer_iter())
             .and(ck.outer_iter())
             .for_each(|mut out_matrix, wk_matrix, ck_matrix| {
-                println!("wc\n{:?}", &wk_matrix.dot(&ck_matrix));
-                println!("wcp\n{:?}", &wk_matrix.dot(&ck_matrix.dot(&rho)));
-                println!("pwc\n{:?}", &rho.dot(&wk_matrix.dot(&ck_matrix)));
-                println!(
-                    "1 - wcp\n{:?}",
-                    &identity - &wk_matrix.dot(&ck_matrix.dot(&rho))
-                );
+                // println!("wc\n{:?}", &wk_matrix.dot(&ck_matrix));
+                // println!("wcp\n{:?}", &wk_matrix.dot(&ck_matrix.dot(&rho)));
+                // println!("pwc\n{:?}", &rho.dot(&wk_matrix.dot(&ck_matrix)));
+                // println!(
+                //     "1 - wcp\n{:?}",
+                //     &identity - &wk_matrix.dot(&ck_matrix.dot(&rho))
+                // );
                 let inv1wcp = (&identity - &wk_matrix.dot(&ck_matrix.dot(&rho)))
                     .inv()
                     .expect("Matrix inversion of 1.0 - w * c * rho");
                 let result = inv1wcp.dot(&wk_matrix);
-                println!("(1-wcp)^-1 * w\n{:?}", result);
+                //println!("(1-wcp)^-1 * w\n{:?}", result);
                 out_matrix.assign(&result);
             });
         out
@@ -191,7 +194,7 @@ impl Solver for LMV {
                             / npts as f64
                             / 2.0)
                             .cos();
-                    println!("outarr[{}][{}] = {}", j, i, out_arr[[j, i]]);
+                    // println!("outarr[{}][{}] = {}", j, i, out_arr[[j, i]]);
                 }
             }
             Some(out_arr)
