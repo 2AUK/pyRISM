@@ -131,13 +131,20 @@ impl LMV {
             .and(wk.outer_iter())
             .and(ck.outer_iter())
             .for_each(|mut out_matrix, wk_matrix, ck_matrix| {
+                println!("wc\n{:?}", &wk_matrix.dot(&ck_matrix));
+                println!("wcp\n{:?}", &wk_matrix.dot(&ck_matrix.dot(&rho)));
+                println!("pwc\n{:?}", &rho.dot(&wk_matrix.dot(&ck_matrix)));
+                println!(
+                    "1 - wcp\n{:?}",
+                    &identity - &wk_matrix.dot(&ck_matrix.dot(&rho))
+                );
                 let inv1wcp = (&identity - &wk_matrix.dot(&ck_matrix.dot(&rho)))
                     .inv()
                     .expect("Matrix inversion of 1.0 - w * c * rho");
                 let result = inv1wcp.dot(&wk_matrix);
+                println!("(1-wcp)^-1 * w\n{:?}", result);
                 out_matrix.assign(&result);
             });
-
         out
     }
 }
@@ -168,6 +175,11 @@ impl Solver for LMV {
             Some(out_arr)
         };
 
+        // let c_prev = problem.correlations.cr.clone();
+        // (operator.eq)(problem);
+        // let c_a = (operator.closure)(&problem);
+        // problem.correlations.cr = self.step_picard(&c_a, &c_prev);
+        //
         loop {
             let c_prev = problem.correlations.cr.clone();
             (operator.eq)(problem);
