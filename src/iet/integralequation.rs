@@ -150,7 +150,14 @@ fn rism_vv_equation_impl(
             ));
         });
     // Adding long-range component back in
+    println!("START IE DUMPING");
+    println!("{:?}", b * uk_lr.clone().to_owned());
+    println!("{:?}", ck);
     ck = ck - b * uk_lr.to_owned();
+    println!("{:?}", ck);
+    println!("{:?}", r);
+    println!("{:?}", k);
+    println!("END IE DUMPING");
 
     // Perform integral equation calculation in k-space
     // H = (I - W * C * P * Χ)^-1 * (W * C * W) + Χ

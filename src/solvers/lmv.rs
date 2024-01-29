@@ -88,12 +88,37 @@ impl LMV {
         cjk
     }
 
-    fn get_jacobian(&mut self, invwc1w: Array3<f64>) -> Array3<f64> {
-        todo!()
+    fn get_jacobian(&mut self, invwc1w: Array3<f64>, cjk: Array4<f64>) -> Array2<f64> {
+        let mut out = Array::zeros((self.nbasis, self.nbasis));
+        let (ns1, ns2, _) = invwc1w.dim();
+
+        let mut identity = 0.0;
+        for m1 in 0..self.nbasis {
+            for i in 0..ns1 {
+                for m2 in 0..self.nbasis {
+                    for j in 0..ns2 {
+                        if i == j {
+                            identity = (m1 == m2) as i32 as f64 + cjk[[i, j, m1, m2]];
+                        } else {
+                            identity = 0.0;
+                        }
+                        out[[m1, m2]] = identity
+                            - invwc1w[[i, j, m1]] * cjk[[i, j, m1, m2]] * invwc1w[[i, j, m2]];
+                    }
+                }
+            }
+        }
+        out
     }
 
-    fn lmv_update(&mut self, der: Array3<f64>, invwc1w: Array3<f64>) {
-        self.get_cjk(self.cos_table.clone().unwrap(), der);
+    fn lmv_update(&mut self, operator: &Operator, problem: &DataRs) {
+        let der = (operator.closure_der)(&problem);
+        let cjk = self.get_cjk(self.cos_table.clone().unwrap(), der);
+        let invwc1w = self.get_invwc1w(problem);
+        let jac = self.get_jacobian(invwc1w, cjk);
+
+        println!("JACOBIAN");
+        println!("{:?}", jac);
     }
 
     fn get_invwc1w(&mut self, problem: &DataRs) -> Array3<f64> {
@@ -123,9 +148,6 @@ impl LMV {
             });
 
         ck = ck - b * uk_lr.to_owned();
-        println!("{:?}", ck);
-        println!("{:?}", r);
-        println!("{:?}", k);
 
         Zip::from(out.outer_iter_mut())
             .and(wk.outer_iter())
@@ -175,23 +197,24 @@ impl Solver for LMV {
             Some(out_arr)
         };
 
-        // let c_prev = problem.correlations.cr.clone();
-        // (operator.eq)(problem);
-        // let c_a = (operator.closure)(&problem);
-        // problem.correlations.cr = self.step_picard(&c_a, &c_prev);
-        //
+        // This methods requires iterating over t(k) rather than c(k)
+        // We iterate the problem once with a Direct step (0.0 damped Picard step)
+
+        (operator.eq)(problem);
+
         loop {
-            let c_prev = problem.correlations.cr.clone();
+            let t_prev = problem.correlations.tr.clone();
+            problem.correlations.cr = (operator.closure)(&problem);
             (operator.eq)(problem);
-            let c_a = (operator.closure)(&problem);
-            let c_next;
+            let t_a = problem.correlations.tr.clone();
+            let t_next;
 
-            let invwc1w = self.get_invwc1w(&problem);
-            println!("{}", invwc1w);
-            c_next = c_a;
+            t_next = t_a;
 
-            problem.correlations.cr = c_next.clone();
-            let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &c_next, &c_prev);
+            self.lmv_update(operator, problem);
+
+            // problem.correlations.cr = c_next.clone();
+            let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &t_next, &t_prev);
 
             trace!("Iteration: {} Convergence RMSE: {:.6E}", i, rmse);
 
