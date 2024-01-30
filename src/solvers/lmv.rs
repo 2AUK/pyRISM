@@ -3,8 +3,8 @@ use crate::grids::transforms::fourier_bessel_transform_fftw;
 use crate::iet::operator::Operator;
 use crate::solvers::solver::Solver;
 use log::{info, trace};
-use ndarray_linalg::Inverse;
-use numpy::ndarray::{Array, Array1, Array2, Array3, Array4, Axis, Zip};
+use ndarray_linalg::{Inverse, Solve};
+use numpy::ndarray::{Array, Array1, Array2, Array3, Array4, Axis, IntoNdProducer, Zip};
 use std::f64::consts::PI;
 
 #[derive(Clone, Debug)]
@@ -14,7 +14,7 @@ pub struct LMV {
     pub max_iter: usize,
     pub tolerance: f64,
     pub cos_table: Option<Array2<f64>>,
-    pub coefficients: Array1<f64>,
+    pub diff_array: Array1<f64>,
 }
 
 impl LMV {
@@ -29,7 +29,7 @@ impl LMV {
             max_iter: settings.max_iter,
             tolerance: settings.tolerance,
             cos_table: None,
-            coefficients: Array::zeros(lmv_settings.nbasis),
+            diff_array: Array::zeros(lmv_settings.nbasis),
         }
     }
 
@@ -90,38 +90,102 @@ impl LMV {
         cjk
     }
 
-    fn get_jacobian(&mut self, invwc1w: Array3<f64>, cjk: Array4<f64>) -> Array2<f64> {
-        let mut out = Array::zeros((self.nbasis, self.nbasis));
+    fn get_jacobian(&mut self, invwc1w: &Array3<f64>, cjk: &Array4<f64>) -> Array2<f64> {
         let (_, ns1, ns2) = invwc1w.dim();
+        let npr = ns1 * ns2;
+        let mp = npr * self.nbasis;
+        // println!("{}", mp);
+        let mut out = Array::zeros((mp, mp));
 
-        let mut identity = 0.0;
-        for i in 0..ns1 {
-            for j in 0..ns2 {
-                println!("{} {}", i, j);
-                for m1 in 0..self.nbasis {
+        for m1 in 0..self.nbasis {
+            let mut ipr1 = 0;
+            for i1 in 0..ns1 {
+                for j1 in 0..ns2 {
+                    let id1 = m1 * npr + ipr1;
                     for m2 in 0..self.nbasis {
-                        if i == j {
-                            identity = (m1 == m2) as i32 as f64 + cjk[[i, j, m1, m2]];
-                        } else {
-                            identity = 0.0;
+                        let mut ipr2 = 0;
+                        for i2 in 0..ns1 {
+                            for j2 in 0..ns2 {
+                                let id2 = m2 * npr + ipr2;
+                                // println!("{} {}", id1, id2);
+                                let identity = {
+                                    if ipr1 == ipr2 {
+                                        (m1 == m2) as i32 as f64 + cjk[[i1, j1, m1, m2]]
+                                    } else {
+                                        0.0
+                                    }
+                                };
+                                out[[id1, id2]] = identity
+                                    - invwc1w[[m1, i2, j1]]
+                                        * cjk[[i2, j2, m1, m2]]
+                                        * invwc1w[[m2, j2, j1]];
+                                ipr2 += 1;
+                            }
                         }
-                        out[[m1, m2]] = identity
-                            - invwc1w[[m1, i, j]] * cjk[[i, j, m1, m2]] * invwc1w[[m2, i, j]];
                     }
+                    ipr1 += 1;
                 }
             }
         }
         out
     }
 
-    fn lmv_update(&mut self, operator: &Operator, problem: &DataRs) {
+    fn lmv_update(
+        &mut self,
+        operator: &Operator,
+        problem: &DataRs,
+        t_prev: &Array3<f64>,
+        t_a: &Array3<f64>,
+    ) -> Array3<f64> {
         let der = (operator.closure_der)(&problem);
         let cjk = self.get_cjk(self.cos_table.clone().unwrap(), der);
         let invwc1w = self.get_invwc1w(problem);
-        let jac = self.get_jacobian(invwc1w, cjk);
+        let (npts, ns1, ns2) = invwc1w.dim();
+        let jac = self.get_jacobian(&invwc1w, &cjk);
+        let k = &problem.grid.kgrid;
+        let npr = ns1 * ns2;
+        let mp = npr * self.nbasis;
+        let mut diff_work: Array1<f64> = Array::zeros(mp);
+        let mut out = Array::zeros((npts, ns1, ns2));
 
-        println!("JACOBIAN");
-        println!("{:?}", jac);
+        // println!("JACOBIAN");
+        // println!("{:?}", jac);
+        for m in 0..self.nbasis {
+            let mut id = 0;
+            for i in 0..ns1 {
+                for j in 0..ns2 {
+                    let mpid = m * npr + id;
+                    // println!("{} {} {} {}", m, i, j, mpid);
+                    diff_work[[mpid]] = k[[m]] * (t_a[[m, i, j]] - t_prev[[m, i, j]]);
+                    id += 1;
+                }
+            }
+        }
+        // println!("{}", diff_work);
+
+        let coeff = jac
+            .solve_into(diff_work)
+            .expect("could not perform linear solve");
+
+        // println!("{}", coeff);
+
+        for l in 0..npts {
+            let mut ipr = 0;
+            for i in 0..ns1 {
+                for j in 0..ns2 {
+                    let del;
+                    if l < self.nbasis {
+                        // println!("{}", l * npr + ipr);
+                        del = coeff[[l * npr + ipr]] / k[[l]];
+                    } else {
+                        del = t_a[[l, i, j]] - t_prev[[l, i, j]];
+                    }
+                    out[[l, i, j]] = self.picard_damping * del;
+                    ipr += 1;
+                }
+            }
+        }
+        out
     }
 
     fn get_invwc1w(&mut self, problem: &DataRs) -> Array3<f64> {
@@ -210,14 +274,14 @@ impl Solver for LMV {
             problem.correlations.cr = (operator.closure)(&problem);
             (operator.eq)(problem);
             let t_a = problem.correlations.tr.clone();
-            let t_next;
 
-            t_next = t_a;
+            let t_next = self.lmv_update(operator, problem, &t_a, &t_prev);
 
-            self.lmv_update(operator, problem);
+            println!("{}", t_next);
 
-            // problem.correlations.cr = c_next.clone();
-            let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &t_next, &t_prev);
+            problem.correlations.tr = t_next.clone();
+            // let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &t_next, &t_prev);
+            let rmse = compute_rmse(ns1, ns2, npts, &t_next, &t_prev);
 
             trace!("Iteration: {} Convergence RMSE: {:.6E}", i, rmse);
 
