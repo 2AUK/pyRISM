@@ -116,7 +116,7 @@ impl LMV {
                                     }
                                 };
                                 out[[id1, id2]] = identity
-                                    - invwc1w[[m1, i2, j1]]
+                                    - invwc1w[[m1, i2, i1]]
                                         * cjk[[i2, j2, m1, m2]]
                                         * invwc1w[[m2, j2, j1]];
                                 ipr2 += 1;
@@ -149,14 +149,14 @@ impl LMV {
         let mut out = Array::zeros((npts, ns1, ns2));
 
         // println!("JACOBIAN");
-        // println!("{:?}", jac);
+        // println!("{}", jac);
         for m in 0..self.nbasis {
             let mut id = 0;
             for i in 0..ns1 {
                 for j in 0..ns2 {
                     let mpid = m * npr + id;
                     // println!("{} {} {} {}", m, i, j, mpid);
-                    diff_work[[mpid]] = k[[m]] * (t_a[[m, i, j]] - t_prev[[m, i, j]]);
+                    diff_work[[mpid]] = k[[m]] * (t_prev[[m, i, j]] - t_a[[m, i, j]]);
                     id += 1;
                 }
             }
@@ -178,7 +178,7 @@ impl LMV {
                         // println!("{}", l * npr + ipr);
                         del = coeff[[l * npr + ipr]] / k[[l]];
                     } else {
-                        del = t_a[[l, i, j]] - t_prev[[l, i, j]];
+                        del = t_prev[[l, i, j]] - t_a[[l, i, j]];
                     }
                     out[[l, i, j]] = self.picard_damping * del;
                     ipr += 1;
@@ -277,11 +277,11 @@ impl Solver for LMV {
 
             let t_next = self.lmv_update(operator, problem, &t_a, &t_prev);
 
-            println!("{}", t_next);
+            // println!("{}", t_next);
 
             problem.correlations.tr = t_next.clone();
-            // let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &t_next, &t_prev);
-            let rmse = compute_rmse(ns1, ns2, npts, &t_next, &t_prev);
+            let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &t_next, &t_prev);
+            // let rmse = compute_rmse(ns1, ns2, npts, &t_next, &t_prev);
 
             trace!("Iteration: {} Convergence RMSE: {:.6E}", i, rmse);
 
