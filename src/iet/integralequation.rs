@@ -1,5 +1,6 @@
 use crate::data::core::DataRs;
 use crate::grids::transforms::fourier_bessel_transform_fftw;
+use log::debug;
 use ndarray::{Array, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis, Zip};
 use ndarray_linalg::Inverse;
 use pyo3::{prelude::*, types::PyString};
@@ -153,35 +154,42 @@ fn rism_vv_equation_impl(
     for l in 0..npts {
         for i in 0..ns1 {
             for j in 0..ns2 {
-                println!("r[{}] = {}\nk[{}] = {}", l, r[l], l, k[l]);
-                println!("c[{}][{}][{}] = {}", l, i, j, cr[[l, i, j]]);
-                println!(
+                debug!("ck[{}][{}][{}] = {}", l, i, j, ck[[l, i, j]]);
+            }
+        }
+    }
+    for l in 0..npts {
+        for i in 0..ns1 {
+            for j in 0..ns2 {
+                debug!("r[{}] = {}\nk[{}] = {}", l, r[l], l, k[l]);
+                debug!("c[{}][{}][{}] = {}", l, i, j, ck[[l, i, j]]);
+                debug!(
                     "v[{}][{}][{}] = {}",
                     l,
                     i,
                     j,
-                    -b * uk_lr[[l, i, j]].clone().to_owned()
+                    b * uk_lr[[l, i, j]].clone().to_owned()
                 );
-                println!(
+                debug!(
                     "(c-v)[{}][{}][{}] = {}",
                     l,
                     i,
                     j,
-                    ck.clone()[[l, i, j]] + -b * uk_lr.clone().to_owned()[[l, i, j]]
+                    ck.clone()[[l, i, j]] - b * uk_lr.clone().to_owned()[[l, i, j]]
                 );
             }
         }
     }
 
     // Adding long-range component back in
-    // println!("START IE DUMPING");
-    // println!("{:?}", b * uk_lr.clone().to_owned());
-    // println!("{:?}", ck);
+    // debug!("START IE DUMPING");
+    // debug!("{:?}", b * uk_lr.clone().to_owned());
+    // debug!("{:?}", ck);
     ck = ck - b * uk_lr.to_owned();
-    // println!("{:?}", ck);
-    // println!("{:?}", r);
-    // println!("{:?}", k);
-    // println!("END IE DUMPING");
+    // debug!("{:?}", ck);
+    // debug!("{:?}", r);
+    // debug!("{:?}", k);
+    // debug!("END IE DUMPING");
     //
     // Perform integral equation calculation in k-space
     // H = (I - W * C * P * Χ)^-1 * (W * C * W) + Χ
@@ -198,7 +206,9 @@ fn rism_vv_equation_impl(
         });
 
     // Compute t(k) = h(k) - c(k)
-    let tk = &hk - ck;
+    let mut tk = &hk - ck;
+
+    tk = tk - b * uk_lr.to_owned();
 
     // Transform t(k) -> t(r)
     Zip::from(tk.lanes(Axis(0)))
@@ -213,7 +223,7 @@ fn rism_vv_equation_impl(
         });
 
     // removing long-range component
-    tr = tr - b * ur_lr.to_owned();
+    // tr = tr - b * ur_lr.to_owned();
 
     // return k-space total correlation and r-space indirect correlation functions
     (hk, tr)

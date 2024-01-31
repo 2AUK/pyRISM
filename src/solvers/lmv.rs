@@ -2,7 +2,7 @@ use crate::data::{configuration::solver::*, core::DataRs};
 use crate::grids::transforms::fourier_bessel_transform_fftw;
 use crate::iet::operator::Operator;
 use crate::solvers::solver::Solver;
-use log::{info, trace};
+use log::{debug, info, trace};
 use ndarray_linalg::{Inverse, Solve};
 use numpy::ndarray::{Array, Array1, Array2, Array3, Array4, Axis, IntoNdProducer, Zip};
 use std::f64::consts::PI;
@@ -47,42 +47,42 @@ impl LMV {
 
         for i in 0..ns1 {
             for j in 0..ns2 {
-                //println!("ns idx: {},{}", i, j);
+                debug!("ns idx: {},{}", i, j);
                 for m in 1..(3 * self.nbasis) - 1 {
                     dp[m] = 0.0;
                     for l in 0..npts {
-                        // println!("point: {}, basis: {}, before: {}", l, m, dp[[m]]);
-                        // println!(
-                        //     "der: {}, costab: {}, der * costab: {}",
-                        //     der[[l, i, j]],
-                        //     costab[[m, l]],
-                        //     der[[l, i, j]] * costab[[m, l]]
-                        // );
+                        debug!("point: {}, basis: {}, before: {}", l, m, dp[[m]]);
+                        debug!(
+                            "der: {}, costab: {}, der * costab: {}",
+                            der[[l, i, j]],
+                            costab[[m, l]],
+                            der[[l, i, j]] * costab[[m, l]]
+                        );
                         dp[[m]] += der[[l, i, j]] * costab[[m, l]];
-                        // println!("point: {}, basis: {}, after: {}", l, m, dp[[m]]);
+                        debug!("point: {}, basis: {}, after: {}", l, m, dp[[m]]);
                     }
                     dp[m] = dp[m] / npts as f64;
                 }
-                // for m in 0..(3 * self.nbasis) {
-                //     println!("dp[{}] = {}", m, dp[m]);
-                // }
+                for m in 0..(3 * self.nbasis) {
+                    debug!("dp[{}] = {}", m, dp[m]);
+                }
 
                 for m in 0..self.nbasis {
                     for k in 0..self.nbasis {
                         let kpm_m = k + m + self.nbasis;
                         let kmm_m = (k as isize - m as isize + self.nbasis as isize) as usize;
-                        // println!("m: {}, k: {}, k-m+M: {}, k+m+M: {}", m, k, kpm_m, kmm_m,);
+                        debug!("m: {}, k: {}, k-m+M: {}, k+m+M: {}", m, k, kpm_m, kmm_m,);
                         cjk[[i, j, m, k]] = dp[kmm_m] - dp[kpm_m];
-                        // println!(
-                        //     "c_{}{}[{}][{}] = {} - {} = {}",
-                        //     i,
-                        //     j,
-                        //     m,
-                        //     k,
-                        //     dp[kmm_m],
-                        //     dp[kpm_m],
-                        //     cjk[[i, j, m, k]]
-                        // );
+                        debug!(
+                            "c_{}{}[{}][{}] = {} - {} = {}",
+                            i,
+                            j,
+                            m,
+                            k,
+                            dp[kmm_m],
+                            dp[kpm_m],
+                            cjk[[i, j, m, k]]
+                        );
                     }
                 }
             }
@@ -94,7 +94,7 @@ impl LMV {
         let (_, ns1, ns2) = invwc1w.dim();
         let npr = ns1 * ns2;
         let mp = npr * self.nbasis;
-        // println!("{}", mp);
+        debug!("{}", mp);
         let mut out = Array::zeros((mp, mp));
 
         for m1 in 0..self.nbasis {
@@ -107,7 +107,7 @@ impl LMV {
                         for i2 in 0..ns1 {
                             for j2 in 0..ns2 {
                                 let id2 = m2 * npr + ipr2;
-                                // println!("{} {}", id1, id2);
+                                debug!("{} {}", id1, id2);
                                 let identity = {
                                     if ipr1 == ipr2 {
                                         (m1 == m2) as i32 as f64 + cjk[[i1, j1, m1, m2]]
@@ -115,7 +115,7 @@ impl LMV {
                                         0.0
                                     }
                                 };
-                                println!(
+                                debug!(
                                     "invwc1w[{}][{}][{}] = {:.4e}",
                                     m1,
                                     i2,
@@ -126,7 +126,7 @@ impl LMV {
                                     - invwc1w[[m1, i2, i1]]
                                         * cjk[[i2, j2, m1, m2]]
                                         * invwc1w[[m2, j2, j1]];
-                                println!("jac[{}][{}] = {:.4e}", id1, id2, out[[id1, id2]]);
+                                debug!("jac[{}][{}] = {:.4e}", id1, id2, out[[id1, id2]]);
                                 ipr2 += 1;
                             }
                         }
@@ -156,25 +156,25 @@ impl LMV {
         let mut diff_work: Array1<f64> = Array::zeros(mp);
         let mut out = Array::zeros((npts, ns1, ns2));
 
-        println!("JACOBIAN");
+        debug!("JACOBIAN");
         for m in 0..self.nbasis {
             let mut id = 0;
             for i in 0..ns1 {
                 for j in 0..ns2 {
                     let mpid = m * npr + id;
-                    // println!("{} {} {} {}", m, i, j, mpid);
+                    debug!("{} {} {} {}", m, i, j, mpid);
                     diff_work[[mpid]] = k[[m]] * (t_prev[[m, i, j]] - t_a[[m, i, j]]);
                     id += 1;
                 }
             }
         }
-        // println!("{}", diff_work);
+        debug!("{}", diff_work);
 
         let coeff = jac
             .solve_into(diff_work)
             .expect("could not perform linear solve");
 
-        // println!("{}", coeff);
+        debug!("{}", coeff);
 
         for l in 0..npts {
             let mut ipr = 0;
@@ -182,7 +182,7 @@ impl LMV {
                 for j in 0..ns2 {
                     let del;
                     if l < self.nbasis {
-                        // println!("{}", l * npr + ipr);
+                        debug!("{}", l * npr + ipr);
                         del = coeff[[l * npr + ipr]] / k[[l]];
                     } else {
                         del = t_prev[[l, i, j]] - t_a[[l, i, j]];
@@ -207,8 +207,8 @@ impl LMV {
         let k = problem.grid.kgrid.view();
         let dr = problem.grid.dr;
         let rtok = 2.0 * PI * dr;
-        let (_, ns2, _) = cr.dim();
-        let identity = Array::eye(ns2);
+        let (npts, ns1, ns2) = cr.dim();
+        let identity = Array::eye(ns1);
         // Transforming c(r) -> c(k)
         Zip::from(cr.lanes(Axis(0)))
             .and(ck.lanes_mut(Axis(0)))
@@ -220,6 +220,28 @@ impl LMV {
                     &cr_lane.to_owned(),
                 ));
             });
+        for l in 0..npts {
+            for i in 0..ns1 {
+                for j in 0..ns2 {
+                    debug!("INVWC1W CALCULATION");
+                    debug!("c[{}][{}][{}] = {}", l, i, j, cr[[l, i, j]]);
+                    debug!(
+                        "v[{}][{}][{}] = {}",
+                        l,
+                        i,
+                        j,
+                        b * uk_lr[[l, i, j]].clone().to_owned()
+                    );
+                    debug!(
+                        "(c-v)[{}][{}][{}] = {}",
+                        l,
+                        i,
+                        j,
+                        ck.clone()[[l, i, j]] - b * uk_lr.clone().to_owned()[[l, i, j]]
+                    );
+                }
+            }
+        }
 
         ck = ck - b * uk_lr.to_owned();
 
@@ -227,18 +249,18 @@ impl LMV {
             .and(wk.outer_iter())
             .and(ck.outer_iter())
             .for_each(|mut out_matrix, wk_matrix, ck_matrix| {
-                // println!("wc\n{:?}", &wk_matrix.dot(&ck_matrix));
-                // println!("wcp\n{:?}", &wk_matrix.dot(&ck_matrix.dot(&rho)));
-                // println!("pwc\n{:?}", &rho.dot(&wk_matrix.dot(&ck_matrix)));
-                // println!(
-                //     "1 - wcp\n{:?}",
-                //     &identity - &wk_matrix.dot(&ck_matrix.dot(&rho))
-                // );
+                debug!("wc\n{:?}", &wk_matrix.dot(&ck_matrix));
+                debug!("wcp\n{:?}", &wk_matrix.dot(&ck_matrix.dot(&rho)));
+                debug!("pwc\n{:?}", &rho.dot(&wk_matrix.dot(&ck_matrix)));
+                debug!(
+                    "1 - wcp\n{:?}",
+                    &identity - &wk_matrix.dot(&ck_matrix.dot(&rho))
+                );
                 let inv1wcp = (&identity - &wk_matrix.dot(&ck_matrix.dot(&rho)))
                     .inv()
                     .expect("Matrix inversion of 1.0 - w * c * rho");
                 let result = inv1wcp.dot(&wk_matrix);
-                //println!("(1-wcp)^-1 * w\n{:?}", result);
+                debug!("(1-wcp)^-1 * w\n{:?}", result);
                 out_matrix.assign(&result);
             });
         out
@@ -265,7 +287,7 @@ impl Solver for LMV {
                             / npts as f64
                             / 2.0)
                             .cos();
-                    // println!("outarr[{}][{}] = {}", j, i, out_arr[[j, i]]);
+                    debug!("outarr[{}][{}] = {}", j, i, out_arr[[j, i]]);
                 }
             }
             Some(out_arr)
@@ -275,7 +297,20 @@ impl Solver for LMV {
         // We iterate the problem once with a Direct step (0.0 damped Picard step)
 
         (operator.eq)(problem);
-        problem.correlations.cr = (operator.closure)(&problem);
+        //problem.correlations.cr = (operator.closure)(&problem);
+        for l in 0..npts {
+            for i in 0..ns1 {
+                for j in 0..ns2 {
+                    debug!(
+                        "tr[{}][{}][{}] = {}",
+                        l,
+                        i,
+                        j,
+                        problem.correlations.tr[[l, i, j]]
+                    );
+                }
+            }
+        }
 
         loop {
             let t_prev = problem.correlations.tr.clone();
@@ -283,15 +318,17 @@ impl Solver for LMV {
             (operator.eq)(problem);
             let t_a = problem.correlations.tr.clone();
 
+            let cr = problem.correlations.cr.clone();
+
             let t_next = self.lmv_update(operator, problem, &t_a, &t_prev);
 
-            // println!("{}", t_next);
+            debug!("{}", t_next);
 
             problem.correlations.tr = t_next.clone();
             let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &t_next, &t_prev);
             // let rmse = compute_rmse(ns1, ns2, npts, &t_next, &t_prev);
 
-            trace!("Iteration: {} Convergence RMSE: {:.6E}", i, rmse);
+            info!("Iteration: {} Convergence RMSE: {:.6E}", i, rmse);
 
             if rmse <= self.tolerance {
                 break Ok(SolverSuccess(i, rmse));
