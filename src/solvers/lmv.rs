@@ -115,10 +115,18 @@ impl LMV {
                                         0.0
                                     }
                                 };
+                                println!(
+                                    "invwc1w[{}][{}][{}] = {:.4e}",
+                                    m1,
+                                    i2,
+                                    i1,
+                                    invwc1w[[m1, i1, i2]]
+                                );
                                 out[[id1, id2]] = identity
                                     - invwc1w[[m1, i2, i1]]
                                         * cjk[[i2, j2, m1, m2]]
                                         * invwc1w[[m2, j2, j1]];
+                                println!("jac[{}][{}] = {:.4e}", id1, id2, out[[id1, id2]]);
                                 ipr2 += 1;
                             }
                         }
@@ -148,8 +156,7 @@ impl LMV {
         let mut diff_work: Array1<f64> = Array::zeros(mp);
         let mut out = Array::zeros((npts, ns1, ns2));
 
-        // println!("JACOBIAN");
-        // println!("{}", jac);
+        println!("JACOBIAN");
         for m in 0..self.nbasis {
             let mut id = 0;
             for i in 0..ns1 {
@@ -268,6 +275,7 @@ impl Solver for LMV {
         // We iterate the problem once with a Direct step (0.0 damped Picard step)
 
         (operator.eq)(problem);
+        problem.correlations.cr = (operator.closure)(&problem);
 
         loop {
             let t_prev = problem.correlations.tr.clone();

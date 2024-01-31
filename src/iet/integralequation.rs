@@ -128,6 +128,7 @@ fn rism_vv_equation_impl(
     // Setting up prefactors for Fourier-Bessel transforms
     let rtok = 2.0 * PI * dr;
     let ktor = dk / (4.0 * PI * PI);
+    let (npts, ns1, ns2) = cr.dim();
 
     // Starting FFT Plan
     // let plan = DctPlanner::new().plan_dst4(npts);
@@ -149,6 +150,29 @@ fn rism_vv_equation_impl(
                 &cr_lane.to_owned(),
             ));
         });
+    for l in 0..npts {
+        for i in 0..ns1 {
+            for j in 0..ns2 {
+                println!("r[{}] = {}\nk[{}] = {}", l, r[l], l, k[l]);
+                println!("c[{}][{}][{}] = {}", l, i, j, cr[[l, i, j]]);
+                println!(
+                    "v[{}][{}][{}] = {}",
+                    l,
+                    i,
+                    j,
+                    -b * uk_lr[[l, i, j]].clone().to_owned()
+                );
+                println!(
+                    "(c-v)[{}][{}][{}] = {}",
+                    l,
+                    i,
+                    j,
+                    ck.clone()[[l, i, j]] + -b * uk_lr.clone().to_owned()[[l, i, j]]
+                );
+            }
+        }
+    }
+
     // Adding long-range component back in
     // println!("START IE DUMPING");
     // println!("{:?}", b * uk_lr.clone().to_owned());
