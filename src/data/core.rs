@@ -88,6 +88,7 @@ pub struct Correlations {
     pub tr: Array3<f64>,
     pub hr: Array3<f64>,
     pub hk: Array3<f64>,
+    pub tk: Array3<f64>,
 }
 
 #[derive(Clone, Debug)]
@@ -115,6 +116,7 @@ impl Correlations {
             tr: Array::zeros(shape),
             hr: Array::zeros(shape),
             hk: Array::zeros(shape),
+            tk: Array::zeros(shape),
         }
     }
 }
