@@ -187,7 +187,7 @@ impl LMV {
                     } else {
                         del = t_prev[[l, i, j]] - t_a[[l, i, j]];
                     }
-                    out[[l, i, j]] = self.picard_damping * del;
+                    out[[l, i, j]] += self.picard_damping * del;
                     ipr += 1;
                 }
             }
@@ -276,6 +276,10 @@ impl Solver for LMV {
         let shape = problem.correlations.cr.dim();
         let (npts, ns1, ns2) = shape;
         let mut i = 0;
+        let r = problem.grid.rgrid.clone();
+        let k = problem.grid.kgrid.clone();
+        let dk = problem.grid.dk;
+        let ktor = dk / (4.0 * PI * PI);
 
         // tabulate cos_table
         self.cos_table = {
@@ -295,36 +299,58 @@ impl Solver for LMV {
 
         // This methods requires iterating over t(k) rather than c(k)
         // We iterate the problem once with a Direct step (0.0 damped Picard step)
-
+        debug!("INITIAL PICARD STEP");
         (operator.eq)(problem);
         //problem.correlations.cr = (operator.closure)(&problem);
         for l in 0..npts {
             for i in 0..ns1 {
                 for j in 0..ns2 {
                     debug!(
-                        "tr[{}][{}][{}] = {}",
+                        "tk[{}][{}][{}] = {}",
                         l,
                         i,
                         j,
-                        problem.correlations.tr[[l, i, j]]
+                        problem.correlations.tk[[l, i, j]]
                     );
                 }
             }
         }
-
+        debug!("STARTING LMV CYCLE");
         loop {
-            let t_prev = problem.correlations.tr.clone();
+            let t_prev = problem.correlations.tk.clone();
+            for l in 0..npts {
+                for i in 0..ns1 {
+                    for j in 0..ns2 {
+                        debug!(
+                            "tr[{}][{}][{}] = {}",
+                            l,
+                            i,
+                            j,
+                            problem.correlations.tr[[l, i, j]]
+                        );
+                    }
+                }
+            }
+
             problem.correlations.cr = (operator.closure)(&problem);
             (operator.eq)(problem);
-            let t_a = problem.correlations.tr.clone();
+            let t_a = problem.correlations.tk.clone();
 
-            let cr = problem.correlations.cr.clone();
+            let _ = problem.correlations.cr.clone();
 
             let t_next = self.lmv_update(operator, problem, &t_a, &t_prev);
 
-            debug!("{}", t_next);
+            Zip::from(t_next.lanes(Axis(0)))
+                .and(problem.correlations.tr.lanes_mut(Axis(0)))
+                .par_for_each(|tk_lane, mut tr_lane| {
+                    tr_lane.assign(&fourier_bessel_transform_fftw(
+                        ktor,
+                        &k.view(),
+                        &r.view(),
+                        &tk_lane.to_owned(),
+                    ));
+                });
 
-            problem.correlations.tr = t_next.clone();
             let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &t_next, &t_prev);
             // let rmse = compute_rmse(ns1, ns2, npts, &t_next, &t_prev);
 
