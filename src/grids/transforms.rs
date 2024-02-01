@@ -8,7 +8,7 @@ pub fn fourier_bessel_transform_fftw(
     grid2: &ArrayView1<f64>,
     func: &Array1<f64>,
 ) -> Array1<f64> {
-    let arr = func * grid1;
+    let arr = grid1 * func;
     let mut r2r: R2RPlan64 =
         R2RPlan::aligned(&[grid1.len()], R2RKind::FFTW_RODFT11, Flag::ESTIMATE)
             .expect("could not execute FFTW plan");
