@@ -165,6 +165,8 @@ fn rism_vv_equation_impl(
                 &cr_lane.to_owned(),
             ));
         });
+    debug!("rtok: {rtok}");
+    debug!("ktor: {ktor}");
     for l in 0..npts {
         for i in 0..ns1 {
             for j in 0..ns2 {

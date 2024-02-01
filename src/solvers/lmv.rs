@@ -164,6 +164,7 @@ impl LMV {
                     let mpid = m * npr + id;
                     debug!("{} {} {} {}", m, i, j, mpid);
                     diff_work[[mpid]] = k[[m]] * (t_prev[[m, i, j]] - t_a[[m, i, j]]);
+                    debug!("dif[{}] = {}", mpid, diff_work[[mpid]]);
                     id += 1;
                 }
             }
@@ -327,6 +328,20 @@ impl Solver for LMV {
                             i,
                             j,
                             problem.correlations.tr[[l, i, j]]
+                        );
+                    }
+                }
+            }
+
+            for l in 0..npts {
+                for i in 0..ns1 {
+                    for j in 0..ns2 {
+                        debug!(
+                            "initial loop cr[{}][{}][{}] = {}",
+                            l,
+                            i,
+                            j,
+                            problem.correlations.cr[[l, i, j]]
                         );
                     }
                 }
