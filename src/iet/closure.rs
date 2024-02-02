@@ -107,6 +107,28 @@ impl ClosureKind {
 }
 
 pub fn hyper_netted_chain(problem: &DataRs) -> Array3<f64> {
+    let (npts, ns1, ns2) = problem.interactions.u_sr.dim();
+    for l in 0..npts {
+        for i in 0..ns1 {
+            for j in 0..ns2 {
+                let del = -problem.system.beta * &problem.interactions.u_sr[[l, i, j]]
+                    + &problem.correlations.tr[[l, i, j]];
+                let cr = (-problem.system.beta * &problem.interactions.u_sr[[l, i, j]]
+                    + &problem.correlations.tr[[l, i, j]])
+                    .exp()
+                    - 1.0
+                    - &problem.correlations.tr[[l, i, j]];
+                println!(
+                    "del: {} xp: {} vrsr: {} tr: {} cr: {}",
+                    del,
+                    del.exp(),
+                    problem.system.beta * &problem.interactions.u_sr[[l, i, j]],
+                    &problem.correlations.tr[[l, i, j]],
+                    cr
+                );
+            }
+        }
+    }
     (-problem.system.beta * &problem.interactions.u_sr + &problem.correlations.tr).mapv(|a| a.exp())
         - 1.0
         - &problem.correlations.tr
