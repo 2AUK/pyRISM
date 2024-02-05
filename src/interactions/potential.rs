@@ -4,6 +4,7 @@ use errorfunctions::RealErrorFunctions;
 use itertools::Itertools;
 use ndarray::{s, Array1, Array3};
 use pyo3::{prelude::*, types::PyString};
+use rgsl::error::erf;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 use std::fmt;
@@ -169,7 +170,7 @@ pub fn ng_renormalisation_real(
         let q = site_a.params.last().unwrap() * site_b.params.last().unwrap();
         result.slice_mut(s![.., i, j]).assign({
             let mut erf_r = r.clone();
-            erf_r.par_mapv_inplace(|x| x.erf());
+            erf_r.par_mapv_inplace(|x| erf(x));
             &(q * erf_r / r)
         });
     }
