@@ -1,4 +1,5 @@
 use crate::data::core::DataRs;
+use log::debug;
 use ndarray::{par_azip, Array, Array3};
 use pyo3::{prelude::*, types::PyString};
 use serde::{Deserialize, Serialize};
@@ -118,11 +119,11 @@ pub fn hyper_netted_chain(problem: &DataRs) -> Array3<f64> {
                     .exp()
                     - 1.0
                     - &problem.correlations.tr[[l, i, j]];
-                println!(
+                debug!(
                     "del: {:+.5e}\t\txp: {:+.5e}\t\tvrsr: {:+.5e}\t\ttr: {:+.5e}\t\tcr: {:+.5e}",
                     del,
                     del.exp(),
-                    problem.system.beta * &problem.interactions.u_sr[[l, i, j]],
+                    -problem.system.beta * &problem.interactions.u_sr[[l, i, j]],
                     &problem.correlations.tr[[l, i, j]],
                     cr
                 );
