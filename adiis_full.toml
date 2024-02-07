@@ -3,20 +3,22 @@ temp = 300
 kT = 1.0
 kU = 0.00198720414667
 charge_coeff = 167100.956621
-npts = 512
-radius = 10.24
-lam = 1
+npts = 8192
+radius = 40.96
+lam = 10
 
 [params]
 potential = "LJ"
-closure = "HNC"
-IE = "XRISM"
-solver = "ADIIS"
+closure = "KH"
+IE = "DRISM"
+solver = "MDIIS"
 depth = 10
 picard_damping = 0.2
 mdiis_damping = 0.2
-itermax = 12
-tol = 1E-5
+itermax = 10000
+tol = 1E-8
+adbcor = 1.0
+diel = 78.5
 
 [solvent]
 nsv = 3
