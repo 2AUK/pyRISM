@@ -1,0 +1,40 @@
+[system]
+temp = 300 
+kT = 1.0
+kU = 0.00198720414667
+charge_coeff = 167100.956621
+npts = 512
+radius = 10.24
+lam = 1
+
+[params]
+potential = "LJ"
+closure = "HNC"
+IE = "XRISM"
+solver = "ADIIS"
+depth = 10
+picard_damping = 0.2
+mdiis_damping = 0.2
+itermax = 100000
+tol = 1E-5
+
+[solvent]
+nsv = 3
+nspv = 1
+[solvent.water]
+dens = 0.03334
+ns = 3
+"O" = [
+    [78.21, 3.166, -0.8476], 
+    [0.0, 0.0, 0.0]
+]
+
+"H1" = [
+    [23.15, 0.4, 0.4234],
+    [1.0, 0.0, 0.0]
+] 
+
+"H2" = [
+    [23.15, 0.4, 0.4234],
+    [-3.33314000e-01, 9.42816000e-01, 0.00000000e+00]
+]
