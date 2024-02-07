@@ -222,9 +222,7 @@ fn rism_vv_equation_impl(
         });
 
     // Compute t(k) = h(k) - c(k)
-    let mut tk = &hk - ck;
-
-    tk = tk - b * uk_lr.to_owned();
+    let tk = &hk - ck;
 
     // Transform t(k) -> t(r)
     Zip::from(tk.lanes(Axis(0)))
@@ -239,10 +237,10 @@ fn rism_vv_equation_impl(
         });
 
     // removing long-range component
-    // tr = tr - b * ur_lr.to_owned();
+    tr = tr - b * ur_lr.to_owned();
 
     // return k-space total correlation and r-space indirect correlation functions
-    (hk, tr, tk)
+    (hk, tr, tk - b * uk_lr.to_owned())
 }
 
 fn rism_uv_equation_impl(
