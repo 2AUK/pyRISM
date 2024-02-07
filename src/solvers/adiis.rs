@@ -241,6 +241,8 @@ impl Solver for ADIIS {
 
             problem.correlations.tr = t_new;
 
+            trace!("Iteration: {} Convergence RMSE: {:.6E}", i, rms);
+
             if rms <= self.tolerance {
                 self.initial_step = true;
                 problem.correlations.cr = (operator.closure)(problem);

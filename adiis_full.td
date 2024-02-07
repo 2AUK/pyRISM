@@ -1,4 +1,4 @@
 Thermodynamics:
 	Temperature:                  300 K
 	Total Density:                0.03334 (1/A^3)
-	Isothermal Compressibility:   1.7139745209360935
+	Isothermal Compressibility:   1.7139745208798316
