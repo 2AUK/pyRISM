@@ -21,9 +21,8 @@ pub struct ADIIS {
     // arrays for MDIIS methods - to only be used in Rust code
     fr: VecDeque<Array1<f64>>,
     res: VecDeque<Array1<f64>>,
-    rms_min: f64,
+    rms_min: (f64, usize),
     a: Array2<f64>,
-    b: Array1<f64>,
     curr_depth: usize,
     counter: usize,
     initial_step: bool,
@@ -43,9 +42,8 @@ impl ADIIS {
             tolerance: settings.tolerance,
             fr: VecDeque::new(),
             res: VecDeque::new(),
-            rms_min: 0.0,
+            rms_min: (0.0, 0),
             a: Array::zeros((mdiis_settings.depth + 1, mdiis_settings.depth + 1)),
-            b: Array::zeros(mdiis_settings.depth + 1),
             curr_depth: 0,
             counter: 0,
             initial_step: true,
@@ -58,14 +56,19 @@ impl ADIIS {
             // Return an initial RMS of 0
             let rms = 1e20;
 
+            self.fr.clear();
+            self.res.clear();
+
+            self.counter = 0;
+            self.curr_depth = 0;
+
+            self.rms_min = (0.0, 0);
+
             // Flatten input t(r) array
             let tr_flat = Array::from_iter(tr.clone());
 
-            // Store a 0 residual for initial array
-            self.res.push_back(Array::zeros(tr_flat.raw_dim()));
-
             // Store initial solution for t(r)
-            self.fr.push_back(tr_flat);
+            self.fr.push_front(tr_flat);
 
             // Initialise A and b arrays
 
@@ -74,17 +77,11 @@ impl ADIIS {
             // The array is already zeroed so we only need to set the column/row to -1.0 bar the
             // first element
 
+            self.a = Array::zeros((self.m + 1, self.m + 1));
             for i in 1..self.m + 1 {
                 self.a[[0, i]] = -1.0;
                 self.a[[i, 0]] = -1.0;
             }
-
-            println!("{}", self.a);
-
-            // Similarly for b, we set the first element to -1.0
-            self.b[[0]] = -1.0;
-
-            println!("{}", self.b);
 
             // No longer the initial step
             self.initial_step = false;
@@ -108,10 +105,51 @@ impl ADIIS {
             // Compute RMS
             rmsnew = (rmsnew / n).sqrt();
 
-            // Check if the new RMS is less than the current minimum RMS
-            if rmsnew < self.rms_min {
-                self.rms_min = rmsnew;
+            if self.curr_depth == 0 {
+                self.rms_min = (rmsnew, self.counter);
             }
+
+            // println!(
+            //     "RMS_new: {}, RMS_min: {}, {}",
+            //     rmsnew,
+            //     self.rms_min.0,
+            //     rmsnew < self.rms_min.0
+            // );
+            // Check if the new RMS is less than the current minimum RMS
+            if rmsnew < self.rms_min.0 {
+                self.rms_min = (rmsnew, self.counter);
+            }
+
+            // println!(
+            //     "RMS_new: {}, 10 * RMS_min: {}, {}",
+            //     rmsnew,
+            //     10.0 * self.rms_min.0,
+            //     rmsnew > self.rms_min.0 * 10.0
+            // );
+            // Check if the new RMS is greather than the current minimum by a factor of 10
+            if rmsnew > self.rms_min.0 * 10.0 && self.curr_depth > 0 {
+                info!("MDIIS Restarting");
+                self.curr_depth = 0;
+                self.counter = 0;
+                let min_fr = self.fr[self.rms_min.1].clone();
+                let min_res = self.res[self.rms_min.1].clone();
+                let rmsmin = min_res.dot(&min_res);
+                self.fr.clear();
+                self.res.clear();
+                self.fr.push_front(min_fr.clone());
+                self.res.push_front(min_res);
+
+                return (
+                    rmsmin,
+                    min_fr
+                        .into_shape(original_shape)
+                        .expect("flattened array reshaped into original 3 dimensions"),
+                );
+            }
+
+            let mut b = Array::zeros(self.m + 1);
+
+            b[[0]] = -1.0;
 
             // Increment current depth counter
             self.curr_depth = std::cmp::min(self.curr_depth + 1, self.m);
@@ -120,35 +158,51 @@ impl ADIIS {
             let res = &tr - self.fr.front().unwrap();
 
             // Store residual
-            self.res.push_back(res);
+            self.res.push_front(res);
 
-            // Store new input
-            self.fr.push_back(tr.clone());
-
-            println!("{}", self.fr.len());
-
-            if self.curr_depth == self.m {
-                self.res.pop_front();
-                self.fr.pop_front();
+            if self.res.len() == self.m + 1 {
+                self.res.pop_back();
             }
-
-            println!("{}", self.fr.len());
-
-            println!("Current Depth: {}/{}", self.curr_depth, self.m);
 
             // Construct new residual overlap matrix
             for i in 0..self.curr_depth {
                 for j in 0..self.curr_depth {
-                    println!("{}, {}, {}", i + 1, j + 1, &self.res[i].dot(&self.res[j]));
                     self.a[[i + 1, j + 1]] = self.res[i].dot(&self.res[j]);
                 }
             }
 
-            println!("{:+.4e}", self.a);
+            let a_slice = self
+                .a
+                .slice(s![0..self.curr_depth + 1, 0..self.curr_depth + 1]);
+
+            let b_slice = b.slice(s![0..self.curr_depth + 1]);
+
+            let coefficients = a_slice
+                .clone()
+                .to_owned()
+                .solve_into(b_slice.clone().to_owned())
+                .expect("could not perform linear solve");
+
+            let mut out = Array::zeros(tr.raw_dim());
+            for i in 0..self.curr_depth {
+                let fr_term = &self.fr[i] * coefficients[[i + 1]];
+                let res_term = &self.res[i] * coefficients[[i + 1]];
+                out = out + (fr_term + self.mdiis_damping * res_term);
+            }
+
+            // Store new input
+            self.fr.push_front(out.clone());
+
+            if self.fr.len() == self.m + 1 {
+                self.fr.pop_back();
+            }
+
+            // Increment counter
+            self.counter = (self.counter + 1) % self.m;
 
             return (
                 rmsnew,
-                tr.to_owned()
+                out.to_owned()
                     .into_shape(original_shape)
                     .expect("flattened array reshaped into original 3 dimensions"),
             );
@@ -167,7 +221,7 @@ impl Solver for ADIIS {
 
         // We want to cycle this problem:
         // t(r) -> c(r) -> c(k) -> t(k) -> t'(r)
-        // Current implementation focuses on a c(r) -> c'(r) cycle
+        // Current implementation focuses on a c(r) -> c'(r) cyclse
         // We can swap this by doing an initial RISM equation step to go from:
         // c(r) -> c(k) -> t(k) -> t(r)
         // And using this resulting t(r) as our initial guess.
@@ -176,9 +230,6 @@ impl Solver for ADIIS {
         (operator.eq)(problem);
 
         let result = loop {
-            // Store previous t(r) (might not need this)
-            let t_prev = problem.correlations.tr.clone();
-
             // Use closure to compute c'(r) from t(r)
             problem.correlations.cr = (operator.closure)(problem);
 
@@ -188,9 +239,11 @@ impl Solver for ADIIS {
             // Use MDIIS step to get new t(r)
             let (rms, t_new) = self.step_adiis(&problem.correlations.tr);
 
-            info!("Iteration: {} Convergence RMSE: {:.6E}", i, rms);
+            problem.correlations.tr = t_new;
 
             if rms <= self.tolerance {
+                self.initial_step = true;
+                problem.correlations.cr = (operator.closure)(problem);
                 break Ok(SolverSuccess(i, rms));
             }
 
@@ -305,7 +358,7 @@ impl Solver for ADIIS {
 //             //     elem.assign(&(&elem * &r.view()));
 //             // });
 //             let mut c_next;
-//             self.curr_depth = std::cmp::min(self.curr_depth + 1, self.m);
+//             self.curr_depth = std::cmp::min(self.curr_depth + 1, self.m);}
 //             c_next = self
 //                 .step_mdiis(&c_a, &res)
 //                 .into_shape(shape)

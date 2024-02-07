@@ -147,13 +147,6 @@ fn rism_vv_equation_impl(
     let mut ck = Array::zeros(cr.raw_dim());
     let mut hk = Array::zeros(cr.raw_dim());
     let mut tr = Array::zeros(cr.raw_dim());
-    for l in 0..npts {
-        for i in 0..ns1 {
-            for j in 0..ns2 {
-                debug!("cr[{}][{}][{}] = {}", l, i, j, cr[[l, i, j]]);
-            }
-        }
-    }
     // Transforming c(r) -> c(k)
     Zip::from(cr.lanes(Axis(0)))
         .and(ck.lanes_mut(Axis(0)))
@@ -165,37 +158,6 @@ fn rism_vv_equation_impl(
                 &cr_lane.to_owned(),
             ));
         });
-    debug!("rtok: {rtok}");
-    debug!("ktor: {ktor}");
-    for l in 0..npts {
-        for i in 0..ns1 {
-            for j in 0..ns2 {
-                debug!("ck[{}][{}][{}] = {}", l, i, j, ck[[l, i, j]]);
-            }
-        }
-    }
-    for l in 0..npts {
-        for i in 0..ns1 {
-            for j in 0..ns2 {
-                debug!("r[{}] = {}\nk[{}] = {}", l, r[l], l, k[l]);
-                debug!("c[{}][{}][{}] = {}", l, i, j, ck[[l, i, j]]);
-                debug!(
-                    "v[{}][{}][{}] = {}",
-                    l,
-                    i,
-                    j,
-                    b * uk_lr[[l, i, j]].clone().to_owned()
-                );
-                debug!(
-                    "(c-v)[{}][{}][{}] = {}",
-                    l,
-                    i,
-                    j,
-                    ck.clone()[[l, i, j]] - b * uk_lr.clone().to_owned()[[l, i, j]]
-                );
-            }
-        }
-    }
 
     // Adding long-range component back in
     // debug!("START IE DUMPING");
