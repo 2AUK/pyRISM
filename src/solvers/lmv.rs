@@ -83,31 +83,80 @@ impl LMV {
         invwc1w: &Array3<f64>,
     ) -> (Array1<f64>, Array2<f64>) {
         let (npts, ns1, ns2) = tk_delta.dim();
-        let mut matrix = Array::zeros((self.nbasis, self.nbasis, ns1, ns2));
-        Zip::from(invwc1w.outer_iter()).for_each(|mat| {
-            for v in 0..self.nbasis {
-                for n in 0..self.nbasis {
-                    let identity: Array2<f64> = Array::eye(ns1);
-                    let cjk_ab = cjk.slice(s![v, n, .., ..]).to_owned();
-                    let mut matrix_ab = matrix.slice_mut(s![v, n, .., ..]);
-                    println!("{}", cjk_ab);
-                    println!("{}", mat);
-                    matrix_ab.assign(&(identity + &cjk_ab - mat.dot(&cjk_ab.dot(&mat))));
+        let basis_size = ns1 * ns2 * self.nbasis;
+        let mut matrix = Array::zeros((basis_size, basis_size));
+        let mut vector = Array::zeros(basis_size);
+        // Zip::from(invwc1w.outer_iter()).for_each(|mat| {
+        //     for v in 0..self.nbasis {
+        //         let mut vector_ab = vector.slice_mut(s![v, .., ..]);
+        //         let tk_delta_ab = tk_delta.slice(s![v, .., ..]);
+        //         vector_ab.assign(&tk_delta_ab);
+        //         for n in 0..self.nbasis {
+        //             let identity: Array2<f64> = Array::eye(ns1);
+        //             let cjk_ab = cjk.slice(s![v, n, .., ..]).to_owned();
+        //             let mut matrix_ab = matrix.slice_mut(s![v, .., .., n, .., ..]);
+        //             println!("{}", cjk_ab);
+        //             println!("{}", mat);
+        //             matrix_ab.assign(&(identity + &cjk_ab - mat.dot(&cjk_ab.dot(&mat))));
+        //         }
+        //     }
+        // });
+        for v in 0..self.nbasis {
+            for a in 0..ns1 {
+                for b in 0..ns2 {
+                    println!("{}", v * ns1 * ns2 + a * ns2 + b);
+                    vector[[v * ns1 * ns2 + a * ns2 + b]] = tk_delta[[v, a, b]];
+                    let ident1 = {
+                        if a == b {
+                            true
+                        } else {
+                            false
+                        }
+                    };
+                    for n in 0..self.nbasis {
+                        for c in 0..ns1 {
+                            for d in 0..ns2 {
+                                let ident2 = {
+                                    if c == d {
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                };
+
+                                let kronecker = {
+                                    if ident1 && ident2 && v == n {
+                                        1.0
+                                    } else {
+                                        0.0
+                                    }
+                                };
+                                matrix
+                                    [[v * ns1 * ns2 + a * ns2 + b, n * ns1 * ns2 + c * ns2 + d]] =
+                                    kronecker + cjk[[v, n, a, b]]
+                                        - invwc1w[[v, a, c]]
+                                            * cjk[[v, n, c, d]]
+                                            * invwc1w[[n, b, d]];
+                            }
+                        }
+                    }
                 }
             }
-        });
-        let vector = {
-            let tk_delta_m = tk_delta.slice(s![0..self.nbasis, .., ..]).to_owned();
-            Array::from_iter(tk_delta_m.clone())
-        };
+        }
+        let vector = Array::from_iter(vector);
+
+        println!("shape of vec: {:?}", vector.dim());
+        println!("shape of mat: {:?}", matrix.dim());
 
         (
             vector,
             matrix
-                .into_shape((ns1 * self.nbasis, ns2 * self.nbasis))
+                .into_shape((basis_size, basis_size))
                 .expect("reshaping 4D layout to 2D Jacobian matrix"),
         )
     }
+
+    // fn step_lmv(&mut self, )
 }
 
 impl Solver for LMV {
@@ -152,6 +201,14 @@ impl Solver for LMV {
 
             let (vec, mat) = self.jacobian(&cjk, &delta_tk, &problem.correlations.invwc1wk);
 
+            println!("shape of vec: {:?}", vec.dim());
+            println!("shape of mat: {:?}", mat.dim());
+
+            println!("{mat}");
+
+            let new_delta_tk = mat
+                .solve_into(vec)
+                .expect("linear solve in NR step for new t(k)");
             // Start innner convergence loop
             loop {
                 // Compute
