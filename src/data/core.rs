@@ -91,6 +91,7 @@ pub struct Correlations {
     pub hr: Array3<f64>,
     pub hk: Array3<f64>,
     pub tk: Array3<f64>,
+    pub invwc1wk: Array3<f64>,
 }
 
 #[derive(Clone, Debug)]
@@ -119,6 +120,7 @@ impl Correlations {
             hr: Array::zeros(shape),
             hk: Array::zeros(shape),
             tk: Array::zeros(shape),
+            invwc1wk: Array::zeros(shape),
         }
     }
 }

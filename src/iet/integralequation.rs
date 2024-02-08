@@ -79,6 +79,7 @@ pub fn xrism_vv(problem: &mut DataRs) {
         problem.correlations.hk,
         problem.correlations.tr,
         problem.correlations.tk,
+        problem.correlations.invwc1wk,
     ) = rism_vv_equation_impl(
         nsv,
         problem.grid.npts,
@@ -102,6 +103,7 @@ pub fn drism_vv(problem: &mut DataRs) {
         problem.correlations.hk,
         problem.correlations.tr,
         problem.correlations.tk,
+        problem.correlations.invwc1wk,
     ) = rism_vv_equation_impl(
         nsv,
         problem.grid.npts,
@@ -133,7 +135,7 @@ fn rism_vv_equation_impl(
     uk_lr: ArrayView3<f64>,
     ur_lr: ArrayView3<f64>,
     chi: ArrayView3<f64>,
-) -> (Array3<f64>, Array3<f64>, Array3<f64>) {
+) -> (Array3<f64>, Array3<f64>, Array3<f64>, Array3<f64>) {
     // Setting up prefactors for Fourier-Bessel transforms
     let rtok = 2.0 * PI * dr;
     let ktor = dk / (4.0 * PI * PI);
@@ -147,6 +149,7 @@ fn rism_vv_equation_impl(
     let mut ck = Array::zeros(cr.raw_dim());
     let mut hk = Array::zeros(cr.raw_dim());
     let mut tr = Array::zeros(cr.raw_dim());
+    let mut invwc1w = Array::zeros(cr.raw_dim());
     // Transforming c(r) -> c(k)
     Zip::from(cr.lanes(Axis(0)))
         .and(ck.lanes_mut(Axis(0)))
@@ -172,16 +175,21 @@ fn rism_vv_equation_impl(
     // Perform integral equation calculation in k-space
     // H = (I - W * C * P * Χ)^-1 * (W * C * W) + Χ
     Zip::from(hk.outer_iter_mut())
+        .and(invwc1w.outer_iter_mut())
         .and(wk.outer_iter())
         .and(ck.outer_iter())
         .and(chi.outer_iter())
-        .for_each(|mut hk_matrix, wk_matrix, ck_matrix, chi_matrix| {
-            let w_bar = wk_matrix.to_owned() + p.dot(&chi_matrix);
-            let iwcp = &identity - w_bar.dot(&ck_matrix.dot(&p));
-            let inverted_iwcp = (iwcp).inv().expect("matrix inversion of:\n{iwcp}");
-            let wcw = w_bar.dot(&ck_matrix.dot(&w_bar));
-            hk_matrix.assign(&(inverted_iwcp.dot(&wcw) + chi_matrix));
-        });
+        .for_each(
+            |mut hk_matrix, mut z_matrix, wk_matrix, ck_matrix, chi_matrix| {
+                let w_bar = wk_matrix.to_owned() + p.dot(&chi_matrix);
+                let iwcp = &identity - w_bar.dot(&ck_matrix.dot(&p));
+                let inverted_iwcp = (iwcp).inv().expect("matrix inversion of:\n{iwcp}");
+                let inv_iwcp_w = inverted_iwcp.dot(&w_bar);
+                let wcw = w_bar.dot(&ck_matrix.dot(&w_bar));
+                hk_matrix.assign(&(inverted_iwcp.dot(&wcw) + chi_matrix));
+                z_matrix.assign(&(inv_iwcp_w));
+            },
+        );
 
     // Compute t(k) = h(k) - c(k)
     let tk = &hk - ck;
@@ -202,7 +210,7 @@ fn rism_vv_equation_impl(
     tr = tr - b * ur_lr.to_owned();
 
     // return k-space total correlation and r-space indirect correlation functions
-    (hk, tr, tk - b * uk_lr.to_owned())
+    (hk, tr, tk - b * uk_lr.to_owned(), invwc1w)
 }
 
 fn rism_uv_equation_impl(
