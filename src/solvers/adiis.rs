@@ -241,6 +241,8 @@ impl Solver for ADIIS {
 
             problem.correlations.tr = t_new;
 
+            info!("Iteration: {} Convergence RMSE: {:.6E}", i, rms);
+
             if rms <= self.tolerance {
                 self.initial_step = true;
                 problem.correlations.cr = (operator.closure)(problem);
@@ -374,6 +376,7 @@ impl Solver for ADIIS {
 //                     .rms_res
 //                     .iter()
 //                     .position(|x| *x == rmse_min)
+//             trace!("Iteration: {} Convergence RMSE: {:.6E}", i, rmse);
 //                     .expect("could not find index of minimum in rms_res");
 //                 if rmse > 10.0 * rmse_min {
 //                     trace!("MDIIS restarting");
