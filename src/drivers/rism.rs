@@ -91,6 +91,9 @@ impl RISMDriver {
                     .unwrap();
             }
         }
+
+        let (mut vv, mut uv) = self.problem_setup();
+
         // set up operator(RISM equation and Closure)
         trace!("Defining operator");
         let operator = Operator::new(&self.operator);
@@ -99,17 +102,20 @@ impl RISMDriver {
             ..self.operator.clone()
         });
 
-        let (mut vv, mut uv) = self.problem_setup();
-
         let mut solver = self.solver.solver.set(&self.solver.settings);
 
         let mut vv_solution = match self._preconv {
             None => {
                 info!("Starting solvent-solvent solver");
-                match solver.solve(&mut vv, &operator) {
-                    Ok(s) => info!("{}", s),
-                    Err(e) => panic!("{}", e),
-                };
+                for ilam in 1..self.data.nlambda + 1 {
+                    let lam = 1.0 * ilam as f64 / self.data.nlambda as f64;
+                    vv.system.curr_lam = lam;
+                    info!("Lambda cycle: {}/{}", ilam, self.data.nlambda);
+                    match solver.solve(&mut vv, &operator) {
+                        Ok(s) => info!("{}", s),
+                        Err(e) => panic!("{}", e),
+                    };
+                }
 
                 let vv_solution = SolvedData::new(
                     self.data.clone(),
@@ -165,10 +171,17 @@ impl RISMDriver {
             Some(ref mut uv) => {
                 info!("Starting solute-solvent solver");
                 uv.solution = Some(vv_solution.clone());
-                match solver.solve(uv, &operator_uv) {
-                    Ok(s) => info!("{}", s),
-                    Err(e) => panic!("{}", e),
+                for ilam in 1..self.data.nlambda + 1 {
+                    let lam = 1.0 * ilam as f64 / self.data.nlambda as f64;
+                    uv.system.curr_lam = lam;
+                    info!("Lambda cycle: {}/{}", ilam, self.data.nlambda);
+
+                    match solver.solve(uv, &operator_uv) {
+                        Ok(s) => info!("{}", s),
+                        Err(e) => panic!("{}", e),
+                    }
                 }
+
                 let mut uv_solution = SolvedData::new(
                     self.data.clone(),
                     self.solver.clone(),

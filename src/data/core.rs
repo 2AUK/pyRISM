@@ -14,6 +14,7 @@ pub struct SystemState {
     pub amph: f64,
     pub nlam: usize,
     pub beta: f64,
+    pub curr_lam: f64,
 }
 
 impl SystemState {
@@ -24,6 +25,7 @@ impl SystemState {
             amph,
             nlam,
             beta: 1.0 / kt / temp,
+            curr_lam: 1.0,
         }
     }
 
