@@ -80,6 +80,7 @@ impl LMV {
         &self,
         cjk: &Array4<f64>,
         tk_delta: &Array3<f64>,
+        k: &Array1<f64>,
         invwc1w: &Array3<f64>,
     ) -> (Array1<f64>, Array2<f64>) {
         let (npts, ns1, ns2) = tk_delta.dim();
@@ -104,28 +105,15 @@ impl LMV {
         for v in 0..self.nbasis {
             for a in 0..ns1 {
                 for b in 0..ns2 {
-                    println!("{}", v * ns1 * ns2 + a * ns2 + b);
-                    vector[[v * ns1 * ns2 + a * ns2 + b]] = tk_delta[[v, a, b]];
-                    let ident1 = {
-                        if a == b {
-                            true
-                        } else {
-                            false
-                        }
-                    };
+                    // println!("{}", v * ns1 * ns2 + a * ns2 + b);
+                    vector[[v * ns1 * ns2 + a * ns2 + b]] = k[[v]] * tk_delta[[v, a, b]];
                     for n in 0..self.nbasis {
                         for c in 0..ns1 {
                             for d in 0..ns2 {
-                                let ident2 = {
-                                    if c == d {
-                                        true
-                                    } else {
-                                        false
-                                    }
-                                };
-
                                 let kronecker = {
-                                    if ident1 && ident2 && v == n {
+                                    if (v * ns1 * ns2 + a * ns2 + b)
+                                        == (n * ns1 * ns2 + c * ns2 + d)
+                                    {
                                         1.0
                                     } else {
                                         0.0
@@ -145,9 +133,6 @@ impl LMV {
         }
         let vector = Array::from_iter(vector);
 
-        println!("shape of vec: {:?}", vector.dim());
-        println!("shape of mat: {:?}", matrix.dim());
-
         (
             vector,
             matrix
@@ -155,8 +140,6 @@ impl LMV {
                 .expect("reshaping 4D layout to 2D Jacobian matrix"),
         )
     }
-
-    // fn step_lmv(&mut self, )
 }
 
 impl Solver for LMV {
@@ -167,6 +150,10 @@ impl Solver for LMV {
     ) -> Result<SolverSuccess, SolverError> {
         // Initialise iteration counter
         let mut i = 0;
+
+        // Store original shape
+        let (npts, ns1, ns2) = problem.correlations.cr.dim();
+
         // Want to iterate the cycle:
         // t(r) -> c'(r) -> t'(k) -> t'(r)
         // We cycle the initial c(r) = 0 guess once with the RISM equation
@@ -191,7 +178,7 @@ impl Solver for LMV {
             let tk_curr = problem.correlations.tk.clone();
 
             // Compute difference between the current and previous t(k)
-            let delta_tk = tk_curr - tk_prev;
+            let mut delta_tk = tk_curr - tk_prev;
 
             // Compute dc'(r)/dt(r)
             let dcrtr = (operator.closure_der)(problem);
@@ -199,20 +186,40 @@ impl Solver for LMV {
             // Compute coefficients from derivative
             let cjk = self.tabulate_coefficients(&dcrtr);
 
-            let (vec, mat) = self.jacobian(&cjk, &delta_tk, &problem.correlations.invwc1wk);
-
-            println!("shape of vec: {:?}", vec.dim());
-            println!("shape of mat: {:?}", mat.dim());
-
-            println!("{mat}");
-
-            let new_delta_tk = mat
-                .solve_into(vec)
-                .expect("linear solve in NR step for new t(k)");
             // Start innner convergence loop
             loop {
-                // Compute
-                todo!()
+                // Compute Jacobian and vector
+                let (vec, mat) = self.jacobian(
+                    &cjk,
+                    &delta_tk,
+                    &problem.grid.kgrid,
+                    &problem.correlations.invwc1wk,
+                );
+
+                let mut new_delta_tk = mat
+                    .solve_into(vec)
+                    .expect("linear solve in NR step for new t(k)")
+                    .into_shape((self.nbasis, ns1, ns2))
+                    .expect("reshaping new delta_t(k)");
+
+                for v in 0..self.nbasis {
+                    for a in 0..ns1 {
+                        for b in 0..ns2 {
+                            new_delta_tk[[v, a, b]] /= problem.grid.kgrid[[v]];
+                        }
+                    }
+                }
+
+                let residual = new_delta_tk.mapv(|x| x.powf(2.0)).sum().sqrt()
+                    / (self.nbasis * ns1 * ns2) as f64;
+
+                println!("{}", residual);
+
+                if residual < 1e-5 {
+                    break;
+                }
+
+                delta_tk = new_delta_tk;
             }
 
             let rms = 1E20;
