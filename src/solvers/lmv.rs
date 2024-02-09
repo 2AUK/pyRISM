@@ -196,16 +196,18 @@ impl Solver for LMV {
                     &problem.correlations.invwc1wk,
                 );
 
-                let mut new_delta_tk = mat
+                let new_delta_tk_flat = mat
                     .solve_into(vec)
-                    .expect("linear solve in NR step for new t(k)")
-                    .into_shape((self.nbasis, ns1, ns2))
-                    .expect("reshaping new delta_t(k)");
+                    .expect("linear solve in NR step for new t(k)");
+
+                let mut new_delta_tk = Array::zeros((self.nbasis, ns1, ns2));
 
                 for v in 0..self.nbasis {
                     for a in 0..ns1 {
                         for b in 0..ns2 {
-                            new_delta_tk[[v, a, b]] /= problem.grid.kgrid[[v]];
+                            new_delta_tk[[v, a, b]] = new_delta_tk_flat
+                                [[v * ns1 * ns2 + a * ns2 + b]]
+                                / problem.grid.kgrid[[v]];
                         }
                     }
                 }
