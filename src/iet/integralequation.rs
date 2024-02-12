@@ -187,7 +187,7 @@ fn rism_vv_equation_impl(
                 let inv_iwcp_w = inverted_iwcp.dot(&w_bar);
                 let wcw = w_bar.dot(&ck_matrix.dot(&w_bar));
                 hk_matrix.assign(&(inverted_iwcp.dot(&wcw) + chi_matrix));
-                z_matrix.assign(&(inv_iwcp_w));
+                z_matrix.assign(&(inverted_iwcp.dot(&wcw) + chi_matrix));
             },
         );
 
