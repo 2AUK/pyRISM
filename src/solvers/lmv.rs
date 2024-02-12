@@ -82,6 +82,8 @@ impl LMV {
         ck0: &Array3<f64>,
         tk_delta: &Array3<f64>,
         k: &Array1<f64>,
+        tk_curr: &Array3<f64>,
+        wk: &Array3<f64>,
         invwc1w: &Array3<f64>,
     ) -> (Array1<f64>, Array2<f64>) {
         let (npts, ns1, ns2) = tk_delta.dim();
@@ -114,6 +116,15 @@ impl LMV {
             }
         }
 
+        let mut summed_term = Array::zeros((self.nbasis, ns1, ns2));
+        for v in 0..self.nbasis {
+            for a in 0..ns1 {
+                for b in 0..ns2 {
+                    let cjk_abj = cjk.slice(s![.., v, a, b]).sum();
+                    summed_term[[v, a, b]] = cjk_abj * tk_delta[[v, a, b]];
+                }
+            }
+        }
         let ck = ck0 + sum;
         for v in 0..self.nbasis {
             for a in 0..ns1 {
@@ -154,11 +165,27 @@ impl LMV {
                                         0.0
                                     }
                                 };
+
                                 // matrix
                                 //     [[v * ns1 * ns2 + a * ns2 + b, n * ns1 * ns2 + c * ns2 + d]] =
-                                //     (kron_ac * kron_bd * kron_vn + ck[[v, a, b]])
-                                //         - invwc1w[[v, a, c]] * ck[[n, c, d]] * invwc1w[[n, b, d]];
-                                // - k[[v]] * tk_delta[[v, a, b]];
+                                //     k[[v]] * tk_delta[[n, a, b]]
+                                //         - (tk_curr[[v, a, c]] + ck[[v, a, c]] + wk[[v, a, c]])
+                                //             * (tk_curr[[n, d, b]] + ck[[n, d, b]] + wk[[n, d, b]])
+                                //             * kron_ac
+                                //             * kron_bd;
+                                // matrix
+                                //     [[v * ns1 * ns2 + a * ns2 + b, n * ns1 * ns2 + c * ns2 + d]] = k
+                                //     [[v]]
+                                //     * (tk_delta[[v, a, b]]
+                                //         - invwc1w[[v, a, c]]
+                                //             * summed_term[[n, c, d]]
+                                //             * invwc1w[[n, b, d]])
+                                //     - kron_ac * kron_bd;
+                                matrix
+                                    [[v * ns1 * ns2 + a * ns2 + b, n * ns1 * ns2 + c * ns2 + d]] =
+                                    (kron_ac * kron_bd * kron_vn + ck[[v, a, b]])
+                                        - invwc1w[[v, a, c]] * ck[[n, c, d]] * invwc1w[[n, b, d]];
+                                // -k[[v]] * tk_delta[[v, a, b]];
                                 // matrix
                                 //     [[v * ns1 * ns2 + a * ns2 + b, n * ns1 * ns2 + c * ns2 + d]] =
                                 //     (invwc1w[[v, a, c]] * invwc1w[[n, b, d]]
@@ -242,6 +269,7 @@ impl Solver for LMV {
             let mut tk_ic_prev = tk_curr.clone();
 
             let mut ic_counter = 0;
+            let mut tk_ic_curr = Array::zeros(tk_curr.raw_dim());
             // Start innner convergence loop
             let tk_ic_new = loop {
                 // Compute Jacobian and vector
@@ -250,6 +278,8 @@ impl Solver for LMV {
                     &ck,
                     &delta_tk,
                     &problem.grid.kgrid,
+                    &tk_ic_curr,
+                    &problem.data_a.borrow().wk.clone(),
                     &problem.correlations.invwc1wk,
                 );
 
@@ -262,8 +292,7 @@ impl Solver for LMV {
                 let rms = new_delta_tk_flat.mapv(|x| x.powf(2.0)).sum().sqrt()
                     / (self.nbasis * ns1 * ns2) as f64;
 
-                let mut tk_ic_curr = Array::zeros(tk_curr.raw_dim());
-
+                tk_ic_curr = Array::zeros(tk_curr.raw_dim());
                 for v in 0..self.nbasis {
                     for a in 0..ns1 {
                         for b in 0..ns2 {
@@ -283,7 +312,7 @@ impl Solver for LMV {
                 ic_counter += 1;
 
                 delta_tk = tk_ic_prev - tk_ic_curr.clone();
-                tk_ic_prev = tk_ic_curr;
+                tk_ic_prev = tk_ic_curr.clone();
             };
 
             let tr_curr = problem.grid.nd_fbt_k2r(&(tk_curr + tk_ic_new));
