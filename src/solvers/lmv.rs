@@ -126,6 +126,7 @@ impl LMV {
             }
         }
         let ck = ck0 + sum;
+
         for v in 0..self.nbasis {
             for a in 0..ns1 {
                 for b in 0..ns2 {
@@ -160,11 +161,13 @@ impl LMV {
 
                                 let kron_cd = {
                                     if c == d {
-                                        1.0
+                                        1.0277
                                     } else {
                                         0.0
                                     }
                                 };
+
+                                let kron_acbd = kron_ac * kron_bd;
 
                                 // matrix
                                 //     [[v * ns1 * ns2 + a * ns2 + b, n * ns1 * ns2 + c * ns2 + d]] =
@@ -173,18 +176,19 @@ impl LMV {
                                 //             * (tk_curr[[n, d, b]] + ck[[n, d, b]] + wk[[n, d, b]])
                                 //             * kron_ac
                                 //             * kron_bd;
-                                // matrix
-                                //     [[v * ns1 * ns2 + a * ns2 + b, n * ns1 * ns2 + c * ns2 + d]] = k
-                                //     [[v]]
-                                //     * (tk_delta[[v, a, b]]
-                                //         - invwc1w[[v, a, c]]
-                                //             * summed_term[[n, c, d]]
-                                //             * invwc1w[[n, b, d]])
-                                //     - kron_ac * kron_bd;
                                 matrix
                                     [[v * ns1 * ns2 + a * ns2 + b, n * ns1 * ns2 + c * ns2 + d]] =
-                                    (kron_ac * kron_bd * kron_vn + ck[[v, a, b]])
-                                        - invwc1w[[v, a, c]] * ck[[n, c, d]] * invwc1w[[n, b, d]];
+                                    k[[v]] * tk_delta[[v, a, b]]
+                                        - ((tk_curr[[v, a, c]] + ck[[v, a, c]] + wk[[v, a, c]])
+                                            * (tk_curr[[n, b, d]] * ck[[n, b, d]] * wk[[n, b, d]])
+                                            - kron_acbd)
+                                            * summed_term[[n, c, d]];
+                                // matrix
+                                //     [[v * ns1 * ns2 + a * ns2 + b, n * ns1 * ns2 + c * ns2 + d]] =
+                                //     kron_acbd * (kron_vn + cjk[[v, n, a, b]])
+                                //         - invwc1w[[v, a, c]]
+                                //             * cjk[[v, n, c, d]]
+                                //             * invwc1w[[n, b, d]];
                                 // -k[[v]] * tk_delta[[v, a, b]];
                                 // matrix
                                 //     [[v * ns1 * ns2 + a * ns2 + b, n * ns1 * ns2 + c * ns2 + d]] =
@@ -258,7 +262,7 @@ impl Solver for LMV {
             let tk_curr = problem.correlations.tk.clone();
 
             // Compute difference between the current and previous t(k)
-            let mut delta_tk = &tk_prev - &tk_curr;
+            let mut delta_tk = &tk_curr - &tk_prev;
 
             // Compute dc'(r)/dt(r)
             let dcrtr = (operator.closure_der)(problem);
@@ -283,7 +287,7 @@ impl Solver for LMV {
                     &problem.correlations.invwc1wk,
                 );
 
-                // println!("{}", mat);
+                println!("{:+.4e}", mat);
 
                 let new_delta_tk_flat = mat
                     .solve_into(vec)
@@ -311,7 +315,7 @@ impl Solver for LMV {
 
                 ic_counter += 1;
 
-                delta_tk = tk_ic_prev - tk_ic_curr.clone();
+                delta_tk = tk_ic_curr.clone() - tk_ic_prev.clone();
                 tk_ic_prev = tk_ic_curr.clone();
             };
 
