@@ -221,6 +221,72 @@ impl LMV {
                 .expect("reshaping 4D layout to 2D Jacobian matrix"),
         )
     }
+
+    fn split_problem(&self, problem: &DataRs) -> (DataRs, DataRs) {
+        let mut coarse_problem = problem.clone();
+        let mut fine_problem = problem.clone();
+
+        (fine_problem.correlations.tk, coarse_problem.correlations.tk) =
+            self.split_function(&problem.correlations.tk);
+        (fine_problem.correlations.tr, coarse_problem.correlations.tr) =
+            self.split_function(&problem.correlations.tr);
+        (fine_problem.correlations.hr, coarse_problem.correlations.hr) =
+            self.split_function(&problem.correlations.hr);
+        (fine_problem.correlations.hk, coarse_problem.correlations.hk) =
+            self.split_function(&problem.correlations.hk);
+        (fine_problem.correlations.cr, coarse_problem.correlations.cr) =
+            self.split_function(&problem.correlations.cr);
+
+        (fine_problem, coarse_problem)
+    }
+
+    fn split_function(&self, in_arr: &Array3<f64>) -> (Array3<f64>, Array3<f64>) {
+        let (npts, ns1, ns2) = in_arr.dim();
+        let (mut coarse_arr, mut fine_arr) = (
+            Array::zeros(in_arr.raw_dim()),
+            Array::zeros(in_arr.raw_dim()),
+        );
+        for l in 0..npts {
+            for a in 0..ns1 {
+                for b in 0..ns2 {
+                    if l < self.nbasis {
+                        fine_arr[[l, a, b]] = in_arr[[l, a, b]];
+                    } else {
+                        coarse_arr[[l, a, b]] = in_arr[[l, a, b]];
+                    }
+                }
+            }
+        }
+        (fine_arr, coarse_arr)
+    }
+
+    fn recompose_problem(&self, problem: &mut DataRs, coarse: &DataRs, fine: &DataRs) {
+        (problem.correlations.tk) =
+            self.recompose_function(&coarse.correlations.tk, &fine.correlations.tk);
+        (problem.correlations.tr) =
+            self.recompose_function(&coarse.correlations.tr, &fine.correlations.tr);
+        (problem.correlations.hk) =
+            self.recompose_function(&coarse.correlations.hk, &fine.correlations.hk);
+        (problem.correlations.cr) =
+            self.recompose_function(&coarse.correlations.cr, &fine.correlations.cr);
+    }
+
+    fn recompose_function(&self, coarse_arr: &Array3<f64>, fine_arr: &Array3<f64>) -> Array3<f64> {
+        let (npts, ns1, ns2) = coarse_arr.dim();
+        let mut out_arr = Array::zeros(coarse_arr.raw_dim());
+        for l in 0..npts {
+            for a in 0..ns1 {
+                for b in 0..ns2 {
+                    if l < self.nbasis {
+                        out_arr[[l, a, b]] = fine_arr[[l, a, b]];
+                    } else {
+                        out_arr[[l, a, b]] = coarse_arr[[l, a, b]];
+                    }
+                }
+            }
+        }
+        out_arr
+    }
 }
 
 impl Solver for LMV {
@@ -238,6 +304,12 @@ impl Solver for LMV {
         // Want to iterate the cycle:
         // t(r) -> c'(r) -> t'(k) -> t'(r)
         // We cycle the initial c(r) = 0 guess once with the RISM equation
+
+        // We also want to split the problem into a coarse and fine problem to iterature
+        // separately.
+
+        // Set up the coarse problem
+        let coarse_problem = problem.clone();
 
         // Generate initial guess for t(r)
         (operator.eq)(problem);
