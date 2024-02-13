@@ -147,11 +147,10 @@ impl LMV {
 
                                 matrix
                                     [[v * ns1 * ns2 + a * ns2 + b, n * ns1 * ns2 + c * ns2 + d]] =
-                                    kron_acbd * _kron_vn
-                                        + (kron_acbd * cjk[[v, n, a, b]]
-                                            - invwc1w[[v, a, c]]
-                                                * invwc1w[[n, d, b]]
-                                                * cjk[[v, n, c, d]]);
+                                    kron_acbd * (_kron_vn + cjk[[n, v, a, b]])
+                                        - invwc1w[[v, a, c]]
+                                            * invwc1w[[n, d, b]]
+                                            * cjk[[n, v, c, d]];
                             }
                         }
                     }
