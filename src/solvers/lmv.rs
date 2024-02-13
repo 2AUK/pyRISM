@@ -102,16 +102,6 @@ impl LMV {
         //         }
         //     }
         // });
-        let mut summed_term = Array::zeros((self.nbasis, ns1, ns2));
-        for v in 0..self.nbasis {
-            for a in 0..ns1 {
-                for b in 0..ns2 {
-                    let cjk_abj = cjk.slice(s![.., v, a, b]).sum();
-                    summed_term[[v, a, b]] = cjk_abj * tk_delta[[v, a, b]];
-                }
-            }
-        }
-
         for v in 0..self.nbasis {
             for a in 0..ns1 {
                 for b in 0..ns2 {
@@ -147,10 +137,10 @@ impl LMV {
 
                                 matrix
                                     [[v * ns1 * ns2 + a * ns2 + b, n * ns1 * ns2 + c * ns2 + d]] =
-                                    kron_acbd * (_kron_vn + cjk[[n, v, a, b]])
+                                    kron_acbd * (_kron_vn + cjk[[v, n, a, b]])
                                         - invwc1w[[v, a, c]]
                                             * invwc1w[[n, d, b]]
-                                            * cjk[[n, v, c, d]];
+                                            * cjk[[v, n, c, d]];
                             }
                         }
                     }
@@ -207,37 +197,42 @@ impl Solver for LMV {
             let ck_0 = problem.grid.nd_fbt_r2k(&problem.correlations.cr.clone());
 
             // Store t_ic(k) (from closure) - initial guess is just t^0(k)
-            let mut tk_ic = problem.correlations.tk.clone();
+            let mut tk_ic: Array3<f64> = Array::zeros(problem.correlations.tk.raw_dim());
+
+            // Compute dc'(r)/dt(r)
+            let dcrtr = (operator.closure_der)(problem);
+
+            // Compute coefficients from derivative
+            let cjk = self.tabulate_coefficients(&dcrtr);
+
+            // Store previous RMS IC (initial value arbitrarly large so comparison fails
+            // successfully)
+            let mut prev_rms = 1e20;
 
             // Start innner convergence loop
             // tk_ic is the variable being changed per step
             // computed via delta_tk = tk_ic - tk_0.
             // tk_0 remains fixed per IC loop, changes with every OC step.
             let tk_ic_new = loop {
-                // Compute dc'(r)/dt(r)
-                let dcrtr = (operator.closure_der)(problem);
-
-                // Compute coefficients from derivative
-                let cjk = self.tabulate_coefficients(&dcrtr);
-
                 // Compute \Delta t(k) = t_{ic}(k) - t^0(k) for coefficient step
                 let tk_delta = &tk_ic - &tk_0;
 
                 // Compute c(k) from coefficients
-                let mut sum = 0.0;
-                for v in 0..self.nbasis {
-                    for n in 0..self.nbasis {
-                        for a in 0..ns1 {
-                            for b in 0..ns2 {
-                                sum += cjk[[v, n, a, b]] * tk_delta[[n, a, b]];
+                let mut summed_term = Array::zeros((npts, ns1, ns2));
+                for l in 0..npts {
+                    for a in 0..ns1 {
+                        for b in 0..ns2 {
+                            if l < self.nbasis {
+                                let cjk_abj = cjk.slice(s![.., l, a, b]).sum();
+                                summed_term[[l, a, b]] = cjk_abj * tk_delta[[l, a, b]];
                             }
                         }
                     }
                 }
 
-                println!("{}", sum);
+                // println!("{}", sum);
 
-                problem.correlations.cr = problem.grid.nd_fbt_k2r(&(&ck_0 + sum));
+                problem.correlations.cr = problem.grid.nd_fbt_k2r(&(&ck_0 + summed_term));
 
                 // Compute intermediate t(k) for Jacobian and new M matrix
                 (operator.eq)(problem);
@@ -256,7 +251,7 @@ impl Solver for LMV {
                     &problem.correlations.invwc1wk,
                 );
 
-                println!("{:+.1e}", mat);
+                // println!("{:+.1e}", mat);
 
                 // Perform linear solve for new \Delta t(k)
                 let new_delta_tk_flat = mat
@@ -269,22 +264,27 @@ impl Solver for LMV {
                 for v in 0..self.nbasis {
                     for a in 0..ns1 {
                         for b in 0..ns2 {
-                            tk_ic_sum += tk_ic[[v, a, b]].powf(2.0);
                             delta_tk_sum += (new_delta_tk_flat[[v * ns1 * ns2 + a * ns2 + b]]
                                 / problem.grid.kgrid[[v]])
                             .powf(2.0);
                             tk_ic[[v, a, b]] = tk_ic[[v, a, b]]
-                                + (new_delta_tk_flat[[v * ns1 * ns2 + a * ns2 + b]]
-                                    / problem.grid.kgrid[[v]]);
+                                + self.picard_damping
+                                    * (new_delta_tk_flat[[v * ns1 * ns2 + a * ns2 + b]]
+                                        / problem.grid.kgrid[[v]]);
+                            tk_ic_sum += tk_ic[[v, a, b]].powf(2.0);
                         }
                     }
                 }
 
                 // Compute RMS
-                let rms = (delta_tk_sum / tk_ic_sum).sqrt();
+                let rms = (delta_tk_sum / tk_ic_sum).sqrt() / (self.nbasis * ns1 * ns2) as f64;
+                if (rms - prev_rms).abs() < 1e-3 {
+                    break tk_ic;
+                }
+                prev_rms = rms;
                 trace!("IC Iteration: {} Convergence RMSE: {:.6E}", ic_counter, rms);
 
-                if rms < 1e-5 {
+                if rms < 1e-3 {
                     break tk_ic;
                 }
 
