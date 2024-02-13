@@ -236,6 +236,18 @@ impl LMV {
             self.split_function(&problem.correlations.hk);
         (fine_problem.correlations.cr, coarse_problem.correlations.cr) =
             self.split_function(&problem.correlations.cr);
+        (
+            fine_problem.interactions.uk_lr,
+            coarse_problem.interactions.uk_lr,
+        ) = self.split_function(&problem.interactions.uk_lr);
+        (
+            fine_problem.interactions.ur_lr,
+            coarse_problem.interactions.ur_lr,
+        ) = self.split_function(&problem.interactions.ur_lr);
+        (
+            fine_problem.interactions.u_sr,
+            coarse_problem.interactions.u_sr,
+        ) = self.split_function(&problem.interactions.u_sr);
 
         (fine_problem, coarse_problem)
     }
@@ -308,11 +320,29 @@ impl Solver for LMV {
         // We also want to split the problem into a coarse and fine problem to iterature
         // separately.
 
-        // Set up the coarse problem
-        let coarse_problem = problem.clone();
+        // Set up the coarse and fine problems
 
-        // Generate initial guess for t(r)
+        // Generate initial guesses for coarse and fine t(r)
         (operator.eq)(problem);
+
+        let (mut fine_problem, mut coarse_problem) = self.split_problem(&problem);
+        // (operator.eq)(&mut coarse_problem);
+        //
+        // (operator.eq)(&mut fine_problem);
+
+        println!(
+            "{} == {}\n{} == {}\n{} == 0.0\n{} == 0.0",
+            problem.correlations.tr[[10, 0, 0]],
+            fine_problem.correlations.tr[[10, 0, 0]],
+            problem.correlations.tr[[100, 0, 0]],
+            coarse_problem.correlations.tr[[100, 0, 0]],
+            coarse_problem.correlations.tr[[10, 0, 0]],
+            fine_problem.correlations.tr[[100, 0, 0]],
+        );
+
+        (operator.eq)(&mut fine_problem);
+
+        println!("{}", fine_problem.correlations.tr[[100, 0, 0]]);
 
         let result = loop {
             let rms = 1E20;
