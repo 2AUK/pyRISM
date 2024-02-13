@@ -236,6 +236,8 @@ impl Solver for LMV {
                     }
                 }
 
+                println!("{}", sum);
+
                 problem.correlations.cr = problem.grid.nd_fbt_k2r(&(&ck_0 + sum));
 
                 // Compute intermediate t(k) for Jacobian and new M matrix
@@ -262,21 +264,25 @@ impl Solver for LMV {
                     .solve_into(vec)
                     .expect("linear solve in NR step for new delta t(k)");
 
-                // Compute RMS
-                let rms = (new_delta_tk_flat.mapv(|x| x.powf(2.0)).sum()
-                    / tk_ic.mapv(|x| x.powf(2.0)).sum())
-                .sqrt();
-
                 // Renew tk_ic
+                let mut delta_tk_sum = 0.0;
+                let mut tk_ic_sum = 0.0;
                 for v in 0..self.nbasis {
                     for a in 0..ns1 {
                         for b in 0..ns2 {
+                            tk_ic_sum += tk_ic[[v, a, b]].powf(2.0);
+                            delta_tk_sum += (new_delta_tk_flat[[v * ns1 * ns2 + a * ns2 + b]]
+                                / problem.grid.kgrid[[v]])
+                            .powf(2.0);
                             tk_ic[[v, a, b]] = tk_ic[[v, a, b]]
                                 + (new_delta_tk_flat[[v * ns1 * ns2 + a * ns2 + b]]
                                     / problem.grid.kgrid[[v]]);
                         }
                     }
                 }
+
+                // Compute RMS
+                let rms = (delta_tk_sum / tk_ic_sum).sqrt();
                 trace!("IC Iteration: {} Convergence RMSE: {:.6E}", ic_counter, rms);
 
                 if rms < 1e-5 {
