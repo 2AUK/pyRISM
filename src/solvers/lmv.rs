@@ -58,7 +58,7 @@ impl LMV {
                 for v in 0..self.nbasis {
                     for n in 0..self.nbasis {
                         //println!("{}, {}, {}, {}", l, cr, v, n);
-                        out_arr[[v, n, a, b]] += cr
+                        out_arr[[v, n, a, b]] = cr
                             * ((PI * l as f64 * (n as f64 - v as f64) / npts as f64).cos()
                                 - (PI * l as f64 * (n as f64 + v as f64) / npts as f64).cos());
                     }
@@ -105,7 +105,7 @@ impl LMV {
         for v in 0..self.nbasis {
             for a in 0..ns1 {
                 for b in 0..ns2 {
-                    vector[[v * ns1 * ns2 + a * ns2 + b]] = k[[v]] * tk_delta[[v, a, b]];
+                    vector[[v * ns1 * ns2 + a * ns2 + b]] = tk_delta[[v, a, b]];
                     for n in 0..self.nbasis {
                         for c in 0..ns1 {
                             for d in 0..ns2 {
@@ -125,7 +125,7 @@ impl LMV {
                                     }
                                 };
 
-                                let _kron_vn = {
+                                let kron_vn = {
                                     if v == n {
                                         1.0
                                     } else {
@@ -134,13 +134,21 @@ impl LMV {
                                 };
 
                                 let kron_acbd = kron_ac * kron_bd;
+                                // Implementation following chunutmb/rism
+                                // matrix
+                                //     [[v * ns1 * ns2 + a * ns2 + b, n * ns1 * ns2 + c * ns2 + d]] +=
+                                //     kron_acbd * (_kron_vn + cjk[[v, n, a, b]])
+                                //         - invwc1w[[v, a, c]]
+                                //             * invwc1w[[n, d, b]]
+                                //             * cjk[[v, n, c, d]];
 
+                                // Implementation following Wu et al.
                                 matrix
                                     [[v * ns1 * ns2 + a * ns2 + b, n * ns1 * ns2 + c * ns2 + d]] =
-                                    kron_acbd * (_kron_vn + cjk[[v, n, a, b]])
+                                    kron_acbd * (kron_vn + cjk[[v, n, c, d]])
                                         - invwc1w[[v, a, c]]
                                             * invwc1w[[n, d, b]]
-                                            * cjk[[v, n, c, d]];
+                                            * cjk[[v, n, a, b]];
                             }
                         }
                     }
@@ -149,12 +157,7 @@ impl LMV {
         }
         let vector = Array::from_iter(vector);
 
-        (
-            vector,
-            matrix
-                .into_shape((basis_size, basis_size))
-                .expect("reshaping 4D layout to 2D Jacobian matrix"),
-        )
+        (vector, matrix)
     }
 }
 
@@ -190,11 +193,14 @@ impl Solver for LMV {
             // Initialise inner cycle iteration counter
             let mut ic_counter = 0;
 
+            // Store t^0(r)
+            let tr_0 = problem.correlations.tr.clone();
+
             // Store t^0(k)
             let tk_0 = problem.correlations.tk.clone();
 
             // Store c^0(k)
-            let ck_0 = problem.grid.nd_fbt_r2k(&problem.correlations.cr.clone());
+            let mut ck_0 = problem.grid.nd_fbt_r2k(&problem.correlations.cr.clone());
 
             // Store t_ic(k) (from closure) - initial guess is just t^0(k)
             let mut tk_ic: Array3<f64> = Array::zeros(problem.correlations.tk.raw_dim());
@@ -214,25 +220,22 @@ impl Solver for LMV {
             // computed via delta_tk = tk_ic - tk_0.
             // tk_0 remains fixed per IC loop, changes with every OC step.
             let tk_ic_new = loop {
+                let tk_ic_prev = tk_ic.clone();
                 // Compute \Delta t(k) = t_{ic}(k) - t^0(k) for coefficient step
                 let tk_delta = &tk_ic - &tk_0;
-
+                let cjk_abj = cjk.sum_axis(Axis(0));
                 // Compute c(k) from coefficients
-                let mut summed_term = Array::zeros((npts, ns1, ns2));
                 for l in 0..npts {
                     for a in 0..ns1 {
                         for b in 0..ns2 {
                             if l < self.nbasis {
-                                let cjk_abj = cjk.slice(s![.., l, a, b]).sum();
-                                summed_term[[l, a, b]] = cjk_abj * tk_delta[[l, a, b]];
+                                ck_0[[l, a, b]] += cjk_abj[[l, a, b]] * tk_delta[[l, a, b]];
                             }
                         }
                     }
                 }
 
-                // println!("{}", sum);
-
-                problem.correlations.cr = problem.grid.nd_fbt_k2r(&(&ck_0 + summed_term));
+                problem.correlations.cr = problem.grid.nd_fbt_k2r(&ck_0);
 
                 // Compute intermediate t(k) for Jacobian and new M matrix
                 (operator.eq)(problem);
@@ -241,12 +244,12 @@ impl Solver for LMV {
                 let tk_jac = problem.correlations.tk.clone();
 
                 // Compute \Delta t(k) = t_{ic}(k) - t^0(k) for Jacobian step
-                let tk_delta = &tk_jac - &tk_ic;
+                let intermediate_tk_delta = &tk_jac - &tk_ic;
 
                 // Compute Jacobian and vector
                 let (vec, mat) = self.jacobian(
                     &cjk,
-                    &tk_delta,
+                    &intermediate_tk_delta,
                     &problem.grid.kgrid,
                     &problem.correlations.invwc1wk,
                 );
@@ -264,36 +267,29 @@ impl Solver for LMV {
                 for v in 0..self.nbasis {
                     for a in 0..ns1 {
                         for b in 0..ns2 {
-                            delta_tk_sum += (new_delta_tk_flat[[v * ns1 * ns2 + a * ns2 + b]]
-                                / problem.grid.kgrid[[v]])
-                            .powf(2.0);
-                            tk_ic[[v, a, b]] = tk_ic[[v, a, b]]
-                                + self.picard_damping
-                                    * (new_delta_tk_flat[[v * ns1 * ns2 + a * ns2 + b]]
-                                        / problem.grid.kgrid[[v]]);
+                            delta_tk_sum +=
+                                (new_delta_tk_flat[[v * ns1 * ns2 + a * ns2 + b]]).powf(2.0);
+                            tk_ic[[v, a, b]] += new_delta_tk_flat[[v * ns1 * ns2 + a * ns2 + b]];
                             tk_ic_sum += tk_ic[[v, a, b]].powf(2.0);
                         }
                     }
                 }
 
                 // Compute RMS
-                let rms = (delta_tk_sum / tk_ic_sum).sqrt() / (self.nbasis * ns1 * ns2) as f64;
-                if (rms - prev_rms).abs() < 1e-3 {
-                    break tk_ic;
-                }
-                prev_rms = rms;
+                // let rms = (&tk_ic - &tk_ic_prev).mapv(|x| x.powf(2.0)).sum().sqrt()
+                //     / (self.nbasis * ns1 * ns2) as f64;
+                let rms = (delta_tk_sum.sqrt()) / (self.nbasis * ns1 * ns2) as f64;
                 trace!("IC Iteration: {} Convergence RMSE: {:.6E}", ic_counter, rms);
+                ic_counter += 1;
 
-                if rms < 1e-3 {
+                if rms < 1e-6 {
                     break tk_ic;
                 }
-
-                ic_counter += 1;
             };
 
             let tr_curr = problem.grid.nd_fbt_k2r(&(tk_0 + tk_ic_new));
 
-            let tr_new = tr_curr;
+            let tr_new = &tr_0 + self.picard_damping * (&tr_curr - &tr_0);
 
             let rms =
                 (&tr_new - &tr_prev).mapv(|x| x.powf(2.0)).sum().sqrt() / (npts * ns1 * ns2) as f64;
