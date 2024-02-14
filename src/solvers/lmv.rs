@@ -80,7 +80,6 @@ impl LMV {
         &self,
         cjk: &Array4<f64>,
         tk_delta: &Array3<f64>,
-        k: &Array1<f64>,
         invwc1w: &Array3<f64>,
     ) -> (Array1<f64>, Array2<f64>) {
         let (npts, ns1, ns2) = tk_delta.dim();
@@ -134,15 +133,6 @@ impl LMV {
                                 };
 
                                 let kron_acbd = kron_ac * kron_bd;
-                                // Implementation following chunutmb/rism
-                                // matrix
-                                //     [[v * ns1 * ns2 + a * ns2 + b, n * ns1 * ns2 + c * ns2 + d]] +=
-                                //     kron_acbd * (_kron_vn + cjk[[v, n, a, b]])
-                                //         - invwc1w[[v, a, c]]
-                                //             * invwc1w[[n, d, b]]
-                                //             * cjk[[v, n, c, d]];
-
-                                // Implementation following Wu et al.
                                 matrix
                                     [[v * ns1 * ns2 + a * ns2 + b, n * ns1 * ns2 + c * ns2 + d]] =
                                     kron_acbd * (kron_vn + cjk[[v, n, c, d]])
@@ -211,10 +201,6 @@ impl Solver for LMV {
             // Compute coefficients from derivative
             let cjk = self.tabulate_coefficients(&dcrtr);
 
-            // Store previous RMS IC (initial value arbitrarly large so comparison fails
-            // successfully)
-            let mut prev_rms = 1e20;
-
             // Start innner convergence loop
             // tk_ic is the variable being changed per step
             // computed via delta_tk = tk_ic - tk_0.
@@ -247,12 +233,8 @@ impl Solver for LMV {
                 let intermediate_tk_delta = &tk_jac - &tk_ic;
 
                 // Compute Jacobian and vector
-                let (vec, mat) = self.jacobian(
-                    &cjk,
-                    &intermediate_tk_delta,
-                    &problem.grid.kgrid,
-                    &problem.correlations.invwc1wk,
-                );
+                let (vec, mat) =
+                    self.jacobian(&cjk, &intermediate_tk_delta, &problem.correlations.invwc1wk);
 
                 // println!("{:+.1e}", mat);
 
@@ -263,22 +245,20 @@ impl Solver for LMV {
 
                 // Renew tk_ic
                 let mut delta_tk_sum = 0.0;
-                let mut tk_ic_sum = 0.0;
                 for v in 0..self.nbasis {
                     for a in 0..ns1 {
                         for b in 0..ns2 {
                             delta_tk_sum +=
                                 (new_delta_tk_flat[[v * ns1 * ns2 + a * ns2 + b]]).powf(2.0);
                             tk_ic[[v, a, b]] += new_delta_tk_flat[[v * ns1 * ns2 + a * ns2 + b]];
-                            tk_ic_sum += tk_ic[[v, a, b]].powf(2.0);
                         }
                     }
                 }
 
+                // println!("{}", tk_ic);
+
                 // Compute RMS
-                // let rms = (&tk_ic - &tk_ic_prev).mapv(|x| x.powf(2.0)).sum().sqrt()
-                //     / (self.nbasis * ns1 * ns2) as f64;
-                let rms = (delta_tk_sum.sqrt()) / (self.nbasis * ns1 * ns2) as f64;
+                let rms = (delta_tk_sum.sqrt()); // / (self.nbasis * ns1 * ns2) as f64;
                 trace!("IC Iteration: {} Convergence RMSE: {:.6E}", ic_counter, rms);
                 ic_counter += 1;
 
@@ -288,11 +268,9 @@ impl Solver for LMV {
             };
 
             let tr_curr = problem.grid.nd_fbt_k2r(&(tk_0 + tk_ic_new));
-
-            let tr_new = &tr_0 + self.picard_damping * (&tr_curr - &tr_0);
-
-            let rms =
-                (&tr_new - &tr_prev).mapv(|x| x.powf(2.0)).sum().sqrt() / (npts * ns1 * ns2) as f64;
+            let rms = (&tr_curr - &tr_prev).mapv(|x| x.powf(2.0)).sum().sqrt()
+                / (npts * ns1 * ns2) as f64;
+            let tr_new = &tr_prev + self.picard_damping * (&tr_curr - &tr_prev);
 
             problem.correlations.tr = tr_new;
 
@@ -303,7 +281,7 @@ impl Solver for LMV {
                 break Ok(SolverSuccess(oc_counter, rms));
             }
 
-            if rms == std::f64::NAN || rms == std::f64::INFINITY {
+            if rms.is_nan() || rms.is_infinite() {
                 break Err(SolverError::ConvergenceError(oc_counter));
             }
 
