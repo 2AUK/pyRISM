@@ -191,8 +191,8 @@ fn rism_vv_equation_impl(
             },
         );
 
-    // Compute t(k) = h(k) - c(k)
-    let tk = &hk - ck;
+    // Compute t(k) = h(k) - c(k) whilst removing long range component
+    let tk = (&hk - ck) - b * uk_lr.to_owned();
 
     // Transform t(k) -> t(r)
     Zip::from(tk.lanes(Axis(0)))
@@ -207,10 +207,10 @@ fn rism_vv_equation_impl(
         });
 
     // removing long-range component
-    tr = tr - b * ur_lr.to_owned();
+    // tr = tr - b * ur_lr.to_owned();
 
     // return k-space total correlation and r-space indirect correlation functions
-    (hk, tr, tk - b * uk_lr.to_owned(), invwc1w)
+    (hk, tr, tk, invwc1w)
 }
 
 fn rism_uv_equation_impl(
@@ -271,7 +271,7 @@ fn rism_uv_equation_impl(
         );
 
     // Compute t(k) = h(k) - c(k)
-    let tk = &hk - ck;
+    let tk = (&hk - ck) - b * uk_lr.to_owned();
 
     // Transform t(k) -> t(r)
     Zip::from(tk.lanes(Axis(0)))
@@ -286,7 +286,7 @@ fn rism_uv_equation_impl(
         });
 
     // removing long-range component
-    tr = tr - b * ur_lr.to_owned();
+    // tr = tr - b * ur_lr.to_owned();
 
     // return k-space total correlation and r-space indirect correlation functions
     (hk, tr)

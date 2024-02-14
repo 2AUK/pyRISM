@@ -4,7 +4,7 @@ use crate::iet::operator::Operator;
 use crate::solvers::solver::Solver;
 use itertools::Itertools;
 use log::{debug, info, trace};
-use ndarray_linalg::{Inverse, Solve};
+use ndarray_linalg::{Factorize, Inverse, Solve};
 use numpy::ndarray::{
     s, Array, Array1, Array2, Array3, Array4, ArrayView2, Axis, IntoNdProducer, Slice, Zip,
 };
@@ -170,7 +170,7 @@ impl Solver for LMV {
         // Generate initial guesses t(r)
         (operator.eq)(problem);
 
-        let result = loop {
+        let result = 'outer: loop {
             // Store previous t(r)
             let tr_prev = problem.correlations.tr.clone();
 
@@ -205,8 +205,7 @@ impl Solver for LMV {
             // tk_ic is the variable being changed per step
             // computed via delta_tk = tk_ic - tk_0.
             // tk_0 remains fixed per IC loop, changes with every OC step.
-            let tk_ic_new = loop {
-                let tk_ic_prev = tk_ic.clone();
+            let tk_ic_new = 'inner: loop {
                 // Compute \Delta t(k) = t_{ic}(k) - t^0(k) for coefficient step
                 let tk_delta = &tk_ic - &tk_0;
                 let cjk_abj = cjk.sum_axis(Axis(0));
@@ -236,10 +235,12 @@ impl Solver for LMV {
                 let (vec, mat) =
                     self.jacobian(&cjk, &intermediate_tk_delta, &problem.correlations.invwc1wk);
 
+                let lumat = mat.factorize().expect("LU factorised Jacobian");
+
                 // println!("{:+.1e}", mat);
 
                 // Perform linear solve for new \Delta t(k)
-                let new_delta_tk_flat = mat
+                let new_delta_tk_flat = lumat
                     .solve_into(vec)
                     .expect("linear solve in NR step for new delta t(k)");
 
@@ -258,20 +259,28 @@ impl Solver for LMV {
                 // println!("{}", tk_ic);
 
                 // Compute RMS
-                let rms = (delta_tk_sum.sqrt()); // / (self.nbasis * ns1 * ns2) as f64;
+                let rms = delta_tk_sum.sqrt(); // / (self.nbasis * ns1 * ns2) as f64;
                 trace!("IC Iteration: {} Convergence RMSE: {:.6E}", ic_counter, rms);
                 ic_counter += 1;
 
-                if rms < 1e-6 {
-                    break tk_ic;
+                if rms < 1e-2 {
+                    break 'inner tk_ic;
+                }
+
+                if rms.is_nan() {
+                    break 'outer Err(SolverError::ConvergenceError(oc_counter));
+                }
+
+                if ic_counter == 500 {
+                    break 'outer Err(SolverError::MaxIterationError(500));
                 }
             };
 
             let tr_curr = problem.grid.nd_fbt_k2r(&(tk_0 + tk_ic_new));
-            let rms = (&tr_curr - &tr_prev).mapv(|x| x.powf(2.0)).sum().sqrt()
-                / (npts * ns1 * ns2) as f64;
-            let tr_new = &tr_prev + self.picard_damping * (&tr_curr - &tr_prev);
 
+            let tr_new = &tr_prev + self.picard_damping * (&tr_curr - &tr_prev);
+            let rms =
+                (&tr_new - &tr_prev).mapv(|x| x.powf(2.0)).sum().sqrt() / (npts * ns1 * ns2) as f64;
             problem.correlations.tr = tr_new;
 
             trace!("OC Iteration: {} Convergence RMSE: {:.6E}", oc_counter, rms);
