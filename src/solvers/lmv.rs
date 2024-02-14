@@ -80,6 +80,7 @@ impl LMV {
         &self,
         cjk: &Array4<f64>,
         tk_delta: &Array3<f64>,
+        k: &Array1<f64>,
         invwc1w: &Array3<f64>,
     ) -> (Array1<f64>, Array2<f64>) {
         let (npts, ns1, ns2) = tk_delta.dim();
@@ -104,7 +105,7 @@ impl LMV {
         for v in 0..self.nbasis {
             for a in 0..ns1 {
                 for b in 0..ns2 {
-                    vector[[v * ns1 * ns2 + a * ns2 + b]] = tk_delta[[v, a, b]];
+                    vector[[v * ns1 * ns2 + a * ns2 + b]] = k[[v]] * tk_delta[[v, a, b]];
                     for n in 0..self.nbasis {
                         for c in 0..ns1 {
                             for d in 0..ns2 {
@@ -232,8 +233,12 @@ impl Solver for LMV {
                 let intermediate_tk_delta = &tk_jac - &tk_ic;
 
                 // Compute Jacobian and vector
-                let (vec, mat) =
-                    self.jacobian(&cjk, &intermediate_tk_delta, &problem.correlations.invwc1wk);
+                let (vec, mat) = self.jacobian(
+                    &cjk,
+                    &intermediate_tk_delta,
+                    &problem.grid.kgrid,
+                    &problem.correlations.invwc1wk,
+                );
 
                 let lumat = mat.factorize().expect("LU factorised Jacobian");
 
@@ -249,9 +254,10 @@ impl Solver for LMV {
                 for v in 0..self.nbasis {
                     for a in 0..ns1 {
                         for b in 0..ns2 {
-                            delta_tk_sum +=
-                                (new_delta_tk_flat[[v * ns1 * ns2 + a * ns2 + b]]).powf(2.0);
-                            tk_ic[[v, a, b]] += new_delta_tk_flat[[v * ns1 * ns2 + a * ns2 + b]];
+                            let delta_tk_val = new_delta_tk_flat[[v * ns1 * ns2 + a * ns2 + b]]
+                                / &problem.grid.kgrid[[v]];
+                            delta_tk_sum += delta_tk_val.powf(2.0);
+                            tk_ic[[v, a, b]] += delta_tk_val;
                         }
                     }
                 }
@@ -271,14 +277,30 @@ impl Solver for LMV {
                     break 'outer Err(SolverError::ConvergenceError(oc_counter));
                 }
 
-                if ic_counter == 500 {
-                    break 'outer Err(SolverError::MaxIterationError(500));
+                if ic_counter == 5000 {
+                    break 'inner tk_ic;
                 }
             };
 
-            let tr_curr = problem.grid.nd_fbt_k2r(&(tk_0 + tk_ic_new));
+            let mut tk_curr = Array::zeros(tk_0.raw_dim());
+            for l in 0..npts {
+                for a in 0..ns1 {
+                    for b in 0..ns2 {
+                        if l < self.nbasis {
+                            tk_curr[[l, a, b]] =
+                                tk_0[[l, a, b]] + self.picard_damping * tk_ic_new[[l, a, b]]
+                        } else {
+                            tk_curr[[l, a, b]] = tk_0[[l, a, b]]
+                                + self.picard_damping
+                                    * (&problem.correlations.tr[[l, a, b]] - tk_0[[l, a, b]]);
+                        }
+                    }
+                }
+            }
 
-            let tr_new = &tr_prev + self.picard_damping * (&tr_curr - &tr_prev);
+            let tr_curr = problem.grid.nd_fbt_k2r(&tk_curr);
+
+            let tr_new = self.picard_damping * &tr_curr + (1.0 - self.picard_damping) * &tr_prev;
             let rms =
                 (&tr_new - &tr_prev).mapv(|x| x.powf(2.0)).sum().sqrt() / (npts * ns1 * ns2) as f64;
             problem.correlations.tr = tr_new;
