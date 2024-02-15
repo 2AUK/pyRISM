@@ -38,15 +38,15 @@ impl System {
             sites: Vec::new(),
         }
     }
-    pub fn iter(&self) -> impl Iterator<Item = &Species> {
+    pub fn iter_species(&self) -> impl Iterator<Item = &Species> {
         self.species.iter()
     }
 
-    pub fn into_iter(self) -> impl Iterator<Item = Species> {
+    pub fn into_iter_species(self) -> impl Iterator<Item = Species> {
         self.species.into_iter()
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Species> {
+    pub fn iter_species_mut(&mut self) -> impl Iterator<Item = &mut Species> {
         self.species.iter_mut()
     }
 
