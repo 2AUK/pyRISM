@@ -1,11 +1,6 @@
 use librism::drivers::rism::Compress;
+use librism::drivers::rism::Verbosity;
 use librism::Calculator;
-use librism::{
-    drivers::rism::{RISMDriver, Verbosity},
-    grids::radial_grid::Grid,
-    io::writer::RISMWriter,
-    thermodynamics::thermo::{SFEs, TDDriver},
-};
 use std::path::PathBuf;
 
 struct Args {
@@ -55,8 +50,10 @@ fn parse_args() -> Result<Args, lexopt::Error> {
 }
 
 fn main() -> Result<(), lexopt::Error> {
+    // Feature for switching in allocation profiler
     #[cfg(feature = "dhat-on")]
     let _dhat = dhat::Profiler::new_heap();
+
     let args = parse_args()?;
     Calculator::new(args.input_file, args.verbosity, args.compress).execute();
     Ok(())
