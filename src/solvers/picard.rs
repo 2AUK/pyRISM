@@ -43,11 +43,11 @@ impl Solver for Picard {
         let mut i = 0;
         let timer = Instant::now();
 
-        let result = loop {
+        loop {
             //println!("Iteration: {}", i);
             let c_prev = problem.correlations.cr.clone();
             (operator.eq)(problem);
-            let c_a = (operator.closure)(&problem);
+            let c_a = (operator.closure)(problem);
             let c_next = self.step_picard(&c_a, &c_prev);
             problem.correlations.cr = c_next.clone();
             let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &c_next, &c_prev);
@@ -68,8 +68,7 @@ impl Solver for Picard {
             if i == self.max_iter {
                 break Err(SolverError::MaxIterationError(i));
             }
-        };
-        result
+        }
     }
 }
 

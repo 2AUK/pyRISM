@@ -26,7 +26,7 @@ impl Gillan {
         }
     }
 
-    fn step_picard(&mut self, curr: &Array3<f64>, prev: &Array3<f64>) -> Array3<f64> {
+    fn _step_picard(&mut self, curr: &Array3<f64>, prev: &Array3<f64>) -> Array3<f64> {
         // calculate difference between current and previous solutions from RISM equation
         let diff = curr.clone() - prev.clone();
 
@@ -35,7 +35,7 @@ impl Gillan {
     }
 
     pub fn step_gillan(&mut self, curr: &Array3<f64>, _prev: &Array3<f64>) -> Array1<f64> {
-        Array::from_iter(curr.clone().into_iter())
+        Array::from_iter(curr.clone())
     }
 
     pub fn compute_basis_functions(&mut self) {
@@ -53,12 +53,11 @@ impl Solver for Gillan {
         let shape = problem.correlations.cr.dim();
         let mut i = 0;
 
-        let result = loop {
+        loop {
             let c_prev = problem.correlations.cr.clone();
             (operator.eq)(problem);
-            let c_a = (operator.closure)(&problem);
-            let c_next;
-            c_next = self
+            let c_a = (operator.closure)(problem);
+            let c_next = self
                 .step_gillan(&c_a, &c_prev)
                 .into_shape(shape)
                 .expect("could not reshape array into original shape");
@@ -81,8 +80,7 @@ impl Solver for Gillan {
             if i == self.max_iter {
                 break Err(SolverError::MaxIterationError(i));
             }
-        };
-        result
+        }
     }
 }
 

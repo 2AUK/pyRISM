@@ -25,7 +25,7 @@ pub struct PyGrid {
 }
 
 impl PyGrid {
-    pub fn new<'py>(npts: usize, radius: f64, py: Python<'py>) -> Self {
+    pub fn new(npts: usize, radius: f64, py: Python<'_>) -> Self {
         let dr = radius / npts as f64;
         let dk = 2.0 * PI / (2.0 * npts as f64 * dr);
         let rgrid = Array1::range(0.5, npts as f64, 1.0) * dr;
@@ -84,13 +84,13 @@ pub struct PyDensities {
 }
 
 impl PyDensities {
-    pub fn new<'py>(
+    pub fn new(
         hnc: Array1<f64>,
         kh: Array1<f64>,
         gf: Array1<f64>,
         pw: Array1<f64>,
         pmv: Array1<f64>,
-        py: Python<'py>,
+        py: Python<'_>,
     ) -> Self {
         PyDensities {
             hypernettedchain: hnc.into_pyarray(py).into(),
@@ -101,7 +101,7 @@ impl PyDensities {
         }
     }
 
-    pub fn from_densities<'py>(densities: Densities, py: Python<'py>) -> Self {
+    pub fn from_densities(densities: Densities, py: Python<'_>) -> Self {
         Self::new(
             densities.hypernettedchain,
             densities.kovalenko_hirata,
@@ -134,7 +134,7 @@ pub struct PyThermodynamics {
 }
 
 impl PyThermodynamics {
-    pub fn from_thermodynamics<'py>(thermodynamics: Thermodynamics, py: Python<'py>) -> Self {
+    pub fn from_thermodynamics(thermodynamics: Thermodynamics, py: Python<'_>) -> Self {
         let (sfe, sfed) = match thermodynamics.sfe {
             Some(sfe) => {
                 let sfe = Some(PySFEs::from_sfes(sfe));
@@ -174,12 +174,12 @@ pub struct PyCorrelations {
 }
 
 impl PyCorrelations {
-    pub fn new<'py>(
+    pub fn new(
         cr: Array3<f64>,
         tr: Array3<f64>,
         hr: Array3<f64>,
         gr: Array3<f64>,
-        py: Python<'py>,
+        py: Python<'_>,
     ) -> Self {
         PyCorrelations {
             cr: cr.into_pyarray(py).into(),
@@ -189,7 +189,7 @@ impl PyCorrelations {
         }
     }
 
-    pub fn from_correlations<'py>(corr: Correlations, py: Python<'py>) -> Self {
+    pub fn from_correlations(corr: Correlations, py: Python<'_>) -> Self {
         let gr = 1.0 + &corr.hr;
         Self::new(corr.cr, corr.tr, corr.hr, gr, py)
     }
@@ -209,12 +209,12 @@ pub struct PyInteractions {
 }
 
 impl PyInteractions {
-    pub fn new<'py>(
+    pub fn new(
         ur: Array3<f64>,
         u_sr: Array3<f64>,
         ur_lr: Array3<f64>,
         uk_lr: Array3<f64>,
-        py: Python<'py>,
+        py: Python<'_>,
     ) -> Self {
         PyInteractions {
             ur: ur.into_pyarray(py).into(),
@@ -224,7 +224,7 @@ impl PyInteractions {
         }
     }
 
-    pub fn from_interactions<'py>(inter: Interactions, py: Python<'py>) -> Self {
+    pub fn from_interactions(inter: Interactions, py: Python<'_>) -> Self {
         Self::new(inter.ur, inter.u_sr, inter.ur_lr, inter.uk_lr, py)
     }
 }

@@ -85,7 +85,7 @@ impl ADIIS {
             self.initial_step = false;
 
             // Return the t(k) - direct iteration
-            return (rms, tr.to_owned());
+            (rms, tr.to_owned())
         // If we're not in the intial step then start the MDIIS process
         } else {
             // Store the original 3D array shape
@@ -198,12 +198,12 @@ impl ADIIS {
             // Increment counter
             self.counter = (self.counter + 1) % self.m;
 
-            return (
+            (
                 rmsnew,
                 out.to_owned()
                     .into_shape(original_shape)
                     .expect("flattened array reshaped into original 3 dimensions"),
-            );
+            )
         }
     }
 }
@@ -229,7 +229,7 @@ impl Solver for ADIIS {
         // Cycling c(r) -> t(r)
         (operator.eq)(problem);
 
-        let result = loop {
+        loop {
             // Use closure to compute c'(r) from t(r)
             problem.correlations.cr = (operator.closure)(problem);
 
@@ -259,7 +259,6 @@ impl Solver for ADIIS {
             if i == self.max_iter {
                 break Err(SolverError::MaxIterationError(i));
             }
-        };
-        result
+        }
     }
 }

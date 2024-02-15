@@ -297,7 +297,6 @@ pub enum SpeciesInfo {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     const _TOML_PARTIAL_INPUT: &str = r#"[system]
 temp = 298
 kT = 1.0

@@ -1,5 +1,4 @@
 use crate::data::core::DataRs;
-use log::debug;
 use ndarray::{par_azip, Array, Array3};
 use pyo3::{prelude::*, types::PyString};
 use serde::{Deserialize, Serialize};
@@ -108,7 +107,7 @@ impl ClosureKind {
 }
 
 pub fn hyper_netted_chain(problem: &DataRs) -> Array3<f64> {
-    (-problem.system.beta * &problem.system.curr_lam * &problem.interactions.u_sr
+    (-problem.system.beta * problem.system.curr_lam * &problem.interactions.u_sr
         + &problem.correlations.tr)
         .mapv(|a| a.exp())
         - 1.0
@@ -116,7 +115,7 @@ pub fn hyper_netted_chain(problem: &DataRs) -> Array3<f64> {
 }
 
 pub fn hyper_netted_chain_derivative(problem: &DataRs) -> Array3<f64> {
-    (-problem.system.beta * &problem.system.curr_lam * &problem.interactions.u_sr
+    (-problem.system.beta * problem.system.curr_lam * &problem.interactions.u_sr
         + &problem.correlations.tr)
         .mapv(|a| a.exp())
         - 1.0
@@ -124,7 +123,7 @@ pub fn hyper_netted_chain_derivative(problem: &DataRs) -> Array3<f64> {
 
 pub fn kovalenko_hirata(problem: &DataRs) -> Array3<f64> {
     let mut out = Array::zeros(problem.correlations.tr.raw_dim());
-    par_azip!((a in &mut out, &b in &(-problem.system.beta * &problem.system.curr_lam * &problem.interactions.u_sr + &problem.correlations.tr), &c in &problem.correlations.tr)    {
+    par_azip!((a in &mut out, &b in &(-problem.system.beta * problem.system.curr_lam * &problem.interactions.u_sr + &problem.correlations.tr), &c in &problem.correlations.tr)    {
         if b <= 0.0 {
             *a = b.exp() - 1.0 - c
         } else {
@@ -136,7 +135,7 @@ pub fn kovalenko_hirata(problem: &DataRs) -> Array3<f64> {
 
 pub fn kovalenko_hirata_derivative(problem: &DataRs) -> Array3<f64> {
     let mut out = Array::zeros(problem.correlations.tr.raw_dim());
-    par_azip!((a in &mut out, &b in &(-problem.system.beta * &problem.system.curr_lam * &problem.interactions.u_sr + &problem.correlations.tr), &c in &problem.correlations.tr)    {
+    par_azip!((a in &mut out, &b in &(-problem.system.beta * problem.system.curr_lam * &problem.interactions.u_sr + &problem.correlations.tr))   {
         if b <= 0.0 {
             *a = b.exp() - 1.0
         } else {
@@ -147,14 +146,14 @@ pub fn kovalenko_hirata_derivative(problem: &DataRs) -> Array3<f64> {
 }
 
 pub fn percus_yevick(problem: &DataRs) -> Array3<f64> {
-    (-problem.system.beta * &problem.system.curr_lam * &problem.interactions.u_sr).mapv(|a| a.exp())
+    (-problem.system.beta * problem.system.curr_lam * &problem.interactions.u_sr).mapv(|a| a.exp())
         * (1.0 + &problem.correlations.tr)
         - 1.0
         - &problem.correlations.tr
 }
 
 pub fn percus_yevick_derivative(problem: &DataRs) -> Array3<f64> {
-    (-problem.system.beta * &problem.system.curr_lam * &problem.interactions.u_sr).mapv(|a| a.exp())
+    (-problem.system.beta * problem.system.curr_lam * &problem.interactions.u_sr).mapv(|a| a.exp())
         - 1.0
 }
 

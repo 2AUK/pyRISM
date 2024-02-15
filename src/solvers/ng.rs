@@ -34,11 +34,9 @@ impl Ng {
         // calculate difference between current and previous solutions from RISM equation
         let diff = curr.clone() - prev.clone();
 
-        self.fr
-            .push_back(Array::from_iter(curr.clone().into_iter()));
+        self.fr.push_back(Array::from_iter(curr.clone()));
 
-        self.gr
-            .push_back(Array::from_iter(prev.clone().into_iter()));
+        self.gr.push_back(Array::from_iter(prev.clone()));
         // return Picard iteration step
         prev + self.picard_damping * diff
     }
@@ -63,14 +61,12 @@ impl Ng {
         b[[1]] = dn.dot(&d02);
 
         let c = a.solve_into(b).expect("solved coefficients for Ng solver");
-        let out = (1.0 - c[[0]] - c[[1]]) * Array::from_iter(self.gr[2].clone().into_iter())
-            + c[0] * Array::from_iter(self.gr[1].clone().into_iter())
-            + c[1] * Array::from_iter(self.gr[0].clone().into_iter());
+        let out = (1.0 - c[[0]] - c[[1]]) * Array::from_iter(self.gr[2].clone())
+            + c[0] * Array::from_iter(self.gr[1].clone())
+            + c[1] * Array::from_iter(self.gr[0].clone());
 
-        self.fr
-            .push_back(Array::from_iter(curr.clone().into_iter()));
-        self.gr
-            .push_back(Array::from_iter(prev.clone().into_iter()));
+        self.fr.push_back(Array::from_iter(curr.clone()));
+        self.gr.push_back(Array::from_iter(prev.clone()));
         self.gr.pop_front();
         self.fr.pop_front();
 
@@ -90,20 +86,18 @@ impl Solver for Ng {
         let (npts, ns1, ns2) = shape;
         let mut i = 0;
 
-        let result = loop {
+        loop {
             //println!("Iteration: {}", i);
             let c_prev = problem.correlations.cr.clone();
             (operator.eq)(problem);
-            let c_a = (operator.closure)(&problem);
-            let c_next;
-            if i < 3 {
-                c_next = self.step_picard(&c_a, &c_prev);
+            let c_a = (operator.closure)(problem);
+            let c_next = if i < 3 {
+                self.step_picard(&c_a, &c_prev)
             } else {
-                c_next = self
-                    .step_ng(&c_a, &c_prev)
+                self.step_ng(&c_a, &c_prev)
                     .into_shape(c_a.raw_dim())
-                    .expect("reshaping Ng step result to original 3D array");
-            }
+                    .expect("reshaping Ng step result to original 3D array")
+            };
             problem.correlations.cr = c_next.clone();
             let rmse = conv_rmse(ns1, ns2, npts, problem.grid.dr, &c_next, &c_prev);
 
@@ -123,8 +117,7 @@ impl Solver for Ng {
             if i == self.max_iter {
                 break Err(SolverError::MaxIterationError(i));
             }
-        };
-        result
+        }
     }
 }
 

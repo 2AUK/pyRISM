@@ -1,6 +1,5 @@
 use crate::data::core::DataRs;
 use crate::grids::transforms::fourier_bessel_transform_fftw;
-use log::debug;
 use ndarray::{Array, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis, Zip};
 use ndarray_linalg::Inverse;
 use pyo3::{prelude::*, types::PyString};
@@ -131,13 +130,12 @@ fn rism_vv_equation_impl(
     p: ArrayView2<f64>,
     b: f64,
     uk_lr: ArrayView3<f64>,
-    ur_lr: ArrayView3<f64>,
+    _ur_lr: ArrayView3<f64>,
     chi: ArrayView3<f64>,
 ) -> (Array3<f64>, Array3<f64>, Array3<f64>) {
     // Setting up prefactors for Fourier-Bessel transforms
     let rtok = 2.0 * PI * dr;
     let ktor = dk / (4.0 * PI * PI);
-    let (npts, ns1, ns2) = cr.dim();
 
     // Starting FFT Plan
     // let plan = DctPlanner::new().plan_dst4(npts);
@@ -212,7 +210,7 @@ fn rism_uv_equation_impl(
     p: ArrayView2<f64>,
     b: f64,
     uk_lr: ArrayView3<f64>,
-    ur_lr: ArrayView3<f64>,
+    _ur_lr: ArrayView3<f64>,
     h_vv: ArrayView3<f64>,
     w_vv: ArrayView3<f64>,
 ) -> (Array3<f64>, Array3<f64>) {
