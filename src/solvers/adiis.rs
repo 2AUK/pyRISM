@@ -1,13 +1,11 @@
 use crate::data::{configuration::solver::*, core::DataRs};
-use crate::grids::transforms::fourier_bessel_transform_fftw;
 use crate::iet::operator::Operator;
 use crate::solvers::solver::Solver;
-use log::{debug, info, trace};
-use ndarray::{s, Array, Array1, Array2, Array3, Slice};
-use ndarray::{Axis, Zip};
+use log::{info, trace};
+use ndarray::{s, Array, Array1, Array2, Array3};
 use ndarray_linalg::Solve;
 use std::collections::VecDeque;
-use std::f64::consts::PI;
+use std::time::Instant;
 
 #[derive(Clone, Debug)]
 pub struct ADIIS {
@@ -216,6 +214,8 @@ impl Solver for ADIIS {
         problem: &mut DataRs,
         operator: &Operator,
     ) -> Result<SolverSuccess, SolverError> {
+        // Start timer
+        let timer = Instant::now();
         // Iteration counter
         let mut i = 0;
 
@@ -246,7 +246,8 @@ impl Solver for ADIIS {
             if rms <= self.tolerance {
                 self.initial_step = true;
                 problem.correlations.cr = (operator.closure)(problem);
-                break Ok(SolverSuccess(i, rms));
+                let elapsed = timer.elapsed();
+                break Ok(SolverSuccess(i, rms, elapsed.as_secs_f64()));
             }
 
             if rms == std::f64::NAN || rms == std::f64::INFINITY {
