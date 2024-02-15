@@ -5,6 +5,7 @@ use log::{info, trace};
 use ndarray_linalg::Solve;
 use numpy::ndarray::{Array, Array1, Array2, Array3};
 use std::collections::VecDeque;
+use std::time::Instant;
 
 #[derive(Clone, Debug)]
 pub struct MDIIS {
@@ -113,6 +114,7 @@ impl Solver for MDIIS {
         problem: &mut DataRs,
         operator: &Operator,
     ) -> Result<SolverSuccess, SolverError> {
+        let timer = Instant::now();
         info! {"Solving RISM equation"};
         self.fr.clear();
         self.res.clear();
@@ -168,7 +170,8 @@ impl Solver for MDIIS {
             trace!("Iteration: {} Convergence RMSE: {:.6E}", i, rmse);
 
             if rmse <= self.tolerance {
-                break Ok(SolverSuccess(i, rmse));
+                let elapsed = timer.elapsed();
+                break Ok(SolverSuccess(i, rmse, elapsed.as_secs_f64()));
             }
 
             if rmse == std::f64::NAN || rmse == std::f64::INFINITY {

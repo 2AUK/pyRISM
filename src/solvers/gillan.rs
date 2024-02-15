@@ -2,6 +2,7 @@ use crate::data::{configuration::solver::*, core::DataRs};
 use crate::{iet::operator::Operator, solvers::solver::Solver};
 use log::trace;
 use ndarray::{Array, Array1, Array3};
+use std::time::Instant;
 
 #[derive(Clone, Debug)]
 pub struct Gillan {
@@ -48,6 +49,7 @@ impl Solver for Gillan {
         problem: &mut DataRs,
         operator: &Operator,
     ) -> Result<SolverSuccess, SolverError> {
+        let timer = Instant::now();
         let shape = problem.correlations.cr.dim();
         let mut i = 0;
 
@@ -66,7 +68,8 @@ impl Solver for Gillan {
             trace!("Iteration: {} Convergence RMSE: {:.6E}", i, rmse);
 
             if rmse <= self.tolerance {
-                break Ok(SolverSuccess(i, rmse));
+                let elapsed = timer.elapsed();
+                break Ok(SolverSuccess(i, rmse, elapsed.as_secs_f64()));
             }
 
             if rmse == std::f64::NAN || rmse == std::f64::INFINITY {
