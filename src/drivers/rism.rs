@@ -454,17 +454,14 @@ impl RISMDriver {
                     }
                     acc
                 };
-                println!(
-                    "rho:\n\tsite: {}, species: {}",
-                    total_site_density, total_density,
-                );
+
                 let drism_damping = self
                     .data
                     .drism_damping
                     .expect("damping parameter for DRISM set");
                 let diel = self.data.dielec.expect("dielectric constant set");
                 k_exp_term.par_mapv_inplace(|x| (-1.0 * (drism_damping * x / 2.0).powf(2.0)).exp());
-                let dipole_density =
+                let _dipole_density =
                     self.solvent
                         .borrow()
                         .species
@@ -487,15 +484,9 @@ impl RISMDriver {
                     }
                     acc
                 };
-                println!(
-                    "dm:\n\tsite: {}, species: {}",
-                    dipole_site_density, dipole_density,
-                );
                 let y = 4.0 * PI * dipole_site_density / 9.0;
                 let hc0 = (((diel - 1.0) / y) - 3.0) / total_site_density;
                 let hck = hc0 * k_exp_term;
-                debug!("y: {}", y);
-                debug!("h_c(0): {}", hc0);
 
                 let chi = {
                     let mut d0x = Array::zeros(self.data.nsv);
@@ -546,7 +537,6 @@ impl RISMDriver {
 
     fn print_header(&self) {
         println!(
-            "{:=^50}",
             "
              ____  ___ ____  __  __ 
  _ __  _   _|  _ \\|_ _/ ___||  \\/  |
