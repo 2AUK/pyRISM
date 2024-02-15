@@ -127,7 +127,7 @@ impl Solver for MDIIS {
             //println!("Iteration: {}", i);
             let c_prev = problem.correlations.cr.clone();
             (operator.eq)(problem);
-            let c_a = (operator.closure)(&problem);
+            let c_a = (operator.closure)(problem);
             let mut c_next;
 
             if self.fr.len() < self.m {

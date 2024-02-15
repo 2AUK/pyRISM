@@ -14,9 +14,9 @@ pub struct RISMWriter<'a> {
 }
 
 impl<'a> RISMWriter<'a> {
-    pub fn new(name: &String, data: &'a Solutions, thermo: &'a Thermodynamics) -> Self {
+    pub fn new(name: &str, data: &'a Solutions, thermo: &'a Thermodynamics) -> Self {
         RISMWriter {
-            name: name.clone(),
+            name: name.to_owned(),
             data,
             thermo,
         }

@@ -14,7 +14,7 @@ use crate::interactions::potential::Potential;
 use crate::io::input::InputTOMLHandler;
 use crate::structure::system::Species;
 use flate2::{read, write, Compression};
-use log::{debug, info, trace, warn};
+use log::{info, trace, warn};
 use ndarray::{Array, Array1, Array2, Array3, Axis, Zip};
 use pyo3::prelude::*;
 use std::cell::RefCell;
@@ -22,10 +22,7 @@ use std::f64::consts::PI;
 use std::fs;
 use std::path::PathBuf;
 use std::rc::Rc;
-use tabled::{
-    builder::Builder,
-    settings::{object::Rows, Alignment, Modify, Style},
-};
+use tabled::builder::Builder;
 
 // Feature for switching on allocation profiler
 #[cfg(feature = "dhat-on")]
@@ -146,39 +143,28 @@ impl RISMDriver {
                     vv.interactions.clone(),
                     vv.correlations.clone(),
                 );
-                match compress {
-                    Compress::Compress => {
-                        trace!("Compressing solvent-solvent data");
-                        let inteq =
-                            str::replace(&self.operator.integral_equation.to_string(), " ", "_");
-                        let clos = str::replace(&self.operator.closure.to_string(), " ", "_");
-                        let temp = &self.data.temp;
-                        let name = format!("{}_{}_{}_{}K.bin", self.name, inteq, clos, temp);
-                        let file = fs::File::create(name).unwrap();
-                        let mut compressor = write::GzEncoder::new(file, Compression::best());
-                        info!("Compressing binary");
-                        bincode::serialize_into(&mut compressor, &vv_solution)
-                            .expect("encode solvent-solvent results to compressed binary");
-                        compressor
-                            .finish()
-                            .expect("finish encoding solvent-solvent results");
-                        // let compression_level = Compression::best();
-                        // let mut file_compressed = fs::File::create("test_compressed.bin").unwrap();
-                        // let mut compressor = GzEncoder::new(file_compressed, compression_level);
-                        // compressor.write_all(&encoded_vv[..]);
-                    }
-                    _ => (),
+                if let Compress::Compress = compress {
+                    info!("Compressing solvent-solvent data");
+                    let inteq =
+                        str::replace(&self.operator.integral_equation.to_string(), " ", "_");
+                    let clos = str::replace(&self.operator.closure.to_string(), " ", "_");
+                    let temp = &self.data.temp;
+                    let name = format!("{}_{}_{}_{}K.bin", self.name, inteq, clos, temp);
+                    let file = fs::File::create(name).unwrap();
+                    let mut compressor = write::GzEncoder::new(file, Compression::best());
+                    bincode::serialize_into(&mut compressor, &vv_solution)
+                        .expect("encode solvent-solvent results to compressed binary");
+                    compressor
+                        .finish()
+                        .expect("finish encoding solvent-solvent results");
                 }
                 vv_solution
             }
             Some(ref x) => {
-                match compress {
-                    Compress::Compress => {
-                        warn!(
+                if let Compress::Compress = compress {
+                    warn!(
                         "Already loading saved solution! Skipping solvent-solvent compression..."
                     );
-                    }
-                    _ => (),
                 }
                 x.clone()
             }
@@ -439,7 +425,7 @@ impl RISMDriver {
                 }
                 trace!("Calculating dielectric asymptotics for DRISM");
                 let mut k_exp_term = grid.kgrid.clone();
-                let total_density = self
+                let _total_density = self
                     .solvent
                     .borrow()
                     .species
@@ -558,7 +544,7 @@ impl RISMDriver {
         system_table_builder.push_record(["Radius", format!("{} Å", self.data.radius).as_str()]);
         system_table_builder.push_record([
             "Grid Spacing",
-            format!("{} Å", self.data.radius as f64 / self.data.npts as f64).as_str(),
+            format!("{} Å", self.data.radius / self.data.npts as f64).as_str(),
         ]);
 
         system_table_builder

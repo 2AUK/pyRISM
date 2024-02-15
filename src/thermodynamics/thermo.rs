@@ -248,7 +248,7 @@ impl<'a> TDDriver<'a> {
             self.solutions.config.data_config.radius,
         );
         let vv = &self.solutions.vv;
-        let uv = self.solutions.uv.as_ref().unwrap();
+        let _uv = self.solutions.uv.as_ref().unwrap();
         let ku = self.solutions.config.data_config.ku;
         let nu = self.solutions.config.data_config.nsu.unwrap();
         let temp = self.solutions.config.data_config.temp;
@@ -266,7 +266,7 @@ impl<'a> TDDriver<'a> {
                 ));
             });
         let p = self.total_species_density();
-        let pi = self.total_site_density();
+        let _pi = self.total_site_density();
 
         let initial_term = ((nu as f64 + 1.0) / 2.0) * ku * temp * p;
         let ck_direct = p * p * ck.slice(s![0, .., ..]).sum();
@@ -297,7 +297,7 @@ impl<'a> TDDriver<'a> {
         1.0 / (p_sum * (1.0 - p_sum * c_sum))
     }
 
-    fn isothermal_compressibility_density(&self) -> Array1<f64> {
+    fn _isothermal_compressibility_density(&self) -> Array1<f64> {
         let vv = &self.solutions.vv;
         let cr = &vv.correlations.cr;
         let grid = Grid::new(vv.data_config.npts, vv.data_config.radius);
@@ -363,7 +363,7 @@ impl<'a> TDDriver<'a> {
         compressibility * (1.0 - p_sum * integrand)
     }
 
-    fn rism_kb_partial_molar_volume_density_2(&self) -> Array1<f64> {
+    fn _rism_kb_partial_molar_volume_density_2(&self) -> Array1<f64> {
         let vv = &self.solutions.vv;
         let uv = &self.solutions.uv.as_ref().unwrap();
         let cr = &uv.correlations.cr;
@@ -371,7 +371,7 @@ impl<'a> TDDriver<'a> {
         let r = &grid.rgrid;
         let site_summed_cr = cr.sum_axis(Axis(2)).sum_axis(Axis(1));
         let integrand = r * r * site_summed_cr * 4.0 * PI;
-        let compressibility = self.isothermal_compressibility_density();
+        let compressibility = self._isothermal_compressibility_density();
         let p_sum = self.total_species_density();
 
         compressibility * (1.0 - p_sum * integrand)
@@ -438,7 +438,7 @@ fn kh_functional_impl(
         .and(cr.outer_iter())
         .and(hr.outer_iter())
         .and(r.outer_iter())
-        .for_each(|mut o, t, c, h, ri| {
+        .for_each(|mut o, _t, c, h, ri| {
             let r2 = &ri.dot(&ri);
             let integrand = 0.5 * &h * &h * heaviside(&(-h.to_owned())) - (0.5 * &h * &c) - &c;
             o.assign(&(4.0 * PI * &(r2 * integrand).dot(density)));
@@ -462,7 +462,7 @@ fn gf_functional_impl(
         .and(cr.outer_iter())
         .and(hr.outer_iter())
         .and(r.outer_iter())
-        .for_each(|mut o, t, c, h, ri| {
+        .for_each(|mut o, _t, c, h, ri| {
             let r2 = &ri * &ri;
             let integrand = 0.5 * &c * &h + &c;
             o.assign(&(-4.0 * PI * &(r2 * integrand).dot(density)));
@@ -532,8 +532,4 @@ fn heaviside(arr: &Array2<f64>) -> Array2<f64> {
             .collect(),
     )
     .expect("heaviside function from input array")
-}
-
-fn matrix_inversion() {
-    todo!()
 }

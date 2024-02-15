@@ -4,7 +4,6 @@ use errorfunctions::RealErrorFunctions;
 use itertools::Itertools;
 use ndarray::{s, Array1, Array3};
 use pyo3::{prelude::*, types::PyString};
-use rgsl::error::erf;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 use std::fmt;
@@ -131,15 +130,7 @@ pub fn hard_spheres(atoms_a: &[Site], atoms_b: &[Site], r: &Array1<f64>, result:
         let d = arithmetic_mean(site_a.params[0], site_b.params[0]);
         let mut out = r.clone();
         result.slice_mut(s![.., i, j]).assign({
-            out.par_mapv_inplace(|x| {
-                let new_x;
-                if x <= d {
-                    new_x = 0.0;
-                } else {
-                    new_x = 1e30;
-                }
-                new_x
-            });
+            out.par_mapv_inplace(|x| if x <= d { 0.0 } else { 1e30 });
             &out
         });
     }
@@ -170,7 +161,7 @@ pub fn ng_renormalisation_real(
         let q = site_a.params.last().unwrap() * site_b.params.last().unwrap();
         result.slice_mut(s![.., i, j]).assign({
             let mut erf_r = r.clone();
-            erf_r.par_mapv_inplace(|x| erf(x));
+            erf_r.par_mapv_inplace(|x| x.erf());
             &(q * erf_r / r)
         });
     }
@@ -221,8 +212,8 @@ mod tests {
                     params: vec![78.15, 3.1657, -0.8476000010975563],
                     coords: vec![0.0, 0.0, 0.0],
                 }],
-                r: Array1::range(0.5, 8 as f64, 1.0) * 5.12,
-                k: Array1::range(0.5, 8 as f64, 1.0) * 0.07669903939428206,
+                r: Array1::range(0.5, 8.0, 1.0) * 5.12,
+                k: Array1::range(0.5, 8.0, 1.0) * 0.07669903939428206,
             }
         }
     }
@@ -242,14 +233,14 @@ mod tests {
         let calculated_result = Array::from_iter(calculated_result.iter().cloned());
 
         let known_result = arr1(&[
-            2.8793040530396279e+03,
-            -1.5258248187104297e+00,
-            -7.1523423123332874e-02,
-            -9.5009335111547206e-03,
-            -2.1033412557232328e-03,
-            -6.3097293589692185e-04,
-            -2.3158332418995035e-04,
-            -9.8134119123771820e-05,
+            2.879_304_053_039_627_9e3,
+            -1.525_824_818_710_429_7,
+            -7.152_342_312_333_287_4e-2,
+            -9.500_933_511_154_720_6e-3,
+            -2.103_341_255_723_232_8e-3,
+            -6.309_729_358_969_218_5e-4,
+            -2.315_833_241_899_503_5e-4,
+            -9.813_411_912_377_182_0e-5,
         ]);
 
         assert_relative_eq!(
@@ -347,14 +338,14 @@ mod tests {
         let calculated_result = Array::from_iter(calculated_result.iter().cloned());
 
         let known_result = arr1(&[
-            1.0253951863157125e+09,
-            1.1359817218479006e+08,
-            4.0655471454342894e+07,
-            2.0560357711411349e+07,
-            1.2292268616722897e+07,
-            8.1085758577167513e+06,
-            5.7039895565335937e+06,
-            4.1970192278493457e+06,
+            1.025_395_186_315_712_5e9,
+            1.135_981_721_847_900_6e8,
+            4.065_547_145_434_289_4e7,
+            2.056_035_771_141_134_9e7,
+            1.229_226_861_672_289_7e7,
+            8.108_575_857_716_751_3e6,
+            5.703_989_556_533_593_7e6,
+            4.197_019_227_849_345_7e6,
         ]);
 
         assert_relative_eq!(
