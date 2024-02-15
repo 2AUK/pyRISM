@@ -1,3 +1,26 @@
+//! # pyRISM
+//!
+//! pyRISM is a tool for solving the Reference Interaction Site Model equation and its variants.
+//! The tool was originally developed in Python (hence pyRISM) but has since been rewritten in
+//! Rust. This has resulted in speed-ups and better developer ergonomics (in my opinion, anyway).
+//!
+//! The purpose of this documentation is to make clear the design decisions as a reference for
+//! myself and for other scientific software developers interested in RISM and the numerics.
+//!
+//! This documentation encompasses the library portion of the code, named `librism` and is where
+//! a majority of the implementation resides.
+//!
+//! Briefly, pyRISM solves the Fourier-space matrix equation:
+//!
+//! $$ H = \omega C \omega + \rho \omega C H $$
+//!
+//! for unknowns $C$ and $H$. Since there are 2 unknowns, the equations need to be "closed" with an
+//! aptly named closure:
+//!
+//! $$ c(r) = \exp(-\beta U(r) + t(r) + B(r)) - 1 - t(r) $$
+//!
+//! where $t(r) = h(r) - c(r)$.
+
 extern crate blas_src;
 pub use crate::drivers::rism::RISMDriver;
 pub use crate::io::writer::RISMWriter;
@@ -26,12 +49,17 @@ pub mod solvers;
 pub mod structure;
 pub mod thermodynamics;
 
+/// The Python binding for the Calculator struct, used when pyRISM is called from a Python script
+/// as a module.
 #[pyclass(unsendable)]
 #[pyo3(name = "Calculator")]
 pub struct PyCalculator {
+    /// Path to input file
     pub name: String,
-    verbosity: Verbosity,
-    compress: Compress,
+    /// Verbosity switch
+    pub verbosity: Verbosity,
+    /// Solvent-solvent problem compression switch
+    pub compress: Compress,
     driver: RISMDriver,
 }
 
@@ -71,12 +99,7 @@ impl PyCalculator {
             py,
         );
         let wv = self.driver.solvent.borrow().wk.clone();
-        let wu = {
-            match &self.driver.solute {
-                Some(v) => Some(v.borrow().wk.clone()),
-                None => None,
-            }
-        };
+        let wu = self.driver.solute.as_ref().map(|v| v.borrow().wk.clone());
         let thermodynamics = TDDriver::new(&solution, wv, wu).execute();
         let _ = RISMWriter::new(&self.name, &solution, &thermodynamics).write();
         let py_corr_vv = PyCorrelations::from_correlations(solution.vv.correlations, py);
@@ -108,15 +131,23 @@ impl PyCalculator {
     }
 }
 
+/// The Calculator struct controls the external parameters to the Driver structs. As of now, it
+/// simply processes verbosity and compression switches that are further passed into the various
+/// Drivers.
 pub struct Calculator {
+    /// Path to input file
     pub name: String,
-    verbosity: Verbosity,
-    compress: Compress,
+    /// Verbosity switch
+    pub verbosity: Verbosity,
+    /// Solvent-solvent problem compression switch
+    pub compress: Compress,
     driver: RISMDriver,
 }
 
 impl Calculator {
+    /// Construct a new driver with the correct compression and verbosity flags
     pub fn new(fname: PathBuf, verbosity: Verbosity, compress: Compress) -> Self {
+        // Pull problem information from .toml file
         let driver = RISMDriver::from_toml(&fname);
         let name = driver.name.clone();
         Calculator {
@@ -127,24 +158,26 @@ impl Calculator {
         }
     }
 
+    /// Start the Driver to solve the problem, run the TDDriver to compute
+    /// thermodynamic properties from the solved problem, and finally write all the outputs via
+    /// RISMWriter.
     pub fn execute(&mut self) -> (Solutions, Thermodynamics) {
         let solution = self.driver.execute(&self.verbosity, &self.compress);
+
+        // Pull the solvent and solute intramolecular correlation functions to be used by TDDriver
         let wv = self.driver.solvent.borrow().wk.clone();
-        let wu = {
-            match &self.driver.solute {
-                Some(v) => Some(v.borrow().wk.clone()),
-                None => None,
-            }
-        };
+        let wu = self.driver.solute.as_ref().map(|v| v.borrow().wk.clone());
+
         let thermodynamics = TDDriver::new(&solution, wv, wu).execute();
+
         let _ = RISMWriter::new(&self.name, &solution, &thermodynamics).write();
+
+        // Return the solutions and thermodynamics if being used as a crate
         (solution, thermodynamics)
     }
 }
 
-/// A Python module implemented in Rust. The name of this function must match
-/// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
-/// import the module.
+/// The `librism` Python module.
 #[pymodule]
 fn librism(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyCalculator>()?;

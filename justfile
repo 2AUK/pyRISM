@@ -12,3 +12,6 @@ macro_check:
     RUSTFLAGS="-Z macro-backtrace" cargo +nightly check
 
 full: build run
+
+docs:
+  RUSTDOCFLAGS="--html-in-header katex-header.html" cargo doc --no-deps

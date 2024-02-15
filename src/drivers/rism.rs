@@ -22,22 +22,41 @@ use std::f64::consts::PI;
 use std::fs;
 use std::path::PathBuf;
 use std::rc::Rc;
+use tabled::{
+    builder::Builder,
+    settings::{object::Rows, Alignment, Modify, Style},
+};
 
+// Feature for switching on allocation profiler
 #[cfg(feature = "dhat-on")]
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
 
+/// Verbosity flags for stdout
 pub enum Verbosity {
+    /// No output
     Quiet,
+    /// INFO logging only
     Verbose,
+    /// TRACE logging and job details
     VeryVerbose,
 }
 
+/// Compression flag for compressing solvent-solvent problem
 pub enum Compress {
+    /// Compress the problem to `.bin`. Compressed file takes input file name.
     Compress,
+    /// Do not compress. Driver will switch to this if already using a compressed `.bin` file.
     NoCompress,
 }
 
+/// The RISMDriver struct solves the solvent-solvent and/or solute-solvent problem. It constructs
+/// all required input functions from the details it reads from the input file passed to it. It
+/// then runs the chosen solver and returns the solved problem.
+///
+/// Solvent and solute information is stored and the details of the full problem, the operator (i.e. the
+/// integral equation and closure), the potential energy function and the solver are passed as
+/// Config structs. These are used to fully construct each component of the Driver.
 #[pyclass(unsendable)]
 #[derive(Clone, Debug)]
 pub struct RISMDriver {
@@ -52,10 +71,12 @@ pub struct RISMDriver {
 }
 
 impl RISMDriver {
-    pub fn new(name: String, config: Configuration) -> Self {
-        todo!()
-    }
+    // fn new(name: String, config: Configuration) -> Self {
+    //     todo!()
+    // }
 
+    /// Restore the renormalised functions by adding back the long-range component to $c(r)$ and
+    /// $t(r)$
     fn restore_renormalised_functions(data: &mut SolvedData, beta: f64) {
         let cr = data.correlations.cr.clone();
         let tr = data.correlations.tr.clone();
@@ -525,6 +546,7 @@ impl RISMDriver {
 
     fn print_header(&self) {
         println!(
+            "{:=^50}",
             "
              ____  ___ ____  __  __ 
  _ __  _   _|  _ \\|_ _/ ___||  \\/  |
@@ -538,30 +560,82 @@ impl RISMDriver {
     }
 
     fn print_job_details(&self) {
-        println!("System\n┬─────");
-        println!("├Temperature: {} K", self.data.temp);
-        println!("├Num. Points: {}", self.data.npts);
-        println!("└Radius: {} Å", self.data.radius);
+        let mut system_table_builder = Builder::new();
 
-        println!("\nOperator\n┬─────");
-        println!("├Integral Equation: {}", self.operator.integral_equation);
-        println!("└Closure: {}", self.operator.closure);
+        system_table_builder.push_record(["System"]);
+        system_table_builder.push_record(["Temperature", format!("{} K", self.data.temp).as_str()]);
+        system_table_builder.push_record(["Num. Points", format!("{}", self.data.npts).as_str()]);
+        system_table_builder.push_record(["Radius", format!("{} Å", self.data.radius).as_str()]);
+        system_table_builder.push_record([
+            "Grid Spacing",
+            format!("{} Å", self.data.radius as f64 / self.data.npts as f64).as_str(),
+        ]);
 
-        println!("\nPotential\n┬─────");
-        println!("└Non-Bonded: {}", self.potential.nonbonded);
+        system_table_builder
+            .push_record(["Lambda Cycles", format!("{}", self.data.nlambda).as_str()]);
 
-        println!("\nSolver\n┬─────");
-        println!("├Solver: {}", self.solver.solver);
-        println!("├Max Iteration: {}", self.solver.settings.max_iter);
-        println!("├Tolerance: {:E}", self.solver.settings.tolerance);
+        let system_table = system_table_builder.build().to_string();
+
+        println!("{}", system_table);
+
+        let mut operator_table_builder = Builder::new();
+
+        operator_table_builder.push_record(["Operator"]);
+        operator_table_builder.push_record([
+            "Integral Equation",
+            self.operator.integral_equation.to_string().as_str(),
+        ]);
+        operator_table_builder.push_record(["Closure", self.operator.closure.to_string().as_str()]);
+
+        let operator_table = operator_table_builder.build().to_string();
+
+        println!("{}", operator_table);
+
+        let mut potential_table_builder = Builder::new();
+
+        potential_table_builder.push_record(["Potential"]);
+        potential_table_builder
+            .push_record(["Non-Bonded", self.potential.nonbonded.to_string().as_str()]);
+        potential_table_builder
+            .push_record(["Coulombic", self.potential.coulombic.to_string().as_str()]);
+
+        let potential_table = potential_table_builder.build().to_string();
+
+        println!("{}", potential_table);
+
+        let mut solver_table_builder = Builder::new();
+
+        solver_table_builder.push_record(["Solver"]);
+        solver_table_builder.push_record(["Method", self.solver.solver.to_string().as_str()]);
+        solver_table_builder.push_record([
+            "Max Iterations",
+            self.solver.settings.max_iter.to_string().as_str(),
+        ]);
+        solver_table_builder.push_record([
+            "Tolerance",
+            format!("{:.0E}", self.solver.settings.tolerance).as_str(),
+        ]);
+        solver_table_builder.push_record([
+            "Picard Damping",
+            self.solver.settings.picard_damping.to_string().as_str(),
+        ]);
         match &self.solver.settings.mdiis_settings {
-            Some(settings) => println!("{}\n", settings),
-            None => println!("\n"),
+            Some(settings) => {
+                solver_table_builder
+                    .push_record(["MDIIS Damping", settings.damping.to_string().as_str()]);
+                solver_table_builder.push_record(["Depth", settings.depth.to_string().as_str()])
+            }
+            None => (),
         }
         match &self.solver.settings.gillan_settings {
-            Some(settings) => println!("{}\n", settings),
-            None => println!("\n"),
+            Some(settings) => solver_table_builder
+                .push_record(["Num. Basis", settings.nbasis.to_string().as_str()]),
+            None => (),
         }
+
+        let solver_table = solver_table_builder.build().to_string();
+
+        println!("{}", solver_table);
     }
 
     fn build_potential(&mut self, problem: &mut DataRs) {
