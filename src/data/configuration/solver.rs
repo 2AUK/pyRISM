@@ -4,11 +4,15 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug)]
-pub struct SolverSuccess(pub usize, pub f64);
+pub struct SolverSuccess(pub usize, pub f64, pub f64);
 
 impl Display for SolverSuccess {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Finished! Iteration: {} RMSE: {:.6E}", self.0, self.1)
+        write!(
+            f,
+            "Finished! Iteration: {} RMSE: {:.6E} Time Elapsed: {}",
+            self.0, self.1, self.2
+        )
     }
 }
 

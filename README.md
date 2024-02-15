@@ -53,4 +53,4 @@ More details regarding the input file structure can be found in the [wiki](https
 
 ### Copyright
 
-Copyright (c) 2023, Abdullah Ahmad
+Copyright (c) 2024, Abdullah Ahmad
