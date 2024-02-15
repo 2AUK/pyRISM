@@ -183,7 +183,7 @@ impl<'a> TDDriver<'a> {
                 let rism_kb_pmv = self.rism_kb_partial_molar_volume();
                 let total_density = self.total_species_density();
                 let sfed = Densities::new(
-                    &self.solutions,
+                    self.solutions,
                     &self.wv,
                     self.wu.as_ref().unwrap(),
                     self.rism_kb_partial_molar_volume_density(),
@@ -416,7 +416,7 @@ fn hnc_functional_impl(
         .and(r.outer_iter())
         .for_each(|mut o, t, c, h, ri| {
             let r2 = &ri * &ri;
-            let integrand = 0.5 * &t * &h - &c;
+            let integrand = 0.5 * &t * h - c;
             o.assign(&(4.0 * PI * &(r2 * integrand).dot(density)));
         });
     _out.sum_axis(Axis(2)).sum_axis(Axis(1))
@@ -440,7 +440,7 @@ fn kh_functional_impl(
         .and(r.outer_iter())
         .for_each(|mut o, _t, c, h, ri| {
             let r2 = &ri.dot(&ri);
-            let integrand = 0.5 * &h * &h * heaviside(&(-h.to_owned())) - (0.5 * &h * &c) - &c;
+            let integrand = 0.5 * &h * h * heaviside(&(-h.to_owned())) - (0.5 * &h * c) - c;
             o.assign(&(4.0 * PI * &(r2 * integrand).dot(density)));
         });
     _out.sum_axis(Axis(2)).sum_axis(Axis(1))
@@ -464,7 +464,7 @@ fn gf_functional_impl(
         .and(r.outer_iter())
         .for_each(|mut o, _t, c, h, ri| {
             let r2 = &ri * &ri;
-            let integrand = 0.5 * &c * &h + &c;
+            let integrand = 0.5 * &c * h + c;
             o.assign(&(-4.0 * PI * &(r2 * integrand).dot(density)));
         });
     _out.sum_axis(Axis(2)).sum_axis(Axis(1))
@@ -518,7 +518,7 @@ fn pw_functional_impl(
         .and(r.outer_iter())
         .for_each(|mut o, h_bar, c, h, ri| {
             let r2 = &ri * &ri;
-            let integrand = &c + (0.5 * &c * &h) - (0.5 * &h_bar * &h);
+            let integrand = &c + (0.5 * &c * h) - (0.5 * &h_bar * h);
             o.assign(&(-4.0 * PI * &(r2 * integrand).dot(density)));
         });
     _out.sum_axis(Axis(2)).sum_axis(Axis(1))
