@@ -6,18 +6,18 @@ use std::fmt;
 
 #[macro_export]
 macro_rules! pse_n {
-    ($name:ident, $n:expr)  => {
-        pub fn $name(problem: &DataRs) -> Array3<f64> {
+    ($n:expr)  => {
+        pub fn func(problem: &DataRs) -> Array3<f64> {
             let mut out = Array::zeros(problem.correlations.tr.raw_dim());
             let mut t_fac = Array::zeros(problem.correlations.tr.raw_dim());
             for i in 0..$n {
-                t_fac += (-problem.system.beta * &problem.interactions.u_sr).mapv(|a| a.powf(i as f64)) / factorial(i);
+                t_fac = t_fac + (-problem.system.beta * &problem.interactions.u_sr).mapv(|a| a.powf(i as f64)) / factorial(i);
             }
-            par_azip!((a in &mut out, &b in &(-problem.system.beta * &problem.interactions.u_sr + &problem.correlations.tr), &c in &problem.correlations.tr)    {
+            par_azip!((a in &mut out, &b in &(-problem.system.beta * &problem.interactions.u_sr + &problem.correlations.tr), &c in &problem.correlations.tr, &d in &t_fac)    {
             if b <= 0.0 {
                 *a = b.exp() - 1.0 - c
             } else {
-                *a = t_fac - 1.0 - c
+                *a = d - 1.0 - c
             }
             });
             out
@@ -101,7 +101,9 @@ impl ClosureKind {
             ClosureKind::HyperNettedChain => hyper_netted_chain,
             ClosureKind::KovalenkoHirata => kovalenko_hirata,
             ClosureKind::PercusYevick => percus_yevick,
-            ClosureKind::PartialSeriesExpansion(_) => partial_series_expansion,
+            ClosureKind::PartialSeriesExpansion(n) => {
+                todo!()
+            }
         }
     }
 }
@@ -161,6 +163,6 @@ pub fn partial_series_expansion(_problem: &DataRs) -> Array3<f64> {
     todo!()
 }
 
-pub fn factorial(num: u128) -> u128 {
-    (1..=num).product()
+pub fn factorial(num: u128) -> f64 {
+    (1..=num).product::<u128>() as f64
 }
