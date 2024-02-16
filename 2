@@ -1,7 +1,7 @@
 use crate::data::core::DataRs;
 use ndarray::{par_azip, Array, Array3};
 use pyo3::{prelude::*, types::PyString};
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 #[macro_export]
@@ -10,8 +10,8 @@ macro_rules! pse_n {
         pub fn $name(problem: &DataRs) -> Array3<f64> {
             let mut out = Array::zeros(problem.correlations.tr.raw_dim());
             let mut t_fac: Array3<f64> = Array::zeros(problem.correlations.tr.raw_dim());
-            for i in 0..$n+1{
-                t_fac = t_fac + (-problem.system.beta * &problem.interactions.u_sr + &problem.correlations.tr).mapv(|a| a.powf(i as f64)) / factorial(i);
+            for i in 0..$n {
+                t_fac = t_fac + (-problem.system.beta * &problem.interactions.u_sr).mapv(|a| a.powf(i as f64)) / factorial(i);
             }
             par_azip!((a in &mut out, &b in &(-problem.system.beta * &problem.interactions.u_sr + &problem.correlations.tr), &c in &problem.correlations.tr, &d in &t_fac)    {
             if b <= 0.0 {
@@ -25,31 +25,16 @@ macro_rules! pse_n {
     };
 }
 
-#[macro_export]
-macro_rules! pse_derivative_n {
-    ($name:ident, $n:expr)  => {
-        pub fn $name(problem: &DataRs) -> Array3<f64> {
-            let mut out = Array::zeros(problem.correlations.tr.raw_dim());
-            let mut t_fac: Array3<f64> = Array::zeros(problem.correlations.tr.raw_dim());
-            for i in 2..$n+1 {
-                t_fac = t_fac + (-problem.system.beta * &problem.interactions.u_sr + &problem.correlations.tr).mapv(|a| a.powf((i-1) as f64)) * i as f64 / factorial(i);
-            }
-            par_azip!((a in &mut out, &b in &(-problem.system.beta * &problem.interactions.u_sr + &problem.correlations.tr), &d in &t_fac)    {
-            if b <= 0.0 {
-                *a = b.exp() - 1.0
-            } else {
-                *a = d - 1.0
-            }
-            });
-            out
-        }
-    };
+pub trait Closure {
+    fn calculate(&self, problem: &DataRs) -> Array3<f64>;
+
+    fn derivative(&self, problem: &DataRs) -> Array3<f64>;
 }
+
 pub enum ClosureDerivativeKind {
     HyperNettedChain,
     KovalenkoHirata,
     PercusYevick,
-    PartialSeriesExpansion(i8),
 }
 
 impl ClosureDerivativeKind {
@@ -58,32 +43,6 @@ impl ClosureDerivativeKind {
             ClosureKind::HyperNettedChain => ClosureDerivativeKind::HyperNettedChain,
             ClosureKind::KovalenkoHirata => ClosureDerivativeKind::KovalenkoHirata,
             ClosureKind::PercusYevick => ClosureDerivativeKind::PercusYevick,
-            ClosureKind::PartialSeriesExpansion(1) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(1)
-            }
-            ClosureKind::PartialSeriesExpansion(2) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(2)
-            }
-            ClosureKind::PartialSeriesExpansion(3) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(3)
-            }
-
-            ClosureKind::PartialSeriesExpansion(4) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(4)
-            }
-
-            ClosureKind::PartialSeriesExpansion(5) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(5)
-            }
-
-            ClosureKind::PartialSeriesExpansion(6) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(6)
-            }
-
-            ClosureKind::PartialSeriesExpansion(7) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(7)
-            }
-
             _ => panic!("Derivative not implemented for {}", closure),
         }
     }
@@ -92,59 +51,20 @@ impl ClosureDerivativeKind {
             ClosureDerivativeKind::HyperNettedChain => hyper_netted_chain_derivative,
             ClosureDerivativeKind::KovalenkoHirata => kovalenko_hirata_derivative,
             ClosureDerivativeKind::PercusYevick => percus_yevick_derivative,
-
-            ClosureDerivativeKind::PartialSeriesExpansion(1) => {
-                partial_series_expansion_derivative_1
-            }
-            ClosureDerivativeKind::PartialSeriesExpansion(2) => {
-                partial_series_expansion_derivative_2
-            }
-            ClosureDerivativeKind::PartialSeriesExpansion(3) => {
-                partial_series_expansion_derivative_3
-            }
-            ClosureDerivativeKind::PartialSeriesExpansion(4) => {
-                partial_series_expansion_derivative_4
-            }
-            ClosureDerivativeKind::PartialSeriesExpansion(5) => {
-                partial_series_expansion_derivative_5
-            }
-            ClosureDerivativeKind::PartialSeriesExpansion(6) => {
-                partial_series_expansion_derivative_6
-            }
-            ClosureDerivativeKind::PartialSeriesExpansion(7) => {
-                partial_series_expansion_derivative_7
-            }
-            _ => panic!("derivative closure not found"),
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ClosureKind {
+    #[serde(rename = "HNC")]
     HyperNettedChain,
+    #[serde(rename = "KH")]
     KovalenkoHirata,
+    #[serde(rename = "PY")]
     PercusYevick,
+    #[serde(rename = "PSE")]
     PartialSeriesExpansion(i8),
-}
-
-impl<'de> Deserialize<'de> for ClosureKind {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?.to_lowercase();
-        let s = s.split("-").collect::<Vec<&str>>();
-        let state = match s[0] {
-            "hnc" => ClosureKind::HyperNettedChain,
-            "kh" => ClosureKind::KovalenkoHirata,
-            "py" => ClosureKind::PercusYevick,
-            "pse" => ClosureKind::PartialSeriesExpansion(
-                s[1].parse::<i8>().expect("parse PSE n terms into i8"),
-            ),
-            _ => panic!("closure not found"),
-        };
-        Ok(state)
-    }
 }
 
 impl<'source> FromPyObject<'source> for ClosureKind {
@@ -187,17 +107,9 @@ impl ClosureKind {
             ClosureKind::HyperNettedChain => hyper_netted_chain,
             ClosureKind::KovalenkoHirata => kovalenko_hirata,
             ClosureKind::PercusYevick => percus_yevick,
-            ClosureKind::PartialSeriesExpansion(1) => partial_series_expansion_1,
-            ClosureKind::PartialSeriesExpansion(2) => partial_series_expansion_2,
-            ClosureKind::PartialSeriesExpansion(3) => partial_series_expansion_3,
-            ClosureKind::PartialSeriesExpansion(4) => partial_series_expansion_4,
-            ClosureKind::PartialSeriesExpansion(5) => partial_series_expansion_5,
-            ClosureKind::PartialSeriesExpansion(6) => partial_series_expansion_6,
-            ClosureKind::PartialSeriesExpansion(7) => partial_series_expansion_7,
             ClosureKind::PartialSeriesExpansion(n) => {
-                panic!("Partial Series Expansion with {} terms not implemented", n)
+                todo!()
             }
-            _ => panic!("not a valid closure"),
         }
     }
 }
@@ -253,6 +165,10 @@ pub fn percus_yevick_derivative(problem: &DataRs) -> Array3<f64> {
         - 1.0
 }
 
+pub fn partial_series_expansion(_problem: &DataRs) -> Array3<f64> {
+    todo!()
+}
+
 pub fn factorial(num: u128) -> f64 {
     (1..=num).product::<u128>() as f64
 }
@@ -264,10 +180,3 @@ pse_n!(partial_series_expansion_4, 4);
 pse_n!(partial_series_expansion_5, 5);
 pse_n!(partial_series_expansion_6, 6);
 pse_n!(partial_series_expansion_7, 7);
-pse_derivative_n!(partial_series_expansion_derivative_1, 1);
-pse_derivative_n!(partial_series_expansion_derivative_2, 2);
-pse_derivative_n!(partial_series_expansion_derivative_3, 3);
-pse_derivative_n!(partial_series_expansion_derivative_4, 4);
-pse_derivative_n!(partial_series_expansion_derivative_5, 5);
-pse_derivative_n!(partial_series_expansion_derivative_6, 6);
-pse_derivative_n!(partial_series_expansion_derivative_7, 7);
