@@ -1,5 +1,8 @@
 use crate::grids::radial_grid::Grid;
-use crate::{data::solution::Solutions, thermodynamics::thermo::Thermodynamics};
+use crate::{
+    data::solution::Solutions, drivers::rism::JobDiagnostics,
+    thermodynamics::thermo::Thermodynamics,
+};
 use csv::{QuoteStyle, WriterBuilder};
 use itertools::Itertools;
 use ndarray::{Array1, Array3};
@@ -11,14 +14,21 @@ pub struct RISMWriter<'a> {
     pub name: String,
     pub data: &'a Solutions,
     pub thermo: &'a Thermodynamics,
+    pub diag: &'a JobDiagnostics,
 }
 
 impl<'a> RISMWriter<'a> {
-    pub fn new(name: &str, data: &'a Solutions, thermo: &'a Thermodynamics) -> Self {
+    pub fn new(
+        name: &str,
+        data: &'a Solutions,
+        thermo: &'a Thermodynamics,
+        diag: &'a JobDiagnostics,
+    ) -> Self {
         RISMWriter {
             name: name.to_owned(),
             data,
             thermo,
+            diag,
         }
     }
 
@@ -71,16 +81,19 @@ impl<'a> RISMWriter<'a> {
 
                 //Write densities to file
                 self.write_density(&grid.rgrid, gr.dim())?;
-                Ok(())
             }
             None => {
                 //Write solvent-solvent thermodynamics only
                 let td_path = format!("{}.td", self.name);
                 let mut file = File::create(td_path)?;
                 file.write_all(self.thermo.to_string().as_bytes())?;
-                Ok(())
             }
         }
+
+        let diag_path = format!("{}.diag", self.name);
+        let mut file = File::create(diag_path)?;
+        file.write_all(self.diag.to_string().as_bytes())?;
+        Ok(())
     }
 
     fn write_correlation(

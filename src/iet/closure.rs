@@ -194,9 +194,6 @@ impl ClosureKind {
             ClosureKind::PartialSeriesExpansion(5) => partial_series_expansion_5,
             ClosureKind::PartialSeriesExpansion(6) => partial_series_expansion_6,
             ClosureKind::PartialSeriesExpansion(7) => partial_series_expansion_7,
-            ClosureKind::PartialSeriesExpansion(n) => {
-                panic!("Partial Series Expansion with {} terms not implemented", n)
-            }
             _ => panic!("not a valid closure"),
         }
     }

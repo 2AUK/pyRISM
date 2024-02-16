@@ -30,6 +30,25 @@ use tabled::builder::Builder;
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
 
+/// Struct for storing job diagnostics
+pub struct JobDiagnostics {
+    pub vv_time: f64,
+    pub uv_time: f64,
+    pub vv_iterations: usize,
+    pub uv_iterations: usize,
+    pub job_time: f64,
+}
+
+impl std::fmt::Display for JobDiagnostics {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Solvent-Solvent Solver Time: {} s\nSolvent-Solvent Solver Iterations: {}\nSolute-Solvent Solver Time: {} s\nSolute-Solvent Solver Iterations: {}\nTotal Job Time: {} s",
+            self.vv_time, self.vv_iterations, self.uv_time, self.uv_iterations, self.job_time
+        )
+    }
+}
+
 /// Verbosity flags for stdout
 pub enum Verbosity {
     /// No output
@@ -94,7 +113,11 @@ impl RISMDriver {
 
     /// Sets the verbosity level, initialises problem based on Config structs and returns
     /// solutions.
-    pub fn execute(&mut self, verbosity: &Verbosity, compress: &Compress) -> Solutions {
+    pub fn execute(
+        &mut self,
+        verbosity: &Verbosity,
+        compress: &Compress,
+    ) -> (Solutions, JobDiagnostics) {
         match verbosity {
             Verbosity::Quiet => (),
             Verbosity::Verbose => {
@@ -119,6 +142,7 @@ impl RISMDriver {
                     .unwrap();
             }
         }
+        let timer = Instant::now();
 
         let (mut vv, mut uv) = self.problem_setup();
 
@@ -132,9 +156,10 @@ impl RISMDriver {
 
         let mut solver = self.solver.solver.set(&self.solver.settings);
 
-        let timer = Instant::now();
         let mut vv_iterations = 0;
         let mut uv_iterations = 0;
+        let mut vv_time = 0.0;
+        let mut uv_time = 0.0;
         let mut vv_solution = match self._preconv {
             None => {
                 vv_iterations = 0;
@@ -153,12 +178,11 @@ impl RISMDriver {
                     };
                 }
 
-                let elapsed = timer.elapsed();
+                vv_time = timer.elapsed().as_secs_f64();
 
                 info!(
                     "Total Solvent-Solvent Iterations: {} Total Solver Time: {} s",
-                    vv_iterations,
-                    elapsed.as_secs_f64()
+                    vv_iterations, vv_time
                 );
 
                 let vv_solution = SolvedData::new(
@@ -219,11 +243,10 @@ impl RISMDriver {
                         Err(e) => panic!("{}", e),
                     }
                 }
-                let elapsed = timer.elapsed();
+                uv_time = timer.elapsed().as_secs_f64();
                 info!(
                     "Total Solute-Solvent Iterations: {} Total Solver Time: {} s",
-                    uv_iterations,
-                    elapsed.as_secs_f64()
+                    uv_iterations, uv_time
                 );
                 let mut uv_solution = SolvedData::new(
                     self.data.clone(),
@@ -238,12 +261,12 @@ impl RISMDriver {
             }
         };
 
-        let elapsed = timer.elapsed();
+        let job_time = timer.elapsed().as_secs_f64();
 
         info!(
             "Total Iterations: {} Total Job Time: {} s",
             vv_iterations + uv_iterations,
-            elapsed.as_secs_f64()
+            job_time
         );
 
         let config = Configuration {
@@ -255,11 +278,20 @@ impl RISMDriver {
 
         Self::restore_renormalised_functions(&mut vv_solution, vv.system.beta);
 
-        Solutions {
-            config,
-            vv: vv_solution,
-            uv: uv_solution,
-        }
+        (
+            Solutions {
+                config,
+                vv: vv_solution,
+                uv: uv_solution,
+            },
+            JobDiagnostics {
+                vv_time,
+                uv_time,
+                vv_iterations,
+                uv_iterations,
+                job_time,
+            },
+        )
     }
 
     fn load_preconv_data(path: &Option<PathBuf>) -> Option<SolvedData> {
