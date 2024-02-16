@@ -93,7 +93,7 @@ impl PyCalculator {
         &'py mut self,
         py: Python<'py>,
     ) -> PyResult<(PySolution, PyThermodynamics, PyGrid)> {
-        let solution = self.driver.execute(&self.verbosity, &self.compress);
+        let (solution, diagnostics) = self.driver.execute(&self.verbosity, &self.compress);
         let grid = PyGrid::new(
             solution.config.data_config.npts,
             solution.config.data_config.radius,
@@ -102,7 +102,7 @@ impl PyCalculator {
         let wv = self.driver.solvent.borrow().wk.clone();
         let wu = self.driver.solute.as_ref().map(|v| v.borrow().wk.clone());
         let thermodynamics = TDDriver::new(&solution, wv, wu).execute();
-        let _ = RISMWriter::new(&self.name, &solution, &thermodynamics).write();
+        let _ = RISMWriter::new(&self.name, &solution, &thermodynamics, &diagnostics).write();
         let py_corr_vv = PyCorrelations::from_correlations(solution.vv.correlations, py);
         let py_int_vv = PyInteractions::from_interactions(solution.vv.interactions, py);
         let py_vv = PySolvedData {
@@ -163,7 +163,7 @@ impl Calculator {
     /// thermodynamic properties from the solved problem, and finally write all the outputs via
     /// RISMWriter.
     pub fn execute(&mut self) -> (Solutions, Thermodynamics) {
-        let solution = self.driver.execute(&self.verbosity, &self.compress);
+        let (solution, diagnostics) = self.driver.execute(&self.verbosity, &self.compress);
 
         // Pull the solvent and solute intramolecular correlation functions to be used by TDDriver
         let wv = self.driver.solvent.borrow().wk.clone();
@@ -171,7 +171,7 @@ impl Calculator {
 
         let thermodynamics = TDDriver::new(&solution, wv, wu).execute();
 
-        let _ = RISMWriter::new(&self.name, &solution, &thermodynamics).write();
+        let _ = RISMWriter::new(&self.name, &solution, &thermodynamics, &diagnostics).write();
 
         // Return the solutions and thermodynamics if being used as a crate
         (solution, thermodynamics)
