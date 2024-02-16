@@ -6,6 +6,7 @@
 //!
 //! The purpose of this documentation is to make clear the design decisions as a reference for
 //! myself and for other scientific software developers interested in RISM and the numerics.
+//! Currently, this is a work in progress.
 //!
 //! This documentation encompasses the library portion of the code, named `librism` and is where
 //! a majority of the implementation resides.

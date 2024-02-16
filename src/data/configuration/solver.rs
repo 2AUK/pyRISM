@@ -10,7 +10,7 @@ impl Display for SolverSuccess {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Finished! Iteration: {} RMSE: {:.6E} Time Elapsed: {}",
+            "Finished! Iteration: {} RMSE: {:.6E} Time Elapsed: {} s",
             self.0, self.1, self.2
         )
     }

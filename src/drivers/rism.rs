@@ -22,6 +22,7 @@ use std::f64::consts::PI;
 use std::fs;
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::time::Instant;
 use tabled::builder::Builder;
 
 // Feature for switching on allocation profiler
@@ -57,12 +58,19 @@ pub enum Compress {
 #[pyclass(unsendable)]
 #[derive(Clone, Debug)]
 pub struct RISMDriver {
+    /// Input job name
     pub name: String,
+    /// Solvent data
     pub solvent: Rc<RefCell<SingleData>>,
+    /// Solute data
     pub solute: Option<Rc<RefCell<SingleData>>>,
+    /// Config to set up problem
     pub data: ProblemConfig,
+    /// Config to define operator
     pub operator: OperatorConfig,
+    /// Config to define potential
     pub potential: PotentialConfig,
+    /// Config to define solver
     pub solver: SolverConfig,
     _preconv: Option<SolvedData>,
 }
@@ -84,6 +92,8 @@ impl RISMDriver {
         data.correlations.hr = &data.correlations.cr + &data.correlations.tr;
     }
 
+    /// Sets the verbosity level, initialises problem based on Config structs and returns
+    /// solutions.
     pub fn execute(&mut self, verbosity: &Verbosity, compress: &Compress) -> Solutions {
         match verbosity {
             Verbosity::Quiet => (),
@@ -122,9 +132,11 @@ impl RISMDriver {
 
         let mut solver = self.solver.solver.set(&self.solver.settings);
 
+        let timer = Instant::now();
         let mut vv_solution = match self._preconv {
             None => {
                 info!("Starting solvent-solvent solver");
+                let timer = Instant::now();
                 for ilam in 1..self.data.nlambda + 1 {
                     let lam = 1.0 * ilam as f64 / self.data.nlambda as f64;
                     vv.system.curr_lam = lam;
@@ -134,6 +146,10 @@ impl RISMDriver {
                         Err(e) => panic!("{}", e),
                     };
                 }
+
+                let elapsed = timer.elapsed();
+
+                info!("Total Solver Time: {} s", elapsed.as_secs_f64());
 
                 let vv_solution = SolvedData::new(
                     self.data.clone(),
@@ -176,6 +192,7 @@ impl RISMDriver {
                 None
             }
             Some(ref mut uv) => {
+                let timer = Instant::now();
                 info!("Starting solute-solvent solver");
                 uv.solution = Some(vv_solution.clone());
                 for ilam in 1..self.data.nlambda + 1 {
@@ -188,7 +205,8 @@ impl RISMDriver {
                         Err(e) => panic!("{}", e),
                     }
                 }
-
+                let elapsed = timer.elapsed();
+                info!("Total Solver Time: {} s", elapsed.as_secs_f64());
                 let mut uv_solution = SolvedData::new(
                     self.data.clone(),
                     self.solver.clone(),
@@ -201,6 +219,10 @@ impl RISMDriver {
                 Some(uv_solution)
             }
         };
+
+        let elapsed = timer.elapsed();
+
+        info!("Total Job Time: {} s", elapsed.as_secs_f64());
 
         let config = Configuration {
             data_config: self.data.clone(),
@@ -233,6 +255,7 @@ impl RISMDriver {
         }
     }
 
+    /// Read Configs from the `.toml` file
     pub fn from_toml(fname: &PathBuf) -> Self {
         let config: Configuration = InputTOMLHandler::construct_configuration(fname);
         let name = fname
