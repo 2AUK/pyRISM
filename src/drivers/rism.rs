@@ -133,8 +133,11 @@ impl RISMDriver {
         let mut solver = self.solver.solver.set(&self.solver.settings);
 
         let timer = Instant::now();
+        let mut vv_iterations = 0;
+        let mut uv_iterations = 0;
         let mut vv_solution = match self._preconv {
             None => {
+                vv_iterations = 0;
                 info!("Starting solvent-solvent solver");
                 let timer = Instant::now();
                 for ilam in 1..self.data.nlambda + 1 {
@@ -142,14 +145,21 @@ impl RISMDriver {
                     vv.system.curr_lam = lam;
                     info!("Lambda cycle: {}/{}", ilam, self.data.nlambda);
                     match solver.solve(&mut vv, &operator) {
-                        Ok(s) => info!("{}", s),
+                        Ok(s) => {
+                            info!("{}", s);
+                            vv_iterations += s.0
+                        }
                         Err(e) => panic!("{}", e),
                     };
                 }
 
                 let elapsed = timer.elapsed();
 
-                info!("Total Solver Time: {} s", elapsed.as_secs_f64());
+                info!(
+                    "Total Solvent-Solvent Iterations: {} Total Solver Time: {} s",
+                    vv_iterations,
+                    elapsed.as_secs_f64()
+                );
 
                 let vv_solution = SolvedData::new(
                     self.data.clone(),
@@ -192,6 +202,7 @@ impl RISMDriver {
                 None
             }
             Some(ref mut uv) => {
+                uv_iterations = 0;
                 let timer = Instant::now();
                 info!("Starting solute-solvent solver");
                 uv.solution = Some(vv_solution.clone());
@@ -201,12 +212,19 @@ impl RISMDriver {
                     info!("Lambda cycle: {}/{}", ilam, self.data.nlambda);
 
                     match solver.solve(uv, &operator_uv) {
-                        Ok(s) => info!("{}", s),
+                        Ok(s) => {
+                            info!("{}", s);
+                            uv_iterations += s.0;
+                        }
                         Err(e) => panic!("{}", e),
                     }
                 }
                 let elapsed = timer.elapsed();
-                info!("Total Solver Time: {} s", elapsed.as_secs_f64());
+                info!(
+                    "Total Solute-Solvent Iterations: {} Total Solver Time: {} s",
+                    uv_iterations,
+                    elapsed.as_secs_f64()
+                );
                 let mut uv_solution = SolvedData::new(
                     self.data.clone(),
                     self.solver.clone(),
@@ -222,7 +240,11 @@ impl RISMDriver {
 
         let elapsed = timer.elapsed();
 
-        info!("Total Job Time: {} s", elapsed.as_secs_f64());
+        info!(
+            "Total Iterations: {} Total Job Time: {} s",
+            vv_iterations + uv_iterations,
+            elapsed.as_secs_f64()
+        );
 
         let config = Configuration {
             data_config: self.data.clone(),

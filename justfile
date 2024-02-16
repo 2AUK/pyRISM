@@ -1,5 +1,5 @@
 build:
-    pip install -e . -v
+    uv pip install -e . -v
 
 test:
     cargo test -- --nocapture
