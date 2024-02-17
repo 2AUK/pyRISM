@@ -32,10 +32,19 @@ static ALLOC: dhat::Alloc = dhat::Alloc;
 
 /// Struct for storing job diagnostics
 pub struct JobDiagnostics {
+    /// Number of solvent sites
+    pub v_system_size: usize,
+    /// Number of solute sites (0 if no solute defined)
+    pub u_system_size: usize,
+    /// Time for solvent-solvent problem (0 if using a preconverged solution)
     pub vv_time: f64,
+    /// Time for solute-solvent problem (0 if no solute defined)
     pub uv_time: f64,
+    /// Number of iterations for solvent-solvent problem (0 if using a preconverged solution)
     pub vv_iterations: usize,
+    /// Number of iterations for solute-solvent problem (0 if no solute defined)
     pub uv_iterations: usize,
+    /// Time for total job
     pub job_time: f64,
 }
 
@@ -43,9 +52,8 @@ impl std::fmt::Display for JobDiagnostics {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Solvent-Solvent Solver Time: {} s\nSolvent-Solvent Solver Iterations: {}\nSolute-Solvent Solver Time: {} s\nSolute-Solvent Solver Iterations: {}\nTotal Job Time: {} s",
-            self.vv_time, self.vv_iterations, self.uv_time, self.uv_iterations, self.job_time
-        )
+            "Solvent System Size: {}\nSolvent-Solvent Solver Time: {} s\nSolvent-Solvent Solver Iterations: {}\nSolute System Size: {}\nSolute-Solvent Solver Time: {} s\nSolute-Solvent Solver Iterations: {}\nTotal System Size: {}\nTotal Job Time: {} s",
+            self.v_system_size,  self.vv_time, self.vv_iterations, self.u_system_size,self.uv_time, self.uv_iterations, self.v_system_size + self.u_system_size,self.job_time)
     }
 }
 
@@ -164,7 +172,6 @@ impl RISMDriver {
             None => {
                 vv_iterations = 0;
                 info!("Starting solvent-solvent solver");
-                let timer = Instant::now();
                 for ilam in 1..self.data.nlambda + 1 {
                     let lam = 1.0 * ilam as f64 / self.data.nlambda as f64;
                     vv.system.curr_lam = lam;
@@ -227,7 +234,6 @@ impl RISMDriver {
             }
             Some(ref mut uv) => {
                 uv_iterations = 0;
-                let timer = Instant::now();
                 info!("Starting solute-solvent solver");
                 uv.solution = Some(vv_solution.clone());
                 for ilam in 1..self.data.nlambda + 1 {
@@ -276,6 +282,12 @@ impl RISMDriver {
             solver_config: self.solver.clone(),
         };
 
+        let uv_time = if uv_time != 0.0 {
+            uv_time - vv_time
+        } else {
+            uv_time
+        };
+
         Self::restore_renormalised_functions(&mut vv_solution, vv.system.beta);
 
         (
@@ -285,6 +297,8 @@ impl RISMDriver {
                 uv: uv_solution,
             },
             JobDiagnostics {
+                v_system_size: self.data.nsv,
+                u_system_size: self.data.nsu.unwrap_or(0),
                 vv_time,
                 uv_time,
                 vv_iterations,

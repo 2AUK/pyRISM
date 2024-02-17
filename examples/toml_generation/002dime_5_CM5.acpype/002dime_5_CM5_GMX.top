@@ -1,0 +1,20 @@
+; 002dime_5_CM5_GMX.top created by acpype (v: 2022.6.6) on Fri Mar 24 14:12:58 2023
+
+[ defaults ]
+; nbfunc        comb-rule       gen-pairs       fudgeLJ fudgeQQ
+1               2               yes             0.5     0.8333333333
+
+; Include 002dime_5_CM5_GMX.itp topology
+#include "002dime_5_CM5_GMX.itp"
+
+; Ligand position restraints
+#ifdef POSRES_LIG
+#include "posre_002dime_5_CM5.itp"
+#endif
+
+[ system ]
+ 002dime_5_CM5
+
+[ molecules ]
+; Compound        nmols
+ 002dime_5_CM5    1     
