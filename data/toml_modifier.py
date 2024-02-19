@@ -15,7 +15,7 @@ for toml_file in inp_dir.rglob("*.toml"):
     inp_toml['params']['solver'] = 'ADIIS'
     inp_toml['params']['closure'] = 'KH'
     inp_toml['params']['picard_damping'] = 0.2
-    inp_toml['params']['depth'] = 12
+    inp_toml['params']['depth'] = 20
     inp_toml['system']['npts'] = 8192
     inp_toml['system']['radius'] = 40.96
     inp_toml['system']['lam'] = 1
