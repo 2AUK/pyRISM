@@ -49,7 +49,13 @@ pub enum ClosureDerivativeKind {
     HyperNettedChain,
     KovalenkoHirata,
     PercusYevick,
-    PartialSeriesExpansion(i8),
+    PartialSeriesExpansion1,
+    PartialSeriesExpansion2,
+    PartialSeriesExpansion3,
+    PartialSeriesExpansion4,
+    PartialSeriesExpansion5,
+    PartialSeriesExpansion6,
+    PartialSeriesExpansion7,
 }
 
 impl ClosureDerivativeKind {
@@ -58,31 +64,17 @@ impl ClosureDerivativeKind {
             ClosureKind::HyperNettedChain => ClosureDerivativeKind::HyperNettedChain,
             ClosureKind::KovalenkoHirata => ClosureDerivativeKind::KovalenkoHirata,
             ClosureKind::PercusYevick => ClosureDerivativeKind::PercusYevick,
-            ClosureKind::PartialSeriesExpansion(1) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(1)
-            }
-            ClosureKind::PartialSeriesExpansion(2) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(2)
-            }
-            ClosureKind::PartialSeriesExpansion(3) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(3)
-            }
+            ClosureKind::PartialSeriesExpansion1 => ClosureDerivativeKind::PartialSeriesExpansion1,
+            ClosureKind::PartialSeriesExpansion2 => ClosureDerivativeKind::PartialSeriesExpansion2,
+            ClosureKind::PartialSeriesExpansion3 => ClosureDerivativeKind::PartialSeriesExpansion3,
 
-            ClosureKind::PartialSeriesExpansion(4) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(4)
-            }
+            ClosureKind::PartialSeriesExpansion4 => ClosureDerivativeKind::PartialSeriesExpansion4,
 
-            ClosureKind::PartialSeriesExpansion(5) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(5)
-            }
+            ClosureKind::PartialSeriesExpansion5 => ClosureDerivativeKind::PartialSeriesExpansion5,
 
-            ClosureKind::PartialSeriesExpansion(6) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(6)
-            }
+            ClosureKind::PartialSeriesExpansion6 => ClosureDerivativeKind::PartialSeriesExpansion6,
 
-            ClosureKind::PartialSeriesExpansion(7) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(7)
-            }
+            ClosureKind::PartialSeriesExpansion7 => ClosureDerivativeKind::PartialSeriesExpansion7,
 
             _ => panic!("Derivative not implemented for {}", closure),
         }
@@ -93,60 +85,62 @@ impl ClosureDerivativeKind {
             ClosureDerivativeKind::KovalenkoHirata => kovalenko_hirata_derivative,
             ClosureDerivativeKind::PercusYevick => percus_yevick_derivative,
 
-            ClosureDerivativeKind::PartialSeriesExpansion(1) => {
-                partial_series_expansion_derivative_1
-            }
-            ClosureDerivativeKind::PartialSeriesExpansion(2) => {
-                partial_series_expansion_derivative_2
-            }
-            ClosureDerivativeKind::PartialSeriesExpansion(3) => {
-                partial_series_expansion_derivative_3
-            }
-            ClosureDerivativeKind::PartialSeriesExpansion(4) => {
-                partial_series_expansion_derivative_4
-            }
-            ClosureDerivativeKind::PartialSeriesExpansion(5) => {
-                partial_series_expansion_derivative_5
-            }
-            ClosureDerivativeKind::PartialSeriesExpansion(6) => {
-                partial_series_expansion_derivative_6
-            }
-            ClosureDerivativeKind::PartialSeriesExpansion(7) => {
-                partial_series_expansion_derivative_7
-            }
+            ClosureDerivativeKind::PartialSeriesExpansion1 => partial_series_expansion_derivative_1,
+            ClosureDerivativeKind::PartialSeriesExpansion2 => partial_series_expansion_derivative_2,
+            ClosureDerivativeKind::PartialSeriesExpansion3 => partial_series_expansion_derivative_3,
+            ClosureDerivativeKind::PartialSeriesExpansion4 => partial_series_expansion_derivative_4,
+            ClosureDerivativeKind::PartialSeriesExpansion5 => partial_series_expansion_derivative_5,
+            ClosureDerivativeKind::PartialSeriesExpansion6 => partial_series_expansion_derivative_6,
+            ClosureDerivativeKind::PartialSeriesExpansion7 => partial_series_expansion_derivative_7,
             _ => panic!("derivative closure not found"),
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ClosureKind {
+    #[serde(rename = "HNC")]
     HyperNettedChain,
+    #[serde(rename = "KH")]
     KovalenkoHirata,
+    #[serde(rename = "PY")]
     PercusYevick,
-    PartialSeriesExpansion(i8),
+    #[serde(rename = "PSE-1")]
+    PartialSeriesExpansion1,
+    #[serde(rename = "PSE-2")]
+    PartialSeriesExpansion2,
+    #[serde(rename = "PSE-3")]
+    PartialSeriesExpansion3,
+    #[serde(rename = "PSE-4")]
+    PartialSeriesExpansion4,
+    #[serde(rename = "PSE-5")]
+    PartialSeriesExpansion5,
+    #[serde(rename = "PSE-6")]
+    PartialSeriesExpansion6,
+    #[serde(rename = "PSE-7")]
+    PartialSeriesExpansion7,
 }
 
-impl<'de> Deserialize<'de> for ClosureKind {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?.to_lowercase();
-        let s = s.split("-").collect::<Vec<&str>>();
-        let state = match s[0] {
-            "hnc" => ClosureKind::HyperNettedChain,
-            "kh" => ClosureKind::KovalenkoHirata,
-            "py" => ClosureKind::PercusYevick,
-            "pse" => ClosureKind::PartialSeriesExpansion(
-                s[1].parse::<i8>().expect("parse PSE n terms into i8"),
-            ),
-            _ => panic!("closure not found"),
-        };
-        Ok(state)
-    }
-}
-
+// impl<'de> Deserialize<'de> for ClosureKind {
+//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+//     where
+//         D: Deserializer<'de>,
+//     {
+//         let s = String::deserialize(deserializer)?.to_lowercase();
+//         let s = s.split("-").collect::<Vec<&str>>();
+//         let state = match s[0] {
+//             "hnc" => ClosureKind::HyperNettedChain,
+//             "kh" => ClosureKind::KovalenkoHirata,
+//             "py" => ClosureKind::PercusYevick,
+//             "pse" => ClosureKind::PartialSeriesExpansion(
+//                 s[1].parse::<i8>().expect("parse PSE n terms into i8"),
+//             ),
+//             _ => panic!("closure not found"),
+//         };
+//         Ok(state)
+//     }
+// }
+//
 impl<'source> FromPyObject<'source> for ClosureKind {
     fn extract(obj: &'source PyAny) -> PyResult<Self> {
         let str = obj
@@ -157,11 +151,13 @@ impl<'source> FromPyObject<'source> for ClosureKind {
         match str.as_str() {
             "HNC" => Ok(ClosureKind::HyperNettedChain),
             "KH" => Ok(ClosureKind::KovalenkoHirata),
-            "PSE-1" => Ok(ClosureKind::PartialSeriesExpansion(1)),
-            "PSE-2" => Ok(ClosureKind::PartialSeriesExpansion(2)),
-            "PSE-3" => Ok(ClosureKind::PartialSeriesExpansion(3)),
-            "PSE-4" => Ok(ClosureKind::PartialSeriesExpansion(4)),
-            "PSE-5" => Ok(ClosureKind::PartialSeriesExpansion(5)),
+            "PSE-1" => Ok(ClosureKind::PartialSeriesExpansion1),
+            "PSE-2" => Ok(ClosureKind::PartialSeriesExpansion2),
+            "PSE-3" => Ok(ClosureKind::PartialSeriesExpansion3),
+            "PSE-4" => Ok(ClosureKind::PartialSeriesExpansion4),
+            "PSE-5" => Ok(ClosureKind::PartialSeriesExpansion5),
+            "PSE-6" => Ok(ClosureKind::PartialSeriesExpansion6),
+            "PSE-7" => Ok(ClosureKind::PartialSeriesExpansion7),
             "PY" => Ok(ClosureKind::PercusYevick),
             _ => panic!("not a valid closure"),
         }
@@ -174,8 +170,26 @@ impl fmt::Display for ClosureKind {
             ClosureKind::HyperNettedChain => write!(f, "Hyper-Netted Chain"),
             ClosureKind::KovalenkoHirata => write!(f, "Kovalenko-Hirata"),
             ClosureKind::PercusYevick => write!(f, "Percus-Yevick"),
-            ClosureKind::PartialSeriesExpansion(x) => {
-                write!(f, "Partial Series Expansion ({} terms)", x)
+            ClosureKind::PartialSeriesExpansion1 => {
+                write!(f, "Partial Series Expansion (1 term)")
+            }
+            ClosureKind::PartialSeriesExpansion2 => {
+                write!(f, "Partial Series Expansion (2 terms)")
+            }
+            ClosureKind::PartialSeriesExpansion3 => {
+                write!(f, "Partial Series Expansion (3 terms)")
+            }
+            ClosureKind::PartialSeriesExpansion4 => {
+                write!(f, "Partial Series Expansion (4 terms)")
+            }
+            ClosureKind::PartialSeriesExpansion5 => {
+                write!(f, "Partial Series Expansion (5 terms)")
+            }
+            ClosureKind::PartialSeriesExpansion6 => {
+                write!(f, "Partial Series Expansion (6 terms)")
+            }
+            ClosureKind::PartialSeriesExpansion7 => {
+                write!(f, "Partial Series Expansion (7 terms)")
             }
         }
     }
@@ -187,13 +201,13 @@ impl ClosureKind {
             ClosureKind::HyperNettedChain => hyper_netted_chain,
             ClosureKind::KovalenkoHirata => kovalenko_hirata,
             ClosureKind::PercusYevick => percus_yevick,
-            ClosureKind::PartialSeriesExpansion(1) => partial_series_expansion_1,
-            ClosureKind::PartialSeriesExpansion(2) => partial_series_expansion_2,
-            ClosureKind::PartialSeriesExpansion(3) => partial_series_expansion_3,
-            ClosureKind::PartialSeriesExpansion(4) => partial_series_expansion_4,
-            ClosureKind::PartialSeriesExpansion(5) => partial_series_expansion_5,
-            ClosureKind::PartialSeriesExpansion(6) => partial_series_expansion_6,
-            ClosureKind::PartialSeriesExpansion(7) => partial_series_expansion_7,
+            ClosureKind::PartialSeriesExpansion1 => partial_series_expansion_1,
+            ClosureKind::PartialSeriesExpansion2 => partial_series_expansion_2,
+            ClosureKind::PartialSeriesExpansion3 => partial_series_expansion_3,
+            ClosureKind::PartialSeriesExpansion4 => partial_series_expansion_4,
+            ClosureKind::PartialSeriesExpansion5 => partial_series_expansion_5,
+            ClosureKind::PartialSeriesExpansion6 => partial_series_expansion_6,
+            ClosureKind::PartialSeriesExpansion7 => partial_series_expansion_7,
             _ => panic!("not a valid closure"),
         }
     }
