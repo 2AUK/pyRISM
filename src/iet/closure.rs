@@ -49,7 +49,13 @@ pub enum ClosureDerivativeKind {
     HyperNettedChain,
     KovalenkoHirata,
     PercusYevick,
-    PartialSeriesExpansion(i8),
+    PartialSeriesExpansion1,
+    PartialSeriesExpansion2,
+    PartialSeriesExpansion3,
+    PartialSeriesExpansion4,
+    PartialSeriesExpansion5,
+    PartialSeriesExpansion6,
+    PartialSeriesExpansion7,
 }
 
 impl ClosureDerivativeKind {
@@ -58,31 +64,17 @@ impl ClosureDerivativeKind {
             ClosureKind::HyperNettedChain => ClosureDerivativeKind::HyperNettedChain,
             ClosureKind::KovalenkoHirata => ClosureDerivativeKind::KovalenkoHirata,
             ClosureKind::PercusYevick => ClosureDerivativeKind::PercusYevick,
-            ClosureKind::PartialSeriesExpansion(1) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(1)
-            }
-            ClosureKind::PartialSeriesExpansion(2) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(2)
-            }
-            ClosureKind::PartialSeriesExpansion(3) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(3)
-            }
+            ClosureKind::PartialSeriesExpansion1 => ClosureDerivativeKind::PartialSeriesExpansion1,
+            ClosureKind::PartialSeriesExpansion2 => ClosureDerivativeKind::PartialSeriesExpansion2,
+            ClosureKind::PartialSeriesExpansion3 => ClosureDerivativeKind::PartialSeriesExpansion3,
 
-            ClosureKind::PartialSeriesExpansion(4) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(4)
-            }
+            ClosureKind::PartialSeriesExpansion4 => ClosureDerivativeKind::PartialSeriesExpansion4,
 
-            ClosureKind::PartialSeriesExpansion(5) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(5)
-            }
+            ClosureKind::PartialSeriesExpansion5 => ClosureDerivativeKind::PartialSeriesExpansion5,
 
-            ClosureKind::PartialSeriesExpansion(6) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(6)
-            }
+            ClosureKind::PartialSeriesExpansion6 => ClosureDerivativeKind::PartialSeriesExpansion6,
 
-            ClosureKind::PartialSeriesExpansion(7) => {
-                ClosureDerivativeKind::PartialSeriesExpansion(7)
-            }
+            ClosureKind::PartialSeriesExpansion7 => ClosureDerivativeKind::PartialSeriesExpansion7,
 
             _ => panic!("Derivative not implemented for {}", closure),
         }
@@ -93,27 +85,13 @@ impl ClosureDerivativeKind {
             ClosureDerivativeKind::KovalenkoHirata => kovalenko_hirata_derivative,
             ClosureDerivativeKind::PercusYevick => percus_yevick_derivative,
 
-            ClosureDerivativeKind::PartialSeriesExpansion(1) => {
-                partial_series_expansion_derivative_1
-            }
-            ClosureDerivativeKind::PartialSeriesExpansion(2) => {
-                partial_series_expansion_derivative_2
-            }
-            ClosureDerivativeKind::PartialSeriesExpansion(3) => {
-                partial_series_expansion_derivative_3
-            }
-            ClosureDerivativeKind::PartialSeriesExpansion(4) => {
-                partial_series_expansion_derivative_4
-            }
-            ClosureDerivativeKind::PartialSeriesExpansion(5) => {
-                partial_series_expansion_derivative_5
-            }
-            ClosureDerivativeKind::PartialSeriesExpansion(6) => {
-                partial_series_expansion_derivative_6
-            }
-            ClosureDerivativeKind::PartialSeriesExpansion(7) => {
-                partial_series_expansion_derivative_7
-            }
+            ClosureDerivativeKind::PartialSeriesExpansion1 => partial_series_expansion_derivative_1,
+            ClosureDerivativeKind::PartialSeriesExpansion2 => partial_series_expansion_derivative_2,
+            ClosureDerivativeKind::PartialSeriesExpansion3 => partial_series_expansion_derivative_3,
+            ClosureDerivativeKind::PartialSeriesExpansion4 => partial_series_expansion_derivative_4,
+            ClosureDerivativeKind::PartialSeriesExpansion5 => partial_series_expansion_derivative_5,
+            ClosureDerivativeKind::PartialSeriesExpansion6 => partial_series_expansion_derivative_6,
+            ClosureDerivativeKind::PartialSeriesExpansion7 => partial_series_expansion_derivative_7,
             _ => panic!("derivative closure not found"),
         }
     }
