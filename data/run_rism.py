@@ -70,11 +70,11 @@ if __name__ == "__main__":
     os.chdir(out_dir)
     for path in in_dir.rglob("*.toml"):
         print(path)
-        for slurm in out_dir.rglob('slurm*'):
+        for slurm in out_dir.rglob("slurm*"):
             os.remove(slurm)
-        fp = tempfile.NamedTemporaryFile(dir=in_dir, suffix='.sh', buffering=0)
+        fp = tempfile.NamedTemporaryFile(dir=in_dir, suffix=".sh", buffering=0)
         sbatch = temp_sbatch.format(job=path.stem, toml_file=path)
         fp.write(str.encode(sbatch))
         print(fp.name)
-        subprocess.run(['sbatch', fp.name])
+        subprocess.run(["sbatch", fp.name])
         fp.close()
