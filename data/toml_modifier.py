@@ -14,11 +14,11 @@ for toml_file in inp_dir.rglob("*.toml"):
     inp_toml["system"]["temp"] = 300
     inp_toml["params"]["solver"] = "ADIIS"
     inp_toml["params"]["closure"] = "KH"
-    inp_toml["params"]["picard_damping"] = 0.5
+    inp_toml["params"]["picard_damping"] = 0.1
     inp_toml["params"]["depth"] = 20
-    inp_toml["system"]["npts"] = 8192
-    inp_toml["system"]["radius"] = 40.96
-    inp_toml["system"]["lam"] = 1
+    inp_toml["system"]["npts"] = 1024
+    inp_toml["system"]["radius"] = 51.2
+    inp_toml["system"]["lam"] = 10
     inp_toml["params"]["mdiis_damping"] = inp_toml["params"]["picard_damping"]
     if "preconverged" in inp_toml["solvent"]:
         inp_toml["solvent"][
