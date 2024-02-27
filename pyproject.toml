@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools", "maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "pyRISM"
+version = "0.3.1"
+dependencies = [
+    "numpy",
+    "pandas",
+    "matplotlib",
+]
+
+[tool.setuptools.packages]
+find = {}
+
+[project.scripts]
+pyrplot = "pyrism.plotter:plot"
+
+[tool.maturin]
+module-name = "pyrism.librism"
