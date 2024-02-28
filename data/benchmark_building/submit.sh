@@ -46,7 +46,7 @@ module load fftw/gcc-8.5.0
 
 # Modify the line below to run your program
 
-rism chg_org_solu.toml -l
+rism nitromethane_resp.toml -l
 
 #======================================================
 # Epilogue script to record job endtime and runtime
