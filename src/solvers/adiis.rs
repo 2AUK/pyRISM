@@ -2,8 +2,9 @@ use crate::data::{configuration::solver::*, core::DataRs};
 use crate::iet::operator::Operator;
 use crate::solvers::solver::Solver;
 use log::{info, trace};
-use ndarray::{s, Array, Array1, Array2, Array3};
+use ndarray::{par_azip, s, Array, Array1, Array2, Array3};
 use ndarray_linalg::Solve;
+use rayon::prelude::*;
 use std::collections::VecDeque;
 use std::time::Instant;
 
@@ -168,6 +169,13 @@ impl ADIIS {
                     self.a[[i + 1, j + 1]] = self.res[i].dot(&self.res[j]);
                 }
             }
+
+            // let curr_depth = self.curr_depth.clone();
+            // let res = self.res.clone();
+            // par_azip!((index(i, j), a in &mut self.a) {
+            //     if i < curr_depth+1 && j < curr_depth+1 {
+            //     }
+            // });
 
             let a_slice = self
                 .a
