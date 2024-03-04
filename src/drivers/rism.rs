@@ -36,14 +36,24 @@ pub struct JobDiagnostics {
     pub v_system_size: usize,
     /// Number of solute sites (0 if no solute defined)
     pub u_system_size: usize,
+    /// Number of lambda cycles
+    pub lambda: usize,
     /// Time for solvent-solvent problem (0 if using a preconverged solution)
     pub vv_time: f64,
+    /// Time for final stage of multi-stage solvent-solvent problem
+    pub vv_time_final: f64,
     /// Time for solute-solvent problem (0 if no solute defined)
     pub uv_time: f64,
+    /// Time for final stage of multi-stage solute-solvent problem
+    pub uv_time_final: f64,
     /// Number of iterations for solvent-solvent problem (0 if using a preconverged solution)
     pub vv_iterations: usize,
+    /// Number of iterations for final stage of multi-stage solvent-solvent problem
+    pub vv_iterations_final: usize,
     /// Number of iterations for solute-solvent problem (0 if no solute defined)
     pub uv_iterations: usize,
+    /// Number of iterations for final stage of multi-stage solute-solvent problem
+    pub uv_iterations_final: usize,
     /// Time for total job
     pub job_time: f64,
 }
@@ -52,8 +62,8 @@ impl std::fmt::Display for JobDiagnostics {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Solvent System Size: {}\nSolvent-Solvent Solver Time: {} s\nSolvent-Solvent Solver Iterations: {}\nSolute System Size: {}\nSolute-Solvent Solver Time: {} s\nSolute-Solvent Solver Iterations: {}\nTotal System Size: {}\nTotal Job Time: {} s",
-            self.v_system_size,  self.vv_time, self.vv_iterations, self.u_system_size,self.uv_time, self.uv_iterations, self.v_system_size + self.u_system_size,self.job_time)
+            "Lambda Cycles: {}\nSolvent System Size: {}\nSolvent-Solvent Solver Time: {} s\nSolvent-Solvent Solver Time (final cycle): {} s\nSolvent-Solvent Solver Iterations: {}\nSolvent-Solvent Solver Iterations (final cycle): {}\nSolute System Size: {}\nSolute-Solvent Solver Time: {} s\nSolute-Solvent Solver Time (final cycle): {} s\nSolute-Solvent Solver Iterations: {}\nSolute-Solvent Solver Iterations (final cycle): {}\nTotal System Size: {}\nTotal Job Time: {} s\n",
+            self.lambda, self.v_system_size,  self.vv_time, self.vv_time_final, self.vv_iterations, self.vv_iterations_final, self.u_system_size, self.uv_time, self.uv_time_final, self.uv_iterations, self.uv_iterations_final, self.v_system_size + self.u_system_size, self.job_time)
     }
 }
 
@@ -165,9 +175,15 @@ impl RISMDriver {
         let mut solver = self.solver.solver.set(&self.solver.settings);
 
         let mut vv_iterations = 0;
+        let mut vv_iterations_final = 0;
         let mut uv_iterations = 0;
+        let mut uv_iterations_final = 0;
         let mut vv_time = 0.0;
+        let mut vv_time_final = 0.0;
         let mut uv_time = 0.0;
+        let mut uv_time_final = 0.0;
+        let mut final_start = 0.0;
+        let mut final_end = 0.0;
         let mut vv_solution = match self._preconv {
             None => {
                 vv_iterations = 0;
@@ -176,16 +192,26 @@ impl RISMDriver {
                     let lam = 1.0 * ilam as f64 / self.data.nlambda as f64;
                     vv.system.curr_lam = lam;
                     info!("Lambda cycle: {}/{}", ilam, self.data.nlambda);
+                    if ilam == self.data.nlambda {
+                        final_start = timer.elapsed().as_secs_f64();
+                    }
                     match solver.solve(&mut vv, &operator) {
                         Ok(s) => {
                             info!("{}", s);
-                            vv_iterations += s.0
+                            vv_iterations += s.0;
+                            if ilam == self.data.nlambda {
+                                vv_iterations_final = s.0;
+                            }
                         }
                         Err(e) => panic!("{}", e),
                     };
+                    if ilam == self.data.nlambda {
+                        final_end = timer.elapsed().as_secs_f64();
+                    }
                 }
 
                 vv_time = timer.elapsed().as_secs_f64();
+                vv_time_final = final_end - final_start;
 
                 info!(
                     "Total Solvent-Solvent Iterations: {} Total Solver Time: {} s",
@@ -240,16 +266,26 @@ impl RISMDriver {
                     let lam = 1.0 * ilam as f64 / self.data.nlambda as f64;
                     uv.system.curr_lam = lam;
                     info!("Lambda cycle: {}/{}", ilam, self.data.nlambda);
+                    if ilam == self.data.nlambda {
+                        final_start = timer.elapsed().as_secs_f64();
+                    }
 
                     match solver.solve(uv, &operator_uv) {
                         Ok(s) => {
                             info!("{}", s);
                             uv_iterations += s.0;
+                            if ilam == self.data.nlambda {
+                                uv_iterations_final = s.0;
+                            }
                         }
                         Err(e) => panic!("{}", e),
                     }
+                    if ilam == self.data.nlambda {
+                        final_end = timer.elapsed().as_secs_f64();
+                    }
                 }
                 uv_time = timer.elapsed().as_secs_f64();
+                uv_time_final = final_end - final_start;
                 info!(
                     "Total Solute-Solvent Iterations: {} Total Solver Time: {} s",
                     uv_iterations, uv_time
@@ -297,12 +333,17 @@ impl RISMDriver {
                 uv: uv_solution,
             },
             JobDiagnostics {
+                lambda: self.data.nlambda,
                 v_system_size: self.data.nsv,
                 u_system_size: self.data.nsu.unwrap_or(0),
                 vv_time,
+                vv_time_final,
                 uv_time,
+                uv_time_final,
                 vv_iterations,
+                vv_iterations_final,
                 uv_iterations,
+                uv_iterations_final,
                 job_time,
             },
         )

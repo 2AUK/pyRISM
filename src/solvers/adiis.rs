@@ -164,20 +164,20 @@ impl ADIIS {
             }
 
             // Construct new residual overlap matrix
-            // for i in 0..self.curr_depth {
-            //     for j in 0..self.curr_depth {
-            //         self.a[[i + 1, j + 1]] = self.res[i].dot(&self.res[j]);
-            //     }
-            // }
+            for i in 0..self.curr_depth {
+                for j in 0..self.curr_depth {
+                    self.a[[i + 1, j + 1]] = self.res[i].dot(&self.res[j]);
+                }
+            }
 
-            let mut a_overlap_slice = self
-                .a
-                .slice_mut(s!(1..self.curr_depth + 1, 1..self.curr_depth + 1));
-
-            let res = self.res.clone();
-            par_azip!((index(i, j), a in &mut a_overlap_slice) {
-                *a = res[i].dot(&res[j]);
-            });
+            // let mut a_overlap_slice = self
+            //     .a
+            //     .slice_mut(s!(1..self.curr_depth + 1, 1..self.curr_depth + 1));
+            //
+            // let res = self.res.clone();
+            // par_azip!((index(i, j), a in &mut a_overlap_slice) {
+            //     *a = res[i].dot(&res[j]);
+            // });
 
             let a_slice = self
                 .a
