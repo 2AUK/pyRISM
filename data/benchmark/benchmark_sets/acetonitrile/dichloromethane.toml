@@ -1,0 +1,37 @@
+[system]
+temp = 300
+kT = 1.0
+kU = 0.0019872158728366637
+charge_coeff = 167101.0
+npts = 8192
+radius = 40.96
+lam = 1
+
+[params]
+potential = "LJ"
+closure = "KH"
+IE = "DRISM"
+solver = "Ng"
+depth = 20
+picard_damping = 0.5
+mdiis_damping = 0.1
+itermax = 10000
+tol = 1e-12
+diel = 78.497
+adbcor = 1.5
+
+[solvent]
+preconverged = "/users/tjb20156/pyRISM/data/benchmark/solvent_data/solvent_bins/acetonitrile_Dielectrically_Consistent_RISM_Kovalenko-Hirata_298.15K.bin"
+
+[solute]
+nspu = 1
+nsu = 5
+
+[solute.dichloromethane]
+dens = 0.0
+ns = 5
+C1 = [ [ 33.2124892049157, 3.5, -0.078228,], [ 0.0, 0.765882, -2e-6,],]
+Cl2 = [ [ 150.9658600223441, 3.4, -0.116843,], [ -1.477005, -0.215968, -2e-6,],]
+Cl3 = [ [ 150.9658600223441, 3.4, -0.116843,], [ 1.477005, -0.215968, -2e-6,],]
+H4 = [ [ 15.096586002234407, 2.5, 0.155953,], [ 0.0, 1.373739, 0.897112,],]
+H5 = [ [ 15.096586002234407, 2.5, 0.155961,], [ 0.0, 1.373876, -0.897026,],]

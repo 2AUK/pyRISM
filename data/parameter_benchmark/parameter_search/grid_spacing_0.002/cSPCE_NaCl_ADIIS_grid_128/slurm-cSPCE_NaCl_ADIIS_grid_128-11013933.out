@@ -1,0 +1,114 @@
+===================================================================================
+SLURM Job ID:            11013933
+Submit time:             Sat Mar 09 00:26:09 GMT 2024 (Unix Epoch time: 1709943969)
+Start time:              Sat Mar 09 00:26:27 GMT 2024 (Unix Epoch time: 1709943987)
+No. nodes:               1
+No. tasks:               1
+Job name:                cSPCE_NaCl_ADIIS_grid_128_pyrism
+Account:                 palmer-mmms
+QoS:                     normal
+Partition (queue):       standard
+Submit directory:        /users/tjb20156/pyRISM/data/parameter_benchmark/parameter_search/grid_spacing_0.002/cSPCE_NaCl_ADIIS_grid_128
+Script name:             /users/tjb20156/pyRISM/data/parameter_benchmark/parameter_search/grid_spacing_0.002/cSPCE_NaCl_ADIIS_grid_128/tmpp4fdl27d.sh
+Master node:             node017
+Nodes used:              node017
+Task distribution:       
+===================================================================================
+
+
+             ____  ___ ____  __  __ 
+ _ __  _   _|  _ \|_ _/ ___||  \/  |
+| '_ \| | | | |_) || |\___ \| |\/| |
+| |_) | |_| |  _ < | | ___) | |  | |
+| .__/ \__, |_| \_\___|____/|_|  |_|
+|_|    |___/                        
+
+
++---------------+----------+
+| System        |          |
++---------------+----------+
+| Temperature   | 298.15 K |
++---------------+----------+
+| Num. Points   | 128      |
++---------------+----------+
+| Radius        | 0.256 Å  |
++---------------+----------+
+| Grid Spacing  | 0.002 Å  |
++---------------+----------+
+| Lambda Cycles | 1        |
++---------------+----------+
++-------------------+--------------------------------+
+| Operator          |                                |
++-------------------+--------------------------------+
+| Integral Equation | Dielectrically Consistent RISM |
++-------------------+--------------------------------+
+| Closure           | Kovalenko-Hirata               |
++-------------------+--------------------------------+
++------------+---------------+
+| Potential  |               |
++------------+---------------+
+| Non-Bonded | Lennard-Jones |
++------------+---------------+
+| Coulombic  | Coulomb       |
++------------+---------------+
++----------------+-------+
+| Solver         |       |
++----------------+-------+
+| Method         | ADIIS |
++----------------+-------+
+| Max Iterations | 10000 |
++----------------+-------+
+| Tolerance      | 1E-7  |
++----------------+-------+
+| Picard Damping | 0.2   |
++----------------+-------+
+| MDIIS Damping  | 0.7   |
++----------------+-------+
+| Depth          | 20    |
++----------------+-------+
+00:26:27 TRACE [librism::drivers::rism] Defining solvent-solvent problem
+00:26:27 TRACE [librism::drivers::rism] Checking for dipole moment
+00:26:27 TRACE [librism::drivers::rism] Aligning dipole moment to z-axis
+00:26:27 TRACE [librism::drivers::rism] 0 dipole moment for current system - na
+00:26:27 TRACE [librism::drivers::rism] 0 dipole moment for current system - cl
+00:26:27 TRACE [librism::drivers::rism] Calculating dielectric asymptotics for DRISM
+00:26:27 TRACE [librism::drivers::rism] Tabulating solvent-solvent potentials
+00:26:27 TRACE [librism::drivers::rism] Tabulating solvent intramolecular correlation functions
+00:26:27 TRACE [librism::drivers::rism] Defining solute-solvent problem
+00:26:27 INFO  [librism::drivers::rism] Solute data found
+00:26:28 WARN  [librism::drivers::rism] pyRISM only tested for infinite dilution; setting non-zero solute density may not work
+00:26:28 TRACE [librism::drivers::rism] Tabulating solute-solvent potentials
+00:26:28 TRACE [librism::drivers::rism] Tabulating solute intramolecular correlation functions
+00:26:28 TRACE [librism::drivers::rism] Defining operator
+00:26:28 INFO  [librism::drivers::rism] Starting solvent-solvent solver
+00:26:28 INFO  [librism::drivers::rism] Lambda cycle: 1/1
+00:26:28 TRACE [librism::solvers::adiis] Iteration: 0 Convergence RMSE: 1.000000E20
+00:26:28 TRACE [librism::solvers::adiis] Iteration: 1 Convergence RMSE: 2.520922E-2
+00:26:28 TRACE [librism::solvers::adiis] Iteration: 2 Convergence RMSE: 1.014120E-2
+00:26:28 TRACE [librism::solvers::adiis] Iteration: 3 Convergence RMSE: 1.627567E-4
+00:26:28 TRACE [librism::solvers::adiis] Iteration: 4 Convergence RMSE: 7.102928E-6
+00:26:28 TRACE [librism::solvers::adiis] Iteration: 5 Convergence RMSE: 5.241156E-7
+00:26:28 TRACE [librism::solvers::adiis] Iteration: 6 Convergence RMSE: 2.967729E-7
+00:26:28 TRACE [librism::solvers::adiis] Iteration: 7 Convergence RMSE: 1.659989E-8
+00:26:28 INFO  [librism::drivers::rism] Finished! Iteration: 7 RMSE: 1.659989E-8 Time Elapsed: 0.019583531 s
+00:26:28 INFO  [librism::drivers::rism] Total Solvent-Solvent Iterations: 7 Total Solver Time: 0.02857311 s
+00:26:28 INFO  [librism::drivers::rism] Starting solute-solvent solver
+00:26:28 INFO  [librism::drivers::rism] Lambda cycle: 1/1
+00:26:28 TRACE [librism::solvers::adiis] Iteration: 0 Convergence RMSE: 1.000000E20
+00:26:28 TRACE [librism::solvers::adiis] Iteration: 1 Convergence RMSE: 6.393562E-2
+00:26:28 TRACE [librism::solvers::adiis] Iteration: 2 Convergence RMSE: 3.309772E-2
+00:26:28 TRACE [librism::solvers::adiis] Iteration: 3 Convergence RMSE: 5.770466E-3
+00:26:28 TRACE [librism::solvers::adiis] Iteration: 4 Convergence RMSE: 6.423819E-4
+00:26:28 TRACE [librism::solvers::adiis] Iteration: 5 Convergence RMSE: 9.855546E-5
+00:26:28 TRACE [librism::solvers::adiis] Iteration: 6 Convergence RMSE: 1.952420E-5
+00:26:28 TRACE [librism::solvers::adiis] Iteration: 7 Convergence RMSE: 1.848881E-6
+00:26:28 TRACE [librism::solvers::adiis] Iteration: 8 Convergence RMSE: 2.579343E-7
+00:26:28 TRACE [librism::solvers::adiis] Iteration: 9 Convergence RMSE: 2.268428E-8
+00:26:28 INFO  [librism::drivers::rism] Finished! Iteration: 9 RMSE: 2.268428E-8 Time Elapsed: 0.033639702 s
+00:26:28 INFO  [librism::drivers::rism] Total Solute-Solvent Iterations: 9 Total Solver Time: 0.062584283 s
+00:26:28 INFO  [librism::drivers::rism] Total Iterations: 16 Total Job Time: 0.063115866 s
+===================================================================================
+SLURM job 11013933 ended:     Sat Mar 09 00:26:28 GMT 2024 (Unix Epoch time: 1709943988)
+This is an estimated end time using the 'date' command from node node017.hpc.strath.ac.uk
+For accurate timings, use 'sacct -j 11013933 -X --format=Submit,Start,End,Elapsed'
+======================================================================================

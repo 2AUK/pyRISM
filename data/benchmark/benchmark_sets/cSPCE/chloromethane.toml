@@ -1,0 +1,37 @@
+[system]
+temp = 300
+kT = 1.0
+kU = 0.0019872158728366637
+charge_coeff = 167101.0
+npts = 8192
+radius = 40.96
+lam = 1
+
+[params]
+potential = "LJ"
+closure = "KH"
+IE = "XRISM"
+solver = "Ng"
+depth = 20
+picard_damping = 0.5
+mdiis_damping = 0.1
+itermax = 10000
+tol = 1e-12
+diel = 78.497
+adbcor = 1.5
+
+[solvent]
+preconverged = "/users/tjb20156/pyRISM/data/benchmark/solvent_data/solvent_bins/cSPCE_Extended_RISM_Kovalenko-Hirata_300K.bin"
+
+[solute]
+nspu = 1
+nsu = 5
+
+[solute.chloromethane]
+dens = 0.0
+ns = 5
+C1 = [ [ 33.2124892049157, 3.5, -0.146141,], [ 1.129322, 8e-6, 3e-6,],]
+Cl2 = [ [ 150.9658600223441, 3.4, -0.186592,], [ -0.658307, -6e-6, 0.0,],]
+H3 = [ [ 15.096586002234407, 2.5, 0.110898,], [ 1.471821, -0.421884, -0.939662,],]
+H4 = [ [ 15.096586002234407, 2.5, 0.110288,], [ 1.471847, -0.602852, 0.835179,],]
+H5 = [ [ 15.096586002234407, 2.5, 0.111548,], [ 1.471622, 1.024801, 0.10447,],]

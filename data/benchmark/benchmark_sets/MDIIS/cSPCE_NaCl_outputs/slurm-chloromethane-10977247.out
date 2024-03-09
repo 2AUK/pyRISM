@@ -1,0 +1,639 @@
+===================================================================================
+SLURM Job ID:            10977247
+Submit time:             Thu Mar 07 01:13:36 GMT 2024 (Unix Epoch time: 1709774016)
+Start time:              Thu Mar 07 01:28:25 GMT 2024 (Unix Epoch time: 1709774905)
+No. nodes:               1
+No. tasks:               1
+Job name:                chloromethane_pyrism
+Account:                 palmer-mmms
+QoS:                     normal
+Partition (queue):       standard
+Submit directory:        /users/tjb20156/pyRISM/data/benchmark/benchmark_sets/MDIIS/cSPCE_NaCl_outputs
+Script name:             /users/tjb20156/pyRISM/data/benchmark/benchmark_sets/cSPCE_NaCl/tmpiauby755.sh
+Master node:             node071
+Nodes used:              node071
+Task distribution:       
+===================================================================================
+
+
+             ____  ___ ____  __  __ 
+ _ __  _   _|  _ \|_ _/ ___||  \/  |
+| '_ \| | | | |_) || |\___ \| |\/| |
+| |_) | |_| |  _ < | | ___) | |  | |
+| .__/ \__, |_| \_\___|____/|_|  |_|
+|_|    |___/                        
+
+
++---------------+---------+
+| System        |         |
++---------------+---------+
+| Temperature   | 300 K   |
++---------------+---------+
+| Num. Points   | 8192    |
++---------------+---------+
+| Radius        | 40.96 Å |
++---------------+---------+
+| Grid Spacing  | 0.005 Å |
++---------------+---------+
+| Lambda Cycles | 1       |
++---------------+---------+
++-------------------+--------------------------------+
+| Operator          |                                |
++-------------------+--------------------------------+
+| Integral Equation | Dielectrically Consistent RISM |
++-------------------+--------------------------------+
+| Closure           | Kovalenko-Hirata               |
++-------------------+--------------------------------+
++------------+---------------+
+| Potential  |               |
++------------+---------------+
+| Non-Bonded | Lennard-Jones |
++------------+---------------+
+| Coulombic  | Coulomb       |
++------------+---------------+
++----------------+-------+
+| Solver         |       |
++----------------+-------+
+| Method         | MDIIS |
++----------------+-------+
+| Max Iterations | 10000 |
++----------------+-------+
+| Tolerance      | 1E-8  |
++----------------+-------+
+| Picard Damping | 0.1   |
++----------------+-------+
+| MDIIS Damping  | 0.1   |
++----------------+-------+
+| Depth          | 20    |
++----------------+-------+
+01:28:27 TRACE [librism::drivers::rism] Defining solvent-solvent problem
+01:28:27 TRACE [librism::drivers::rism] Loading saved solution data from: /users/tjb20156/pyRISM/data/benchmark/solvent_data/solvent_bins/cSPCE_NaCl_Dielectrically_Consistent_RISM_Kovalenko-Hirata_298.15K.bin
+01:28:27 TRACE [librism::drivers::rism] Checking for dipole moment
+01:28:27 TRACE [librism::drivers::rism] Aligning dipole moment to z-axis
+01:28:27 TRACE [librism::drivers::rism] 0 dipole moment for current system - na
+01:28:27 TRACE [librism::drivers::rism] 0 dipole moment for current system - cl
+01:28:27 TRACE [librism::drivers::rism] Calculating dielectric asymptotics for DRISM
+01:28:27 TRACE [librism::drivers::rism] Rebuilding solvent intramolecular correlation function
+01:28:27 TRACE [librism::drivers::rism] Defining solute-solvent problem
+01:28:27 INFO  [librism::drivers::rism] Solute data found
+01:28:27 WARN  [librism::drivers::rism] pyRISM only tested for infinite dilution; setting non-zero solute density may not work
+01:28:27 TRACE [librism::drivers::rism] Tabulating solute-solvent potentials
+01:28:27 TRACE [librism::drivers::rism] Tabulating solute intramolecular correlation functions
+01:28:27 TRACE [librism::drivers::rism] Defining operator
+01:28:27 INFO  [librism::drivers::rism] Starting solute-solvent solver
+01:28:27 INFO  [librism::drivers::rism] Lambda cycle: 1/1
+01:28:27 INFO  [librism::solvers::mdiis] Solving RISM equation
+01:28:27 TRACE [librism::solvers::mdiis] Iteration: 0 Convergence RMSE: 2.091357E-2
+01:28:27 TRACE [librism::solvers::mdiis] Iteration: 1 Convergence RMSE: 1.856224E-2
+01:28:27 TRACE [librism::solvers::mdiis] Iteration: 2 Convergence RMSE: 1.654510E-2
+01:28:27 TRACE [librism::solvers::mdiis] Iteration: 3 Convergence RMSE: 1.479585E-2
+01:28:27 TRACE [librism::solvers::mdiis] Iteration: 4 Convergence RMSE: 1.326714E-2
+01:28:27 TRACE [librism::solvers::mdiis] Iteration: 5 Convergence RMSE: 1.192369E-2
+01:28:27 TRACE [librism::solvers::mdiis] Iteration: 6 Convergence RMSE: 1.073813E-2
+01:28:27 TRACE [librism::solvers::mdiis] Iteration: 7 Convergence RMSE: 9.688631E-3
+01:28:27 TRACE [librism::solvers::mdiis] Iteration: 8 Convergence RMSE: 8.757292E-3
+01:28:27 TRACE [librism::solvers::mdiis] Iteration: 9 Convergence RMSE: 7.929203E-3
+01:28:27 TRACE [librism::solvers::mdiis] Iteration: 10 Convergence RMSE: 7.191763E-3
+01:28:27 TRACE [librism::solvers::mdiis] Iteration: 11 Convergence RMSE: 6.534216E-3
+01:28:27 TRACE [librism::solvers::mdiis] Iteration: 12 Convergence RMSE: 5.947306E-3
+01:28:27 TRACE [librism::solvers::mdiis] Iteration: 13 Convergence RMSE: 5.423019E-3
+01:28:27 TRACE [librism::solvers::mdiis] Iteration: 14 Convergence RMSE: 4.954379E-3
+01:28:27 TRACE [librism::solvers::mdiis] Iteration: 15 Convergence RMSE: 4.535284E-3
+01:28:27 TRACE [librism::solvers::mdiis] Iteration: 16 Convergence RMSE: 4.160380E-3
+01:28:28 TRACE [librism::solvers::mdiis] Iteration: 17 Convergence RMSE: 3.824948E-3
+01:28:28 TRACE [librism::solvers::mdiis] Iteration: 18 Convergence RMSE: 3.524814E-3
+01:28:28 TRACE [librism::solvers::mdiis] Iteration: 19 Convergence RMSE: 3.256273E-3
+01:28:28 TRACE [librism::solvers::mdiis] Iteration: 20 Convergence RMSE: 7.704750E-2
+01:28:28 TRACE [librism::solvers::mdiis] Iteration: 21 Convergence RMSE: 4.536073E-3
+01:28:28 TRACE [librism::solvers::mdiis] Iteration: 22 Convergence RMSE: 2.637041E-3
+01:28:28 TRACE [librism::solvers::mdiis] Iteration: 23 Convergence RMSE: 2.427628E-3
+01:28:28 TRACE [librism::solvers::mdiis] Iteration: 24 Convergence RMSE: 2.751018E-3
+01:28:28 TRACE [librism::solvers::mdiis] Iteration: 25 Convergence RMSE: 5.448909E-3
+01:28:28 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:28 TRACE [librism::solvers::mdiis] Iteration: 26 Convergence RMSE: 3.965112E-3
+01:28:28 TRACE [librism::solvers::mdiis] Iteration: 27 Convergence RMSE: 7.060875E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 28 Convergence RMSE: 4.999417E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 29 Convergence RMSE: 3.853671E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 30 Convergence RMSE: 3.267950E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 31 Convergence RMSE: 2.985624E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 32 Convergence RMSE: 2.849222E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 33 Convergence RMSE: 2.778215E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 34 Convergence RMSE: 2.736209E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 35 Convergence RMSE: 2.707660E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 36 Convergence RMSE: 2.685951E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 37 Convergence RMSE: 2.668143E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 38 Convergence RMSE: 2.652806E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 39 Convergence RMSE: 2.639161E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 40 Convergence RMSE: 2.626733E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 41 Convergence RMSE: 2.615202E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 42 Convergence RMSE: 2.604343E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 43 Convergence RMSE: 2.593994E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 44 Convergence RMSE: 2.584034E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 45 Convergence RMSE: 2.574373E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 46 Convergence RMSE: 2.564944E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 47 Convergence RMSE: 5.991249E-2
+01:28:29 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 48 Convergence RMSE: 5.861452E-2
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 49 Convergence RMSE: 2.505713E-4
+01:28:29 TRACE [librism::solvers::mdiis] Iteration: 50 Convergence RMSE: 2.497980E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 51 Convergence RMSE: 2.490172E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 52 Convergence RMSE: 2.482275E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 53 Convergence RMSE: 2.474288E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 54 Convergence RMSE: 2.466218E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 55 Convergence RMSE: 2.458075E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 56 Convergence RMSE: 2.449873E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 57 Convergence RMSE: 2.441624E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 58 Convergence RMSE: 2.433340E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 59 Convergence RMSE: 2.425032E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 60 Convergence RMSE: 2.416709E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 61 Convergence RMSE: 2.408380E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 62 Convergence RMSE: 2.400052E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 63 Convergence RMSE: 2.391732E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 64 Convergence RMSE: 2.383424E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 65 Convergence RMSE: 2.375135E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 66 Convergence RMSE: 2.366866E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 67 Convergence RMSE: 2.358621E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 68 Convergence RMSE: 2.350403E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 69 Convergence RMSE: 6.427984E-2
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 70 Convergence RMSE: 6.414195E-4
+01:28:30 TRACE [librism::solvers::mdiis] Iteration: 71 Convergence RMSE: 4.375204E-4
+01:28:31 TRACE [librism::solvers::mdiis] Iteration: 72 Convergence RMSE: 1.602894E-3
+01:28:31 TRACE [librism::solvers::mdiis] Iteration: 73 Convergence RMSE: 1.752306E-3
+01:28:31 TRACE [librism::solvers::mdiis] Iteration: 74 Convergence RMSE: 3.595394E-4
+01:28:31 TRACE [librism::solvers::mdiis] Iteration: 75 Convergence RMSE: 1.772312E-3
+01:28:31 TRACE [librism::solvers::mdiis] Iteration: 76 Convergence RMSE: 2.559648E-3
+01:28:31 TRACE [librism::solvers::mdiis] Iteration: 77 Convergence RMSE: 1.151468E-3
+01:28:31 TRACE [librism::solvers::mdiis] Iteration: 78 Convergence RMSE: 4.666860E-4
+01:28:31 TRACE [librism::solvers::mdiis] Iteration: 79 Convergence RMSE: 3.265796E-3
+01:28:31 TRACE [librism::solvers::mdiis] Iteration: 80 Convergence RMSE: 1.223302E-3
+01:28:32 TRACE [librism::solvers::mdiis] Iteration: 81 Convergence RMSE: 6.796244E-3
+01:28:32 TRACE [librism::solvers::mdiis] Iteration: 82 Convergence RMSE: 7.570026E-4
+01:28:32 TRACE [librism::solvers::mdiis] Iteration: 83 Convergence RMSE: 3.063016E-3
+01:28:32 TRACE [librism::solvers::mdiis] Iteration: 84 Convergence RMSE: 6.373211E-4
+01:28:32 TRACE [librism::solvers::mdiis] Iteration: 85 Convergence RMSE: 2.122322E-3
+01:28:32 TRACE [librism::solvers::mdiis] Iteration: 86 Convergence RMSE: 9.117569E-3
+01:28:32 TRACE [librism::solvers::mdiis] Iteration: 87 Convergence RMSE: 3.333050E-3
+01:28:32 TRACE [librism::solvers::mdiis] Iteration: 88 Convergence RMSE: 1.103570E-3
+01:28:32 TRACE [librism::solvers::mdiis] Iteration: 89 Convergence RMSE: 6.647775E-3
+01:28:33 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 90 Convergence RMSE: 6.289989E-3
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 91 Convergence RMSE: 1.200388E-4
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 92 Convergence RMSE: 9.222498E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 93 Convergence RMSE: 7.940224E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 94 Convergence RMSE: 7.444603E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 95 Convergence RMSE: 7.297643E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 96 Convergence RMSE: 7.284520E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 97 Convergence RMSE: 7.315083E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 98 Convergence RMSE: 7.355020E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 99 Convergence RMSE: 7.392457E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 100 Convergence RMSE: 7.424012E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 101 Convergence RMSE: 7.449326E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 102 Convergence RMSE: 7.469014E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 103 Convergence RMSE: 7.483907E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 104 Convergence RMSE: 7.494807E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 105 Convergence RMSE: 7.502410E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 106 Convergence RMSE: 7.507301E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 107 Convergence RMSE: 7.509965E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 108 Convergence RMSE: 7.510799E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 109 Convergence RMSE: 7.510130E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 110 Convergence RMSE: 7.508226E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 111 Convergence RMSE: 4.292181E-2
+01:28:33 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 112 Convergence RMSE: 4.323902E-2
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 113 Convergence RMSE: 8.134930E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 114 Convergence RMSE: 7.928424E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 115 Convergence RMSE: 7.810165E-5
+01:28:33 TRACE [librism::solvers::mdiis] Iteration: 116 Convergence RMSE: 7.734648E-5
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 117 Convergence RMSE: 7.681499E-5
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 118 Convergence RMSE: 7.641245E-5
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 119 Convergence RMSE: 7.609170E-5
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 120 Convergence RMSE: 7.582701E-5
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 121 Convergence RMSE: 7.560293E-5
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 122 Convergence RMSE: 7.540936E-5
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 123 Convergence RMSE: 7.523924E-5
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 124 Convergence RMSE: 7.508744E-5
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 125 Convergence RMSE: 7.495011E-5
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 126 Convergence RMSE: 7.482430E-5
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 127 Convergence RMSE: 7.470775E-5
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 128 Convergence RMSE: 7.459867E-5
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 129 Convergence RMSE: 7.449569E-5
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 130 Convergence RMSE: 7.439769E-5
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 131 Convergence RMSE: 7.430380E-5
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 132 Convergence RMSE: 7.421332E-5
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 133 Convergence RMSE: 7.872589E-2
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 134 Convergence RMSE: 3.848662E-3
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 135 Convergence RMSE: 7.437542E-3
+01:28:34 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 136 Convergence RMSE: 1.273437E-3
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 137 Convergence RMSE: 3.868013E-4
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 138 Convergence RMSE: 2.348620E-4
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 139 Convergence RMSE: 1.420969E-4
+01:28:34 TRACE [librism::solvers::mdiis] Iteration: 140 Convergence RMSE: 8.761351E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 141 Convergence RMSE: 5.812655E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 142 Convergence RMSE: 4.441452E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 143 Convergence RMSE: 3.912703E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 144 Convergence RMSE: 3.724955E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 145 Convergence RMSE: 3.643177E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 146 Convergence RMSE: 3.588608E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 147 Convergence RMSE: 3.541820E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 148 Convergence RMSE: 3.500335E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 149 Convergence RMSE: 3.464813E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 150 Convergence RMSE: 3.435579E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 151 Convergence RMSE: 3.412228E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 152 Convergence RMSE: 3.393928E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 153 Convergence RMSE: 3.379728E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 154 Convergence RMSE: 3.368733E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 155 Convergence RMSE: 3.360187E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 156 Convergence RMSE: 3.353482E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 157 Convergence RMSE: 4.002113E-2
+01:28:35 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 158 Convergence RMSE: 4.005784E-2
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 159 Convergence RMSE: 3.749395E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 160 Convergence RMSE: 3.537463E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 161 Convergence RMSE: 3.443410E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 162 Convergence RMSE: 3.397287E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 163 Convergence RMSE: 3.371765E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 164 Convergence RMSE: 3.356228E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 165 Convergence RMSE: 3.346218E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 166 Convergence RMSE: 3.339563E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 167 Convergence RMSE: 3.335017E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 168 Convergence RMSE: 3.331788E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 169 Convergence RMSE: 3.329354E-5
+01:28:35 TRACE [librism::solvers::mdiis] Iteration: 170 Convergence RMSE: 3.327368E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 171 Convergence RMSE: 3.325610E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 172 Convergence RMSE: 3.323942E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 173 Convergence RMSE: 3.322285E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 174 Convergence RMSE: 3.320593E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 175 Convergence RMSE: 3.318847E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 176 Convergence RMSE: 3.317038E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 177 Convergence RMSE: 3.315167E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 178 Convergence RMSE: 3.313237E-5
+01:28:36 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 179 Convergence RMSE: 1.666552E-4
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 180 Convergence RMSE: 3.339736E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 181 Convergence RMSE: 3.334025E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 182 Convergence RMSE: 3.331051E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 183 Convergence RMSE: 3.328097E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 184 Convergence RMSE: 3.324793E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 185 Convergence RMSE: 3.321303E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 186 Convergence RMSE: 3.317816E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 187 Convergence RMSE: 3.314441E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 188 Convergence RMSE: 3.311222E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 189 Convergence RMSE: 3.308161E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 190 Convergence RMSE: 3.305239E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 191 Convergence RMSE: 3.302435E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 192 Convergence RMSE: 3.299724E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 193 Convergence RMSE: 3.297085E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 194 Convergence RMSE: 3.294501E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 195 Convergence RMSE: 3.291957E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 196 Convergence RMSE: 3.289442E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 197 Convergence RMSE: 3.286947E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 198 Convergence RMSE: 3.284465E-5
+01:28:36 TRACE [librism::solvers::mdiis] Iteration: 199 Convergence RMSE: 3.281991E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 200 Convergence RMSE: 2.157623E-2
+01:28:37 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 201 Convergence RMSE: 2.170612E-2
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 202 Convergence RMSE: 3.293207E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 203 Convergence RMSE: 3.288995E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 204 Convergence RMSE: 3.285596E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 205 Convergence RMSE: 3.282653E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 206 Convergence RMSE: 3.279973E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 207 Convergence RMSE: 3.277438E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 208 Convergence RMSE: 3.274981E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 209 Convergence RMSE: 3.272558E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 210 Convergence RMSE: 3.270145E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 211 Convergence RMSE: 3.267726E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 212 Convergence RMSE: 3.265293E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 213 Convergence RMSE: 3.262844E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 214 Convergence RMSE: 3.260377E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 215 Convergence RMSE: 3.257891E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 216 Convergence RMSE: 3.255389E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 217 Convergence RMSE: 3.252871E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 218 Convergence RMSE: 3.250338E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 219 Convergence RMSE: 3.247792E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 220 Convergence RMSE: 3.245234E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 221 Convergence RMSE: 3.242665E-5
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 222 Convergence RMSE: 2.302813E-2
+01:28:37 TRACE [librism::solvers::mdiis] Iteration: 223 Convergence RMSE: 6.596971E-4
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 224 Convergence RMSE: 1.943785E-3
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 225 Convergence RMSE: 4.563157E-3
+01:28:38 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 226 Convergence RMSE: 4.436954E-3
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 227 Convergence RMSE: 2.486931E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 228 Convergence RMSE: 1.923637E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 229 Convergence RMSE: 1.679524E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 230 Convergence RMSE: 1.594745E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 231 Convergence RMSE: 1.574751E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 232 Convergence RMSE: 1.576322E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 233 Convergence RMSE: 1.582987E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 234 Convergence RMSE: 1.589378E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 235 Convergence RMSE: 1.594193E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 236 Convergence RMSE: 1.597444E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 237 Convergence RMSE: 1.599473E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 238 Convergence RMSE: 1.600630E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 239 Convergence RMSE: 1.601193E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 240 Convergence RMSE: 1.601360E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 241 Convergence RMSE: 1.601267E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 242 Convergence RMSE: 1.601006E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 243 Convergence RMSE: 1.600637E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 244 Convergence RMSE: 1.600198E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 245 Convergence RMSE: 1.599717E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 246 Convergence RMSE: 1.599209E-5
+01:28:38 TRACE [librism::solvers::mdiis] Iteration: 247 Convergence RMSE: 8.141939E-3
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 248 Convergence RMSE: 1.203163E-4
+01:28:39 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 249 Convergence RMSE: 1.147791E-4
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 250 Convergence RMSE: 1.220126E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 251 Convergence RMSE: 1.185979E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 252 Convergence RMSE: 1.164427E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 253 Convergence RMSE: 1.150513E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 254 Convergence RMSE: 1.141426E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 255 Convergence RMSE: 1.135485E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 256 Convergence RMSE: 1.131643E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 257 Convergence RMSE: 1.129226E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 258 Convergence RMSE: 1.127790E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 259 Convergence RMSE: 1.127037E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 260 Convergence RMSE: 1.126766E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 261 Convergence RMSE: 1.126836E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 262 Convergence RMSE: 1.127149E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 263 Convergence RMSE: 1.127636E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 264 Convergence RMSE: 1.128247E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 265 Convergence RMSE: 1.128943E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 266 Convergence RMSE: 1.129697E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 267 Convergence RMSE: 1.130488E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 268 Convergence RMSE: 1.131300E-5
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 269 Convergence RMSE: 1.132120E-5
+01:28:39 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:39 TRACE [librism::solvers::mdiis] Iteration: 270 Convergence RMSE: 2.247445E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 271 Convergence RMSE: 1.134861E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 272 Convergence RMSE: 1.136010E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 273 Convergence RMSE: 1.137078E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 274 Convergence RMSE: 1.138064E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 275 Convergence RMSE: 1.138970E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 276 Convergence RMSE: 1.139802E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 277 Convergence RMSE: 1.140566E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 278 Convergence RMSE: 1.141266E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 279 Convergence RMSE: 1.141910E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 280 Convergence RMSE: 1.142501E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 281 Convergence RMSE: 1.143045E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 282 Convergence RMSE: 1.143544E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 283 Convergence RMSE: 1.144003E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 284 Convergence RMSE: 1.144424E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 285 Convergence RMSE: 1.144810E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 286 Convergence RMSE: 1.145163E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 287 Convergence RMSE: 1.145485E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 288 Convergence RMSE: 1.145777E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 289 Convergence RMSE: 1.146041E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 290 Convergence RMSE: 1.146278E-5
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 291 Convergence RMSE: 1.208721E-2
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 292 Convergence RMSE: 1.791116E-3
+01:28:40 TRACE [librism::solvers::mdiis] Iteration: 293 Convergence RMSE: 2.101584E-3
+01:28:41 TRACE [librism::solvers::mdiis] Iteration: 294 Convergence RMSE: 2.170217E-4
+01:28:41 TRACE [librism::solvers::mdiis] Iteration: 295 Convergence RMSE: 1.049386E-4
+01:28:41 TRACE [librism::solvers::mdiis] Iteration: 296 Convergence RMSE: 2.058568E-4
+01:28:41 TRACE [librism::solvers::mdiis] Iteration: 297 Convergence RMSE: 5.274176E-4
+01:28:41 TRACE [librism::solvers::mdiis] Iteration: 298 Convergence RMSE: 1.442486E-3
+01:28:41 TRACE [librism::solvers::mdiis] Iteration: 299 Convergence RMSE: 4.842010E-4
+01:28:41 TRACE [librism::solvers::mdiis] Iteration: 300 Convergence RMSE: 2.953045E-4
+01:28:41 TRACE [librism::solvers::mdiis] Iteration: 301 Convergence RMSE: 3.497171E-3
+01:28:41 TRACE [librism::solvers::mdiis] Iteration: 302 Convergence RMSE: 2.505627E-4
+01:28:41 TRACE [librism::solvers::mdiis] Iteration: 303 Convergence RMSE: 2.051940E-3
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 304 Convergence RMSE: 3.229508E-4
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 305 Convergence RMSE: 4.718066E-4
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 306 Convergence RMSE: 6.115379E-5
+01:28:42 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 307 Convergence RMSE: 6.555715E-5
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 308 Convergence RMSE: 1.699909E-6
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 309 Convergence RMSE: 1.219522E-6
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 310 Convergence RMSE: 9.592133E-7
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 311 Convergence RMSE: 8.298438E-7
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 312 Convergence RMSE: 7.702062E-7
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 313 Convergence RMSE: 7.439028E-7
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 314 Convergence RMSE: 7.323853E-7
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 315 Convergence RMSE: 7.270893E-7
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 316 Convergence RMSE: 7.242361E-7
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 317 Convergence RMSE: 7.221911E-7
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 318 Convergence RMSE: 7.202629E-7
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 319 Convergence RMSE: 7.181764E-7
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 320 Convergence RMSE: 7.158412E-7
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 321 Convergence RMSE: 7.132487E-7
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 322 Convergence RMSE: 7.104237E-7
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 323 Convergence RMSE: 7.074030E-7
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 324 Convergence RMSE: 7.042246E-7
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 325 Convergence RMSE: 7.009243E-7
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 326 Convergence RMSE: 6.975327E-7
+01:28:42 TRACE [librism::solvers::mdiis] Iteration: 327 Convergence RMSE: 6.940761E-7
+01:28:43 TRACE [librism::solvers::mdiis] Iteration: 328 Convergence RMSE: 1.513335E-4
+01:28:43 TRACE [librism::solvers::mdiis] Iteration: 329 Convergence RMSE: 9.458623E-6
+01:28:43 TRACE [librism::solvers::mdiis] Iteration: 330 Convergence RMSE: 9.923609E-6
+01:28:43 TRACE [librism::solvers::mdiis] Iteration: 331 Convergence RMSE: 2.430119E-6
+01:28:43 TRACE [librism::solvers::mdiis] Iteration: 332 Convergence RMSE: 4.315100E-4
+01:28:43 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:43 TRACE [librism::solvers::mdiis] Iteration: 333 Convergence RMSE: 4.412762E-4
+01:28:43 TRACE [librism::solvers::mdiis] Iteration: 334 Convergence RMSE: 8.145113E-7
+01:28:43 TRACE [librism::solvers::mdiis] Iteration: 335 Convergence RMSE: 5.069786E-7
+01:28:43 TRACE [librism::solvers::mdiis] Iteration: 336 Convergence RMSE: 3.344934E-7
+01:28:43 TRACE [librism::solvers::mdiis] Iteration: 337 Convergence RMSE: 2.509488E-7
+01:28:43 TRACE [librism::solvers::mdiis] Iteration: 338 Convergence RMSE: 2.194639E-7
+01:28:43 TRACE [librism::solvers::mdiis] Iteration: 339 Convergence RMSE: 2.113600E-7
+01:28:43 TRACE [librism::solvers::mdiis] Iteration: 340 Convergence RMSE: 2.109191E-7
+01:28:43 TRACE [librism::solvers::mdiis] Iteration: 341 Convergence RMSE: 2.120812E-7
+01:28:43 TRACE [librism::solvers::mdiis] Iteration: 342 Convergence RMSE: 2.130752E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 343 Convergence RMSE: 2.135795E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 344 Convergence RMSE: 2.136660E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 345 Convergence RMSE: 2.134687E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 346 Convergence RMSE: 2.130972E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 347 Convergence RMSE: 2.126264E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 348 Convergence RMSE: 2.121036E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 349 Convergence RMSE: 2.115577E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 350 Convergence RMSE: 2.110061E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 351 Convergence RMSE: 2.104591E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 352 Convergence RMSE: 2.099231E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 353 Convergence RMSE: 2.094017E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 354 Convergence RMSE: 4.407334E-5
+01:28:44 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 355 Convergence RMSE: 4.472015E-5
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 356 Convergence RMSE: 2.434348E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 357 Convergence RMSE: 2.279344E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 358 Convergence RMSE: 2.198643E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 359 Convergence RMSE: 2.152813E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 360 Convergence RMSE: 2.124137E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 361 Convergence RMSE: 2.104615E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 362 Convergence RMSE: 2.090439E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 363 Convergence RMSE: 2.079643E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 364 Convergence RMSE: 2.071107E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 365 Convergence RMSE: 2.064144E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 366 Convergence RMSE: 2.058308E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 367 Convergence RMSE: 2.053295E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 368 Convergence RMSE: 2.048897E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 369 Convergence RMSE: 2.044965E-7
+01:28:44 TRACE [librism::solvers::mdiis] Iteration: 370 Convergence RMSE: 2.041397E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 371 Convergence RMSE: 2.038115E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 372 Convergence RMSE: 2.035065E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 373 Convergence RMSE: 2.032205E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 374 Convergence RMSE: 2.029504E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 375 Convergence RMSE: 2.026938E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 376 Convergence RMSE: 1.220855E-4
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 377 Convergence RMSE: 4.720320E-5
+01:28:45 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 378 Convergence RMSE: 3.423666E-6
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 379 Convergence RMSE: 7.827332E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 380 Convergence RMSE: 4.925146E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 381 Convergence RMSE: 3.179097E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 382 Convergence RMSE: 2.194324E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 383 Convergence RMSE: 1.703419E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 384 Convergence RMSE: 1.498466E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 385 Convergence RMSE: 1.428009E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 386 Convergence RMSE: 1.408443E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 387 Convergence RMSE: 1.404424E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 388 Convergence RMSE: 1.403608E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 389 Convergence RMSE: 1.402454E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 390 Convergence RMSE: 1.400354E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 391 Convergence RMSE: 1.397503E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 392 Convergence RMSE: 1.394215E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 393 Convergence RMSE: 1.390740E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 394 Convergence RMSE: 1.387238E-7
+01:28:45 TRACE [librism::solvers::mdiis] Iteration: 395 Convergence RMSE: 1.383800E-7
+01:28:46 TRACE [librism::solvers::mdiis] Iteration: 396 Convergence RMSE: 1.380474E-7
+01:28:46 TRACE [librism::solvers::mdiis] Iteration: 397 Convergence RMSE: 1.377277E-7
+01:28:46 TRACE [librism::solvers::mdiis] Iteration: 398 Convergence RMSE: 1.374212E-7
+01:28:46 TRACE [librism::solvers::mdiis] Iteration: 399 Convergence RMSE: 6.083270E-5
+01:28:46 TRACE [librism::solvers::mdiis] Iteration: 400 Convergence RMSE: 3.101165E-6
+01:28:46 TRACE [librism::solvers::mdiis] Iteration: 401 Convergence RMSE: 6.311376E-6
+01:28:46 TRACE [librism::solvers::mdiis] Iteration: 402 Convergence RMSE: 3.695565E-8
+01:28:46 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:46 TRACE [librism::solvers::mdiis] Iteration: 403 Convergence RMSE: 9.068225E-7
+01:28:46 TRACE [librism::solvers::mdiis] Iteration: 404 Convergence RMSE: 7.248540E-8
+01:28:46 TRACE [librism::solvers::mdiis] Iteration: 405 Convergence RMSE: 6.678139E-8
+01:28:46 TRACE [librism::solvers::mdiis] Iteration: 406 Convergence RMSE: 6.433686E-8
+01:28:46 TRACE [librism::solvers::mdiis] Iteration: 407 Convergence RMSE: 6.359175E-8
+01:28:46 TRACE [librism::solvers::mdiis] Iteration: 408 Convergence RMSE: 6.364591E-8
+01:28:46 TRACE [librism::solvers::mdiis] Iteration: 409 Convergence RMSE: 6.402651E-8
+01:28:46 TRACE [librism::solvers::mdiis] Iteration: 410 Convergence RMSE: 6.450216E-8
+01:28:46 TRACE [librism::solvers::mdiis] Iteration: 411 Convergence RMSE: 6.496787E-8
+01:28:46 TRACE [librism::solvers::mdiis] Iteration: 412 Convergence RMSE: 6.538172E-8
+01:28:47 TRACE [librism::solvers::mdiis] Iteration: 413 Convergence RMSE: 6.573195E-8
+01:28:47 TRACE [librism::solvers::mdiis] Iteration: 414 Convergence RMSE: 6.602038E-8
+01:28:47 TRACE [librism::solvers::mdiis] Iteration: 415 Convergence RMSE: 6.625422E-8
+01:28:47 TRACE [librism::solvers::mdiis] Iteration: 416 Convergence RMSE: 6.644212E-8
+01:28:47 TRACE [librism::solvers::mdiis] Iteration: 417 Convergence RMSE: 6.659246E-8
+01:28:47 TRACE [librism::solvers::mdiis] Iteration: 418 Convergence RMSE: 6.671263E-8
+01:28:47 TRACE [librism::solvers::mdiis] Iteration: 419 Convergence RMSE: 6.680882E-8
+01:28:47 TRACE [librism::solvers::mdiis] Iteration: 420 Convergence RMSE: 6.688609E-8
+01:28:47 TRACE [librism::solvers::mdiis] Iteration: 421 Convergence RMSE: 6.694851E-8
+01:28:47 TRACE [librism::solvers::mdiis] Iteration: 422 Convergence RMSE: 6.699930E-8
+01:28:47 TRACE [librism::solvers::mdiis] Iteration: 423 Convergence RMSE: 6.704098E-8
+01:28:47 TRACE [librism::solvers::mdiis] Iteration: 424 Convergence RMSE: 3.428965E-5
+01:28:47 TRACE [librism::solvers::mdiis] Iteration: 425 Convergence RMSE: 6.213433E-7
+01:28:47 TRACE [librism::solvers::mdiis] Iteration: 426 Convergence RMSE: 2.914017E-6
+01:28:47 TRACE [librism::solvers::mdiis] Iteration: 427 Convergence RMSE: 6.865600E-7
+01:28:47 TRACE [librism::solvers::mdiis] Iteration: 428 Convergence RMSE: 3.490587E-6
+01:28:47 TRACE [librism::solvers::mdiis] Iteration: 429 Convergence RMSE: 9.715832E-6
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 430 Convergence RMSE: 7.280233E-7
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 431 Convergence RMSE: 2.194778E-5
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 432 Convergence RMSE: 2.590995E-5
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 433 Convergence RMSE: 1.171745E-5
+01:28:48 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 434 Convergence RMSE: 6.944663E-5
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 435 Convergence RMSE: 6.121107E-8
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 436 Convergence RMSE: 5.405910E-8
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 437 Convergence RMSE: 5.093582E-8
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 438 Convergence RMSE: 4.971126E-8
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 439 Convergence RMSE: 4.930296E-8
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 440 Convergence RMSE: 4.921923E-8
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 441 Convergence RMSE: 4.925130E-8
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 442 Convergence RMSE: 4.931510E-8
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 443 Convergence RMSE: 4.937916E-8
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 444 Convergence RMSE: 4.943341E-8
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 445 Convergence RMSE: 4.947610E-8
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 446 Convergence RMSE: 4.950834E-8
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 447 Convergence RMSE: 4.953200E-8
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 448 Convergence RMSE: 4.954890E-8
+01:28:48 TRACE [librism::solvers::mdiis] Iteration: 449 Convergence RMSE: 4.956056E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 450 Convergence RMSE: 4.956819E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 451 Convergence RMSE: 4.957271E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 452 Convergence RMSE: 4.957483E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 453 Convergence RMSE: 4.957507E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 454 Convergence RMSE: 4.957382E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 455 Convergence RMSE: 5.221262E-5
+01:28:49 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 456 Convergence RMSE: 5.241086E-5
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 457 Convergence RMSE: 5.132762E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 458 Convergence RMSE: 5.065361E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 459 Convergence RMSE: 5.027474E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 460 Convergence RMSE: 5.005108E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 461 Convergence RMSE: 4.991228E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 462 Convergence RMSE: 4.982181E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 463 Convergence RMSE: 4.975995E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 464 Convergence RMSE: 4.971565E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 465 Convergence RMSE: 4.968244E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 466 Convergence RMSE: 4.965642E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 467 Convergence RMSE: 4.963514E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 468 Convergence RMSE: 4.961705E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 469 Convergence RMSE: 4.960110E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 470 Convergence RMSE: 4.958660E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 471 Convergence RMSE: 4.957307E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 472 Convergence RMSE: 4.956017E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 473 Convergence RMSE: 4.954767E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 474 Convergence RMSE: 4.953538E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 475 Convergence RMSE: 4.952320E-8
+01:28:49 TRACE [librism::solvers::mdiis] Iteration: 476 Convergence RMSE: 4.951101E-8
+01:28:50 TRACE [librism::solvers::mdiis] Iteration: 477 Convergence RMSE: 5.530549E-5
+01:28:50 TRACE [librism::solvers::mdiis] Iteration: 478 Convergence RMSE: 1.115459E-7
+01:28:50 TRACE [librism::solvers::mdiis] Iteration: 479 Convergence RMSE: 2.747628E-6
+01:28:50 TRACE [librism::solvers::mdiis] Iteration: 480 Convergence RMSE: 1.089739E-7
+01:28:50 TRACE [librism::solvers::mdiis] Iteration: 481 Convergence RMSE: 6.907654E-7
+01:28:50 TRACE [librism::solvers::mdiis] Iteration: 482 Convergence RMSE: 1.549670E-6
+01:28:50 TRACE [librism::solvers::mdiis] Iteration: 483 Convergence RMSE: 9.346027E-6
+01:28:50 TRACE [librism::solvers::mdiis] Iteration: 484 Convergence RMSE: 1.092081E-6
+01:28:50 TRACE [librism::solvers::mdiis] Iteration: 485 Convergence RMSE: 4.433048E-6
+01:28:50 TRACE [librism::solvers::mdiis] Iteration: 486 Convergence RMSE: 4.563855E-7
+01:28:51 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 487 Convergence RMSE: 4.060594E-7
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 488 Convergence RMSE: 3.412739E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 489 Convergence RMSE: 2.201898E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 490 Convergence RMSE: 1.515330E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 491 Convergence RMSE: 1.180975E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 492 Convergence RMSE: 1.056060E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 493 Convergence RMSE: 1.028044E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 494 Convergence RMSE: 1.033241E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 495 Convergence RMSE: 1.045392E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 496 Convergence RMSE: 1.056019E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 497 Convergence RMSE: 1.063275E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 498 Convergence RMSE: 1.067403E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 499 Convergence RMSE: 1.069127E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 500 Convergence RMSE: 1.069141E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 501 Convergence RMSE: 1.067987E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 502 Convergence RMSE: 1.066059E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 503 Convergence RMSE: 1.063632E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 504 Convergence RMSE: 1.060892E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 505 Convergence RMSE: 1.057969E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 506 Convergence RMSE: 1.054948E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 507 Convergence RMSE: 1.051888E-8
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 508 Convergence RMSE: 1.930063E-6
+01:28:51 TRACE [librism::solvers::mdiis] MDIIS restarting
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 509 Convergence RMSE: 1.873092E-6
+01:28:51 TRACE [librism::solvers::mdiis] Iteration: 510 Convergence RMSE: 1.035017E-8
+01:28:52 TRACE [librism::solvers::mdiis] Iteration: 511 Convergence RMSE: 1.031068E-8
+01:28:52 TRACE [librism::solvers::mdiis] Iteration: 512 Convergence RMSE: 1.027608E-8
+01:28:52 TRACE [librism::solvers::mdiis] Iteration: 513 Convergence RMSE: 1.024504E-8
+01:28:52 TRACE [librism::solvers::mdiis] Iteration: 514 Convergence RMSE: 1.021668E-8
+01:28:52 TRACE [librism::solvers::mdiis] Iteration: 515 Convergence RMSE: 1.019041E-8
+01:28:52 TRACE [librism::solvers::mdiis] Iteration: 516 Convergence RMSE: 1.016582E-8
+01:28:52 TRACE [librism::solvers::mdiis] Iteration: 517 Convergence RMSE: 1.014263E-8
+01:28:52 TRACE [librism::solvers::mdiis] Iteration: 518 Convergence RMSE: 1.012063E-8
+01:28:52 TRACE [librism::solvers::mdiis] Iteration: 519 Convergence RMSE: 1.009967E-8
+01:28:52 TRACE [librism::solvers::mdiis] Iteration: 520 Convergence RMSE: 1.007964E-8
+01:28:52 TRACE [librism::solvers::mdiis] Iteration: 521 Convergence RMSE: 1.006044E-8
+01:28:52 TRACE [librism::solvers::mdiis] Iteration: 522 Convergence RMSE: 1.004201E-8
+01:28:52 TRACE [librism::solvers::mdiis] Iteration: 523 Convergence RMSE: 1.002429E-8
+01:28:52 TRACE [librism::solvers::mdiis] Iteration: 524 Convergence RMSE: 1.000723E-8
+01:28:52 TRACE [librism::solvers::mdiis] Iteration: 525 Convergence RMSE: 9.990785E-9
+01:28:52 INFO  [librism::drivers::rism] Finished! Iteration: 525 RMSE: 9.990785E-9 Time Elapsed: 25.113266834 s
+01:28:52 INFO  [librism::drivers::rism] Total Solute-Solvent Iterations: 525 Total Solver Time: 25.210180891 s
+01:28:52 INFO  [librism::drivers::rism] Total Iterations: 525 Total Job Time: 25.217327102 s
+===================================================================================
+SLURM job 10977247 ended:     Thu Mar 07 01:28:52 GMT 2024 (Unix Epoch time: 1709774932)
+This is an estimated end time using the 'date' command from node node071.hpc.strath.ac.uk
+For accurate timings, use 'sacct -j 10977247 -X --format=Submit,Start,End,Elapsed'
+======================================================================================

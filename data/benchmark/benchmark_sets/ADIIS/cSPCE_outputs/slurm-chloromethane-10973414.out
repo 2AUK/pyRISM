@@ -1,0 +1,160 @@
+===================================================================================
+SLURM Job ID:            10973414
+Submit time:             Wed Mar 06 15:00:55 GMT 2024 (Unix Epoch time: 1709737255)
+Start time:              Wed Mar 06 15:02:25 GMT 2024 (Unix Epoch time: 1709737345)
+No. nodes:               1
+No. tasks:               1
+Job name:                chloromethane_pyrism
+Account:                 palmer-mmms
+QoS:                     normal
+Partition (queue):       standard
+Submit directory:        /users/tjb20156/pyRISM/data/benchmark/benchmark_sets/cSPCE_outputs
+Script name:             /users/tjb20156/pyRISM/data/benchmark/benchmark_sets/cSPCE/tmpds_8ef_n.sh
+Master node:             node077
+Nodes used:              node077
+Task distribution:       
+===================================================================================
+
+
+             ____  ___ ____  __  __ 
+ _ __  _   _|  _ \|_ _/ ___||  \/  |
+| '_ \| | | | |_) || |\___ \| |\/| |
+| |_) | |_| |  _ < | | ___) | |  | |
+| .__/ \__, |_| \_\___|____/|_|  |_|
+|_|    |___/                        
+
+
++---------------+---------+
+| System        |         |
++---------------+---------+
+| Temperature   | 300 K   |
++---------------+---------+
+| Num. Points   | 8192    |
++---------------+---------+
+| Radius        | 40.96 Å |
++---------------+---------+
+| Grid Spacing  | 0.005 Å |
++---------------+---------+
+| Lambda Cycles | 1       |
++---------------+---------+
++-------------------+------------------+
+| Operator          |                  |
++-------------------+------------------+
+| Integral Equation | Extended RISM    |
++-------------------+------------------+
+| Closure           | Kovalenko-Hirata |
++-------------------+------------------+
++------------+---------------+
+| Potential  |               |
++------------+---------------+
+| Non-Bonded | Lennard-Jones |
++------------+---------------+
+| Coulombic  | Coulomb       |
++------------+---------------+
++----------------+-------+
+| Solver         |       |
++----------------+-------+
+| Method         | ADIIS |
++----------------+-------+
+| Max Iterations | 10000 |
++----------------+-------+
+| Tolerance      | 1E-8  |
++----------------+-------+
+| Picard Damping | 0.1   |
++----------------+-------+
+| MDIIS Damping  | 0.3   |
++----------------+-------+
+| Depth          | 20    |
++----------------+-------+
+15:02:29 TRACE [librism::drivers::rism] Defining solvent-solvent problem
+15:02:29 TRACE [librism::drivers::rism] Loading saved solution data from: /users/tjb20156/pyRISM/data/benchmark/solvent_data/solvent_bins/cSPCE_Extended_RISM_Kovalenko-Hirata_300K.bin
+15:02:29 TRACE [librism::drivers::rism] Checking for dipole moment
+15:02:29 TRACE [librism::drivers::rism] Rebuilding solvent intramolecular correlation function
+15:02:29 TRACE [librism::drivers::rism] Defining solute-solvent problem
+15:02:29 INFO  [librism::drivers::rism] Solute data found
+15:02:29 WARN  [librism::drivers::rism] pyRISM only tested for infinite dilution; setting non-zero solute density may not work
+15:02:29 TRACE [librism::drivers::rism] Tabulating solute-solvent potentials
+15:02:29 TRACE [librism::drivers::rism] Tabulating solute intramolecular correlation functions
+15:02:29 TRACE [librism::drivers::rism] Defining operator
+15:02:29 INFO  [librism::drivers::rism] Starting solute-solvent solver
+15:02:29 INFO  [librism::drivers::rism] Lambda cycle: 1/1
+15:02:29 TRACE [librism::solvers::adiis] Iteration: 0 Convergence RMSE: 1.000000E20
+15:02:29 TRACE [librism::solvers::adiis] Iteration: 1 Convergence RMSE: 4.425204E-1
+15:02:29 TRACE [librism::solvers::adiis] Iteration: 2 Convergence RMSE: 2.196961E-1
+15:02:29 TRACE [librism::solvers::adiis] Iteration: 3 Convergence RMSE: 1.370703E-1
+15:02:29 TRACE [librism::solvers::adiis] Iteration: 4 Convergence RMSE: 7.875660E-2
+15:02:29 TRACE [librism::solvers::adiis] Iteration: 5 Convergence RMSE: 5.331002E-2
+15:02:29 TRACE [librism::solvers::adiis] Iteration: 6 Convergence RMSE: 4.801293E-2
+15:02:29 TRACE [librism::solvers::adiis] Iteration: 7 Convergence RMSE: 4.363375E-2
+15:02:29 TRACE [librism::solvers::adiis] Iteration: 8 Convergence RMSE: 4.033298E-2
+15:02:29 TRACE [librism::solvers::adiis] Iteration: 9 Convergence RMSE: 3.941928E-2
+15:02:30 TRACE [librism::solvers::adiis] Iteration: 10 Convergence RMSE: 2.991437E-2
+15:02:30 TRACE [librism::solvers::adiis] Iteration: 11 Convergence RMSE: 2.510964E-2
+15:02:30 TRACE [librism::solvers::adiis] Iteration: 12 Convergence RMSE: 1.257991E-2
+15:02:30 TRACE [librism::solvers::adiis] Iteration: 13 Convergence RMSE: 1.350525E-2
+15:02:30 TRACE [librism::solvers::adiis] Iteration: 14 Convergence RMSE: 1.044944E-2
+15:02:30 TRACE [librism::solvers::adiis] Iteration: 15 Convergence RMSE: 9.443358E-3
+15:02:30 TRACE [librism::solvers::adiis] Iteration: 16 Convergence RMSE: 8.221264E-3
+15:02:30 TRACE [librism::solvers::adiis] Iteration: 17 Convergence RMSE: 7.622812E-3
+15:02:30 TRACE [librism::solvers::adiis] Iteration: 18 Convergence RMSE: 7.162379E-3
+15:02:30 TRACE [librism::solvers::adiis] Iteration: 19 Convergence RMSE: 5.641909E-3
+15:02:30 TRACE [librism::solvers::adiis] Iteration: 20 Convergence RMSE: 7.106725E-3
+15:02:30 TRACE [librism::solvers::adiis] Iteration: 21 Convergence RMSE: 6.843804E-3
+15:02:30 TRACE [librism::solvers::adiis] Iteration: 22 Convergence RMSE: 5.715030E-3
+15:02:30 TRACE [librism::solvers::adiis] Iteration: 23 Convergence RMSE: 5.879645E-3
+15:02:30 TRACE [librism::solvers::adiis] Iteration: 24 Convergence RMSE: 5.928430E-3
+15:02:30 TRACE [librism::solvers::adiis] Iteration: 25 Convergence RMSE: 4.816802E-3
+15:02:30 TRACE [librism::solvers::adiis] Iteration: 26 Convergence RMSE: 6.450757E-3
+15:02:30 TRACE [librism::solvers::adiis] Iteration: 27 Convergence RMSE: 6.195150E-3
+15:02:31 TRACE [librism::solvers::adiis] Iteration: 28 Convergence RMSE: 5.601846E-3
+15:02:31 TRACE [librism::solvers::adiis] Iteration: 29 Convergence RMSE: 3.338381E-3
+15:02:31 TRACE [librism::solvers::adiis] Iteration: 30 Convergence RMSE: 2.414012E-3
+15:02:31 TRACE [librism::solvers::adiis] Iteration: 31 Convergence RMSE: 2.376809E-3
+15:02:31 TRACE [librism::solvers::adiis] Iteration: 32 Convergence RMSE: 2.993702E-3
+15:02:31 TRACE [librism::solvers::adiis] Iteration: 33 Convergence RMSE: 2.130845E-3
+15:02:31 TRACE [librism::solvers::adiis] Iteration: 34 Convergence RMSE: 2.220561E-3
+15:02:31 TRACE [librism::solvers::adiis] Iteration: 35 Convergence RMSE: 1.779319E-3
+15:02:31 TRACE [librism::solvers::adiis] Iteration: 36 Convergence RMSE: 2.099492E-3
+15:02:31 TRACE [librism::solvers::adiis] Iteration: 37 Convergence RMSE: 1.382994E-3
+15:02:31 TRACE [librism::solvers::adiis] Iteration: 38 Convergence RMSE: 9.555260E-4
+15:02:31 TRACE [librism::solvers::adiis] Iteration: 39 Convergence RMSE: 5.862466E-4
+15:02:31 TRACE [librism::solvers::adiis] Iteration: 40 Convergence RMSE: 4.639513E-4
+15:02:31 TRACE [librism::solvers::adiis] Iteration: 41 Convergence RMSE: 3.117763E-4
+15:02:31 TRACE [librism::solvers::adiis] Iteration: 42 Convergence RMSE: 2.988130E-4
+15:02:31 TRACE [librism::solvers::adiis] Iteration: 43 Convergence RMSE: 1.002330E-4
+15:02:32 TRACE [librism::solvers::adiis] Iteration: 44 Convergence RMSE: 7.762816E-5
+15:02:32 TRACE [librism::solvers::adiis] Iteration: 45 Convergence RMSE: 3.425064E-5
+15:02:32 TRACE [librism::solvers::adiis] Iteration: 46 Convergence RMSE: 2.195295E-5
+15:02:32 TRACE [librism::solvers::adiis] Iteration: 47 Convergence RMSE: 1.163043E-5
+15:02:32 TRACE [librism::solvers::adiis] Iteration: 48 Convergence RMSE: 6.949055E-6
+15:02:32 TRACE [librism::solvers::adiis] Iteration: 49 Convergence RMSE: 4.769967E-6
+15:02:32 TRACE [librism::solvers::adiis] Iteration: 50 Convergence RMSE: 4.480381E-6
+15:02:32 TRACE [librism::solvers::adiis] Iteration: 51 Convergence RMSE: 4.421048E-6
+15:02:32 TRACE [librism::solvers::adiis] Iteration: 52 Convergence RMSE: 4.097643E-6
+15:02:32 TRACE [librism::solvers::adiis] Iteration: 53 Convergence RMSE: 3.815333E-6
+15:02:32 TRACE [librism::solvers::adiis] Iteration: 54 Convergence RMSE: 3.483465E-6
+15:02:32 TRACE [librism::solvers::adiis] Iteration: 55 Convergence RMSE: 2.615043E-6
+15:02:32 TRACE [librism::solvers::adiis] Iteration: 56 Convergence RMSE: 2.314115E-6
+15:02:32 TRACE [librism::solvers::adiis] Iteration: 57 Convergence RMSE: 1.949727E-6
+15:02:32 TRACE [librism::solvers::adiis] Iteration: 58 Convergence RMSE: 1.096980E-6
+15:02:33 TRACE [librism::solvers::adiis] Iteration: 59 Convergence RMSE: 1.005090E-6
+15:02:33 TRACE [librism::solvers::adiis] Iteration: 60 Convergence RMSE: 6.469507E-7
+15:02:33 TRACE [librism::solvers::adiis] Iteration: 61 Convergence RMSE: 4.947241E-7
+15:02:33 TRACE [librism::solvers::adiis] Iteration: 62 Convergence RMSE: 3.538366E-7
+15:02:33 TRACE [librism::solvers::adiis] Iteration: 63 Convergence RMSE: 2.252489E-7
+15:02:33 TRACE [librism::solvers::adiis] Iteration: 64 Convergence RMSE: 9.538704E-8
+15:02:33 TRACE [librism::solvers::adiis] Iteration: 65 Convergence RMSE: 6.144596E-8
+15:02:33 TRACE [librism::solvers::adiis] Iteration: 66 Convergence RMSE: 5.097163E-8
+15:02:33 TRACE [librism::solvers::adiis] Iteration: 67 Convergence RMSE: 4.722551E-8
+15:02:33 TRACE [librism::solvers::adiis] Iteration: 68 Convergence RMSE: 2.732928E-8
+15:02:33 TRACE [librism::solvers::adiis] Iteration: 69 Convergence RMSE: 1.766735E-8
+15:02:33 TRACE [librism::solvers::adiis] Iteration: 70 Convergence RMSE: 1.290110E-8
+15:02:33 TRACE [librism::solvers::adiis] Iteration: 71 Convergence RMSE: 6.389740E-9
+15:02:33 INFO  [librism::drivers::rism] Finished! Iteration: 71 RMSE: 6.389740E-9 Time Elapsed: 4.117553987 s
+15:02:33 INFO  [librism::drivers::rism] Total Solute-Solvent Iterations: 71 Total Solver Time: 4.160553704 s
+15:02:33 INFO  [librism::drivers::rism] Total Iterations: 71 Total Job Time: 4.168504868 s
+===================================================================================
+SLURM job 10973414 ended:     Wed Mar 06 15:02:34 GMT 2024 (Unix Epoch time: 1709737354)
+This is an estimated end time using the 'date' command from node node077.hpc.strath.ac.uk
+For accurate timings, use 'sacct -j 10973414 -X --format=Submit,Start,End,Elapsed'
+======================================================================================
