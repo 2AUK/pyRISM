@@ -70,12 +70,14 @@ performance_dict = {
 df = pl.from_dict(performance_dict)
 
 df_original = df.clone()
+df_dup = df.clone()
 df = df.groupby("Solute Size").mean()
 df_original = df_original.groupby("Solute Size").agg(pl.std("Solute-Solvent Time (s)"))
 df = df.sort("Solute Size")
 df_original = df_original.sort("Solute Size")
 print(df)
 print(df_original)
+print(df_dup.filter(pl.col("Solute Size") == 29))
 #std = df_original.groupby("Solute Size").std()
 
 # df = df.sort("Total Size").with_columns(
