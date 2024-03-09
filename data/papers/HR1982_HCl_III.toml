@@ -3,8 +3,8 @@ temp = 210
 kT = 1.0
 kU = 0.00198720414667
 charge_coeff = 167101.0
-npts = 2048
-radius = 20.48
+npts = 8192
+radius = 40.96
 lam = 1
 
 [params]
@@ -12,10 +12,11 @@ potential = "LJ"
 closure = "KH"
 IE = "XRISM"
 solver = "MDIIS"
-depth = 8
-picard_damping = 0.001
+depth = 20
+picard_damping = 0.1
 itermax = 10000
-tol = 1E-7
+tol = 1e-7
+mdiis_damping = 0.1
 
 [solvent]
 nsv = 2
@@ -24,13 +25,5 @@ nspv = 1
 [solvent.HCl]
 dens = 0.018
 ns = 2
-
-"H" = [
-    [20.0, 0.4, 0.2],
-    [0.00000000e+00, 0.00000000e+00, 0.00000000e+00]
-]
-
-"Cl" = [
-    [259.0, 3.353, -0.2],
-    [1.30000000e+00, 0.00000000e+00, 0.00000000e+00]
-]
+H = [ [ 20.0, 0.4, 0.2,], [ 0.0, 0.0, 0.0,],]
+Cl = [ [ 259.0, 3.353, -0.2,], [ 1.3, 0.0, 0.0,],]

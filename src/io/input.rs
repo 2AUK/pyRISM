@@ -68,7 +68,7 @@ impl InputTOMLHandler {
                 mdiis_settings: None,
                 gillan_settings: None,
             },
-            SolverKind::ADIIS => {
+            SolverKind::MDIIS => {
                 let mdiis_settings = Some(MDIISSettings {
                     depth: input_toml.params.depth.expect("MDIIS depth parameter"),
                     damping: input_toml
@@ -84,7 +84,7 @@ impl InputTOMLHandler {
                     gillan_settings: None,
                 }
             }
-            SolverKind::MDIIS => {
+            SolverKind::MDIIS2 => {
                 let mdiis_settings = Some(MDIISSettings {
                     depth: input_toml.params.depth.expect("MDIIS depth parameter"),
                     damping: input_toml

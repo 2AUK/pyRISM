@@ -19,7 +19,7 @@ pub enum SolverKind {
     Picard,
     Ng,
     MDIIS,
-    ADIIS,
+    MDIIS2,
     Gillan,
     LMV,
 }
@@ -30,7 +30,7 @@ impl fmt::Display for SolverKind {
             SolverKind::Picard => write!(f, "Picard"),
             SolverKind::Ng => write!(f, "Ng"),
             SolverKind::MDIIS => write!(f, "MDIIS"),
-            SolverKind::ADIIS => write!(f, "ADIIS"),
+            SolverKind::MDIIS2 => write!(f, "MDIIS2"),
             SolverKind::Gillan => write!(f, "Gillan"),
             SolverKind::LMV => write!(f, "LMV"),
         }
@@ -48,7 +48,7 @@ impl<'source> FromPyObject<'source> for SolverKind {
             "Picard" => Ok(SolverKind::Picard),
             "Ng" => Ok(SolverKind::Ng),
             "MDIIS" => Ok(SolverKind::MDIIS),
-            "ADIIS" => Ok(SolverKind::ADIIS),
+            "MDIIS2" => Ok(SolverKind::MDIIS2),
             "Gillan" => Ok(SolverKind::Gillan),
             "LMV" => Ok(SolverKind::LMV),
             _ => panic!("not a valid solver"),
@@ -60,8 +60,8 @@ impl SolverKind {
     pub fn set(&self, settings: &SolverSettings) -> Box<dyn Solver> {
         match self {
             SolverKind::Picard => Box::new(Picard::new(settings)),
-            SolverKind::MDIIS => Box::new(MDIIS::new(settings)),
-            SolverKind::ADIIS => Box::new(ADIIS::new(settings)),
+            SolverKind::MDIIS => Box::new(ADIIS::new(settings)),
+            SolverKind::MDIIS2 => Box::new(MDIIS::new(settings)),
             SolverKind::Ng => Box::new(Ng::new(settings)),
             SolverKind::LMV => Box::new(LMV::new(settings)),
             _ => panic!("solver unimplemented"),
