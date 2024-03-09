@@ -71,7 +71,7 @@ print(df_ratio_t)
 print(df_ratio_i)
 
 num_p = 740
-tau_space = np.linspace(0, 10, num=11)
+tau_space = np.linspace(0, 180, num=181)
 print(tau_space)
 rho_tau_adiis = []
 rho_tau_mdiis = []

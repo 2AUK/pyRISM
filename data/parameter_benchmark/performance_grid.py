@@ -14,7 +14,7 @@ uv_iterations = []
 for diag in inp_dir.rglob("*.diag"):
     grid_val = diag.parts[-2].split("_")[-1]
     print(grid_val)
-    grid.append(float(grid_val))
+    grid.append(int(grid_val))
     with open(diag, "r") as diag_file:
         for line in diag_file.readlines():
             line = line.split()
