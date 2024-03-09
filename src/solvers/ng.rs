@@ -34,9 +34,15 @@ impl Ng {
         // calculate difference between current and previous solutions from RISM equation
         let diff = curr.clone() - prev.clone();
 
+<<<<<<< HEAD:src/solvers/ng.rs
         self.fr.push_back(Array::from_iter(prev.clone()));
 
         self.gr.push_back(Array::from_iter(curr.clone()));
+=======
+        self.fr.push_back(Array::from_iter(curr.clone()));
+
+        self.gr.push_back(Array::from_iter(prev.clone()));
+>>>>>>> fdef8b3db084711ac2eb3aff1a01f40a7e042ea9:src/ng.rs
         // return Picard iteration step
         prev + self.picard_damping * diff
     }
@@ -62,12 +68,21 @@ impl Ng {
         b[[1]] = dn.dot(&d02);
 
         let c = a.solve_into(b).expect("solved coefficients for Ng solver");
+<<<<<<< HEAD:src/solvers/ng.rs
         let out = (1.0 - c[[0]] - c[[1]]) * Array::from_iter(self.gr[n].clone())
             + c[0] * Array::from_iter(self.gr[n - 1].clone())
             + c[1] * Array::from_iter(self.gr[n - 2].clone());
 
         self.fr.push_back(Array::from_iter(prev.clone()));
         self.gr.push_back(Array::from_iter(curr.clone()));
+=======
+        let out = (1.0 - c[[0]] - c[[1]]) * Array::from_iter(self.gr[2].clone())
+            + c[0] * Array::from_iter(self.gr[1].clone())
+            + c[1] * Array::from_iter(self.gr[0].clone());
+
+        self.fr.push_back(Array::from_iter(curr.clone()));
+        self.gr.push_back(Array::from_iter(prev.clone()));
+>>>>>>> fdef8b3db084711ac2eb3aff1a01f40a7e042ea9:src/ng.rs
         self.gr.pop_front();
         self.fr.pop_front();
 
