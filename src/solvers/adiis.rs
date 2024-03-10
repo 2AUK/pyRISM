@@ -191,12 +191,26 @@ impl ADIIS {
                 .solve_into(b_slice.clone().to_owned())
                 .expect("could not perform linear solve");
 
-            let mut out = Array::zeros(tr.raw_dim());
-            for i in 0..self.curr_depth {
-                let fr_term = &self.fr[i] * coefficients[[i + 1]];
-                let res_term = &self.res[i] * coefficients[[i + 1]];
-                out = out + (fr_term + self.mdiis_damping * res_term);
-            }
+            let coef_slice = coefficients
+                .slice(s![1..self.curr_depth + 1])
+                .to_owned()
+                .to_vec();
+            // Map-Reduce of output calculations
+            let out: Array1<f64> = coef_slice
+                .into_par_iter()
+                .zip(self.fr.par_iter())
+                .zip(self.res.par_iter())
+                .map(|((c, f), r)| c * f + self.mdiis_damping * c * r)
+                .reduce(
+                    || Array::zeros(tr.raw_dim()),
+                    |acc: Array1<f64>, val: Array1<f64>| acc + val,
+                );
+            // let mut out = Array::zeros(tr.raw_dim());
+            // for i in 0..self.curr_depth {
+            //     let fr_term = &self.fr[i] * coefficients[[i + 1]];
+            //     let res_term = &self.res[i] * coefficients[[i + 1]];
+            //     out = out + (fr_term + self.mdiis_damping * res_term);
+            // }
 
             // Store new input
             self.fr.push_front(out.clone());
