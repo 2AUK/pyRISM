@@ -27,10 +27,11 @@ pub use crate::drivers::rism::RISMDriver;
 pub use crate::io::writer::RISMWriter;
 pub use crate::thermodynamics::thermo::TDDriver;
 use data::solution::Solutions;
-use drivers::rism::{Compress, Verbosity};
+use drivers::rism::{Compress, JobDiagnostics, Verbosity, Write};
 use pybindings::pystructs::PyCorrelations;
 use pybindings::pystructs::PyGrid;
 use pybindings::pystructs::PyInteractions;
+use pybindings::pystructs::PyJobDiagnostics;
 use pybindings::pystructs::PySolution;
 use pybindings::pystructs::PySolvedData;
 use pybindings::pystructs::PyThermodynamics;
@@ -61,13 +62,15 @@ pub struct PyCalculator {
     pub verbosity: Verbosity,
     /// Solvent-solvent problem compression switch
     pub compress: Compress,
+    /// Write switch
+    pub write: Write,
     driver: RISMDriver,
 }
 
 #[pymethods]
 impl PyCalculator {
     #[new]
-    pub fn new(fname: String, verbosity: String, compress: bool) -> PyResult<Self> {
+    pub fn new(fname: String, verbosity: String, compress: bool, write: String) -> PyResult<Self> {
         let path = PathBuf::from(&fname);
         let driver = RISMDriver::from_toml(&path);
         let name = driver.name.clone();
@@ -81,10 +84,16 @@ impl PyCalculator {
             true => Compress::Compress,
             false => Compress::NoCompress,
         };
+        let write = match write.as_str() {
+            "none" => Write::NoWrite,
+            "csv" => Write::CSV,
+            _ => Write::CSV,
+        };
         Ok(PyCalculator {
             name,
             verbosity,
             compress,
+            write,
             driver,
         })
     }
@@ -92,7 +101,7 @@ impl PyCalculator {
     pub fn execute<'py>(
         &'py mut self,
         py: Python<'py>,
-    ) -> PyResult<(PySolution, PyThermodynamics, PyGrid)> {
+    ) -> PyResult<(PySolution, PyThermodynamics, PyGrid, PyJobDiagnostics)> {
         let (solution, diagnostics) = self.driver.execute(&self.verbosity, &self.compress);
         let grid = PyGrid::new(
             solution.config.data_config.npts,
@@ -102,7 +111,12 @@ impl PyCalculator {
         let wv = self.driver.solvent.borrow().wk.clone();
         let wu = self.driver.solute.as_ref().map(|v| v.borrow().wk.clone());
         let thermodynamics = TDDriver::new(&solution, wv, wu).execute();
-        let _ = RISMWriter::new(&self.name, &solution, &thermodynamics, &diagnostics).write();
+        let _ = match self.write {
+            Write::CSV => {
+                RISMWriter::new(&self.name, &solution, &thermodynamics, &diagnostics).write()?
+            }
+            _ => (),
+        };
         let py_corr_vv = PyCorrelations::from_correlations(solution.vv.correlations, py);
         let py_int_vv = PyInteractions::from_interactions(solution.vv.interactions, py);
         let py_vv = PySolvedData {
@@ -124,11 +138,13 @@ impl PyCalculator {
 
         let thermodynamics = PyThermodynamics::from_thermodynamics(thermodynamics, py);
 
+        let diagnostics = PyJobDiagnostics::from_jobdiagnostics(diagnostics, py);
+
         let solution = PySolution {
             vv: py_vv,
             uv: py_uv,
         };
-        Ok((solution, thermodynamics, grid))
+        Ok((solution, thermodynamics, grid, diagnostics))
     }
 }
 
@@ -142,12 +158,14 @@ pub struct Calculator {
     pub verbosity: Verbosity,
     /// Solvent-solvent problem compression switch
     pub compress: Compress,
+    /// Write switch
+    pub write: Write,
     driver: RISMDriver,
 }
 
 impl Calculator {
     /// Construct a new driver with the correct compression and verbosity flags
-    pub fn new(fname: PathBuf, verbosity: Verbosity, compress: Compress) -> Self {
+    pub fn new(fname: PathBuf, verbosity: Verbosity, compress: Compress, write: Write) -> Self {
         // Pull problem information from .toml file
         let driver = RISMDriver::from_toml(&fname);
         let name = driver.name.clone();
@@ -155,6 +173,7 @@ impl Calculator {
             name,
             verbosity,
             compress,
+            write,
             driver,
         }
     }
@@ -162,7 +181,7 @@ impl Calculator {
     /// Start the Driver to solve the problem, run the TDDriver to compute
     /// thermodynamic properties from the solved problem, and finally write all the outputs via
     /// RISMWriter.
-    pub fn execute(&mut self) -> (Solutions, Thermodynamics) {
+    pub fn execute(&mut self) -> (Solutions, Thermodynamics, JobDiagnostics) {
         let (solution, diagnostics) = self.driver.execute(&self.verbosity, &self.compress);
 
         // Pull the solvent and solute intramolecular correlation functions to be used by TDDriver
@@ -171,10 +190,14 @@ impl Calculator {
 
         let thermodynamics = TDDriver::new(&solution, wv, wu).execute();
 
-        let _ = RISMWriter::new(&self.name, &solution, &thermodynamics, &diagnostics).write();
-
+        let _ = match self.write {
+            Write::CSV => RISMWriter::new(&self.name, &solution, &thermodynamics, &diagnostics)
+                .write()
+                .unwrap(),
+            _ => (),
+        };
         // Return the solutions and thermodynamics if being used as a crate
-        (solution, thermodynamics)
+        (solution, thermodynamics, diagnostics)
     }
 }
 

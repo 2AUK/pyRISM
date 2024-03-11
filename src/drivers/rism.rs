@@ -77,6 +77,16 @@ pub enum Verbosity {
     VeryVerbose,
 }
 
+/// Write flags for writing to file
+pub enum Write {
+    /// Do not write any files
+    NoWrite,
+    /// Write to multiple CSV files
+    CSV,
+    /// Write to HDF (not implemented yet)
+    HDF,
+}
+
 /// Compression flag for compressing solvent-solvent problem
 pub enum Compress {
     /// Compress the problem to `.bin`. Compressed file takes input file name.

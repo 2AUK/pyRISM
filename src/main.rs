@@ -1,5 +1,4 @@
-use librism::drivers::rism::Compress;
-use librism::drivers::rism::Verbosity;
+use librism::drivers::rism::{Compress, Verbosity, Write};
 use librism::Calculator;
 use std::path::PathBuf;
 
@@ -55,6 +54,6 @@ fn main() -> Result<(), lexopt::Error> {
     let _dhat = dhat::Profiler::new_heap();
 
     let args = parse_args()?;
-    Calculator::new(args.input_file, args.verbosity, args.compress).execute();
+    Calculator::new(args.input_file, args.verbosity, args.compress, Write::CSV).execute();
     Ok(())
 }

@@ -1,5 +1,6 @@
 use crate::{
     data::core::{Correlations, Interactions},
+    drivers::rism::JobDiagnostics,
     thermodynamics::thermo::{Densities, SFEs, Thermodynamics},
 };
 use ndarray::{Array1, Array3};
@@ -246,4 +247,60 @@ pub struct PySolution {
 }
 
 #[pyclass]
-pub struct PyJobDetails {}
+pub struct PyJobDiagnostics {
+    /// Number of solvent sites
+    #[pyo3(get, set)]
+    pub v_system_size: usize,
+    /// Number of solute sites (0 if no solute defined)
+    #[pyo3(get, set)]
+    pub u_system_size: usize,
+    /// Number of lambda cycles
+    #[pyo3(get, set)]
+    pub lambda: usize,
+    /// Time for solvent-solvent problem (0 if using a preconverged solution)
+    #[pyo3(get, set)]
+    pub vv_time: f64,
+    /// Time for final stage of multi-stage solvent-solvent problem
+    #[pyo3(get, set)]
+    pub vv_time_final: f64,
+    /// Time for solute-solvent problem (0 if no solute defined)
+    #[pyo3(get, set)]
+    pub uv_time: f64,
+    /// Time for final stage of multi-stage solute-solvent problem
+    #[pyo3(get, set)]
+    pub uv_time_final: f64,
+    /// Number of iterations for solvent-solvent problem (0 if using a preconverged solution)
+    #[pyo3(get, set)]
+    pub vv_iterations: usize,
+    /// Number of iterations for final stage of multi-stage solvent-solvent problem
+    #[pyo3(get, set)]
+    pub vv_iterations_final: usize,
+    /// Number of iterations for solute-solvent problem (0 if no solute defined)
+    #[pyo3(get, set)]
+    pub uv_iterations: usize,
+    /// Number of iterations for final stage of multi-stage solute-solvent problem
+    #[pyo3(get, set)]
+    pub uv_iterations_final: usize,
+    /// Time for total job
+    #[pyo3(get, set)]
+    pub job_time: f64,
+}
+
+impl PyJobDiagnostics {
+    pub fn from_jobdiagnostics(job: JobDiagnostics, py: Python<'_>) -> PyJobDiagnostics {
+        PyJobDiagnostics {
+            v_system_size: job.v_system_size,
+            u_system_size: job.u_system_size,
+            lambda: job.lambda,
+            vv_time: job.vv_time,
+            vv_time_final: job.vv_time_final,
+            uv_time: job.uv_time,
+            uv_time_final: job.uv_time_final,
+            vv_iterations: job.vv_iterations,
+            vv_iterations_final: job.vv_iterations_final,
+            uv_iterations: job.uv_iterations,
+            uv_iterations_final: job.uv_iterations_final,
+            job_time: job.job_time,
+        }
+    }
+}
