@@ -50,6 +50,7 @@ tabled = "0.15.0"
 rayon = "1.9.0"
 
 [dev-dependencies]
+ndarray-stats = "0.5.1"
 
 [dependencies.fftw]
 version = "0.8.0"
@@ -66,4 +67,12 @@ debug = false
 lto = "fat"
 opt-level = "z"
 panic = "abort"
+strip = "debuginfo"
+
+[profile.test]
+codegen-units = 1
+incremental = true
+debug = false
+lto = "fat"
+opt-level = "z"
 strip = "debuginfo"
