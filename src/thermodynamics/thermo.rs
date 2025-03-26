@@ -180,7 +180,7 @@ impl<'a> TDDriver<'a> {
             Some(_) => {
                 let isothermal_compressibility = self.isothermal_compressibility();
                 let molecular_kb_pmv = self.kb_partial_molar_volume();
-                let rism_kb_pmv = self.rism_kb_partial_molar_volume();
+                let rism_kb_pmv = self.rism_kb_partial_molar_volume_real_space();
                 let total_density = self.total_species_density();
                 let sfed = Densities::new(
                     self.solutions,
@@ -348,6 +348,22 @@ impl<'a> TDDriver<'a> {
         let compressibility = self.isothermal_compressibility();
         compressibility * (1.0 - p_sum * c_sum)
     }
+
+    fn rism_kb_partial_molar_volume_real_space(&self) -> f64 {
+        let vv = &self.solutions.vv;
+        let uv = &self.solutions.uv.as_ref().unwrap();
+        let cr = &uv.correlations.cr;
+        let grid = Grid::new(vv.data_config.npts, vv.data_config.radius);
+        let r = &grid.rgrid;
+        let site_summed_cr = cr.sum_axis(Axis(2)).sum_axis(Axis(1));
+        let integrand = r * r * site_summed_cr * 4.0 * PI;
+        let compressibility = self.isothermal_compressibility();
+        let p_sum = self.total_species_density();
+        let c_sum = SFEs::integrate(&integrand, grid.dr);
+        compressibility * (1.0 - p_sum * c_sum)
+
+    }
+
 
     fn rism_kb_partial_molar_volume_density(&self) -> Array1<f64> {
         let vv = &self.solutions.vv;
